@@ -33,3 +33,22 @@ export interface CasinoCardData {
   /** Affiliate offer URL (centralized handling added later). */
   offerUrl: string;
 }
+
+/** Extra fields for the casino review page (merged with CasinoCardData). */
+export interface CasinoDetailExtra {
+  intro: string;
+  pros: string[];
+  cons: string[];
+  editorReview: string;
+  /** Editorial score on a 0–10 scale. */
+  editorScore: number;
+  minDeposit?: string;
+  withdrawalTime?: string;
+  kyc?: string;
+  support?: string;
+  mobile?: string;
+  paymentMethods?: string[];
+  faq?: { question: string; answer: string }[];
+}
+
+export type CasinoDetail = CasinoCardData & CasinoDetailExtra;
