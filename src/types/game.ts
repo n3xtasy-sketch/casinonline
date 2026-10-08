@@ -18,3 +18,20 @@ export interface GameCardData {
   /** Internal game page. */
   href: string;
 }
+
+/** Extra fields for the game detail page (merged with GameCardData). */
+export interface GameDetailExtra {
+  intro: string;
+  maxWin?: string;
+  releaseDate?: string;
+  reels?: string;
+  paylines?: string;
+  betRange?: string;
+  mechanics: string;
+  bonusFeatures?: string[];
+  /** Casino slugs where the game is available. */
+  availableCasinos?: string[];
+  faq?: { question: string; answer: string }[];
+}
+
+export type GameDetail = GameCardData & GameDetailExtra;
