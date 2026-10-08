@@ -1,7 +1,7 @@
 import type { CasinoCardData } from "@/types/casino";
 
-/** Mock casinos for Phase 2 homepage (replaced by real data later). */
-export const recommendedCasinos: CasinoCardData[] = [
+/** Mock casinos (replaced by real data later). */
+export const allCasinos: CasinoCardData[] = [
   {
     slug: "superbet-casino",
     name: "Superbet Casino",
@@ -10,6 +10,7 @@ export const recommendedCasinos: CasinoCardData[] = [
     license: "ONJN",
     payoutSpeed: "1–2 ore",
     verifiedAt: "oct. 2026",
+    tags: ["recomandat", "retrageri-rapide"],
     badges: [
       { label: "Recomandat", tone: "accent" },
       { label: "Retrageri rapide", tone: "info" },
@@ -25,6 +26,7 @@ export const recommendedCasinos: CasinoCardData[] = [
     license: "ONJN",
     payoutSpeed: "2–4 ore",
     verifiedAt: "oct. 2026",
+    tags: ["popular"],
     badges: [{ label: "Popular", tone: "gold" }],
     reviewUrl: "/cazinouri-online/betano-casino",
     offerUrl: "/go/betano-casino",
@@ -37,6 +39,7 @@ export const recommendedCasinos: CasinoCardData[] = [
     license: "ONJN",
     payoutSpeed: "24 ore",
     verifiedAt: "oct. 2026",
+    tags: ["fara-depunere"],
     badges: [{ label: "Fără depunere", tone: "accent" }],
     reviewUrl: "/cazinouri-online/unibet-casino",
     offerUrl: "/go/unibet-casino",
@@ -49,8 +52,82 @@ export const recommendedCasinos: CasinoCardData[] = [
     license: "ONJN",
     payoutSpeed: "1–3 ore",
     verifiedAt: "sept. 2026",
+    tags: ["nou"],
     badges: [{ label: "Nou", tone: "info" }],
     reviewUrl: "/cazinouri-online/winbet-casino",
     offerUrl: "/go/winbet-casino",
   },
+  {
+    slug: "netbet-casino",
+    name: "NetBet Casino",
+    rating: 4.5,
+    bonus: { headline: "100% până la 800 RON", freeSpins: 50 },
+    license: "ONJN",
+    payoutSpeed: "2–6 ore",
+    verifiedAt: "sept. 2026",
+    tags: ["recomandat"],
+    badges: [{ label: "Recomandat", tone: "accent" }],
+    reviewUrl: "/cazinouri-online/netbet-casino",
+    offerUrl: "/go/netbet-casino",
+  },
+  {
+    slug: "vlad-casino",
+    name: "Vlad Casino",
+    rating: 4.4,
+    bonus: { headline: "75% până la 1.200 RON" },
+    license: "ONJN",
+    payoutSpeed: "1–2 ore",
+    verifiedAt: "sept. 2026",
+    tags: ["retrageri-rapide"],
+    badges: [{ label: "Retrageri rapide", tone: "info" }],
+    reviewUrl: "/cazinouri-online/vlad-casino",
+    offerUrl: "/go/vlad-casino",
+  },
+  {
+    slug: "las-vegas-casino",
+    name: "Las Vegas Casino",
+    rating: 4.3,
+    bonus: { headline: "150% până la 2.000 RON", freeSpins: 300 },
+    license: "ONJN",
+    payoutSpeed: "3–8 ore",
+    verifiedAt: "aug. 2026",
+    tags: ["popular"],
+    badges: [{ label: "Popular", tone: "gold" }],
+    reviewUrl: "/cazinouri-online/las-vegas-casino",
+    offerUrl: "/go/las-vegas-casino",
+  },
+  {
+    slug: "maxbet-casino",
+    name: "MaxBet Casino",
+    rating: 4.2,
+    bonus: { headline: "25 RON fără depunere" },
+    license: "ONJN",
+    payoutSpeed: "2–5 ore",
+    verifiedAt: "aug. 2026",
+    tags: ["nou", "fara-depunere"],
+    badges: [
+      { label: "Nou", tone: "info" },
+      { label: "Fără depunere", tone: "accent" },
+    ],
+    reviewUrl: "/cazinouri-online/maxbet-casino",
+    offerUrl: "/go/maxbet-casino",
+  },
+];
+
+/** Homepage subset. */
+export const recommendedCasinos: CasinoCardData[] = allCasinos.slice(0, 4);
+
+/** Filter + sort options for the listing (reused by the filter/sort UI). */
+export const casinoFilterTags = [
+  { value: "recomandat", label: "Recomandat" },
+  { value: "retrageri-rapide", label: "Retrageri rapide" },
+  { value: "nou", label: "Nou" },
+  { value: "fara-depunere", label: "Fără depunere" },
+  { value: "popular", label: "Popular" },
+];
+
+export const casinoSortOptions = [
+  { value: "recomandate", label: "Recomandate" },
+  { value: "rating", label: "Scor (descrescător)" },
+  { value: "nume", label: "Nume (A–Z)" },
 ];

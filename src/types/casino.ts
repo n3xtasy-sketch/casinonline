@@ -24,7 +24,10 @@ export interface CasinoCardData {
   license?: string;
   payoutSpeed?: string;
   verifiedAt?: string;
+  /** Display badges. */
   badges?: CasinoBadge[];
+  /** Filter tags (slugs) — maps to a future taxonomy/join table. */
+  tags?: string[];
   /** Internal review page. */
   reviewUrl: string;
   /** Affiliate offer URL (centralized handling added later). */
