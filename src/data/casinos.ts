@@ -1,0 +1,56 @@
+import type { CasinoCardData } from "@/types/casino";
+
+/** Mock casinos for Phase 2 homepage (replaced by real data later). */
+export const recommendedCasinos: CasinoCardData[] = [
+  {
+    slug: "superbet-casino",
+    name: "Superbet Casino",
+    rating: 4.9,
+    bonus: { headline: "100% până la 1.000 RON", freeSpins: 100 },
+    license: "ONJN",
+    payoutSpeed: "1–2 ore",
+    verifiedAt: "oct. 2026",
+    badges: [
+      { label: "Recomandat", tone: "accent" },
+      { label: "Retrageri rapide", tone: "info" },
+    ],
+    reviewUrl: "/cazinouri-online/superbet-casino",
+    offerUrl: "/go/superbet-casino",
+  },
+  {
+    slug: "betano-casino",
+    name: "Betano Casino",
+    rating: 4.8,
+    bonus: { headline: "100% până la 1.500 RON", freeSpins: 150 },
+    license: "ONJN",
+    payoutSpeed: "2–4 ore",
+    verifiedAt: "oct. 2026",
+    badges: [{ label: "Popular", tone: "gold" }],
+    reviewUrl: "/cazinouri-online/betano-casino",
+    offerUrl: "/go/betano-casino",
+  },
+  {
+    slug: "unibet-casino",
+    name: "Unibet Casino",
+    rating: 4.7,
+    bonus: { headline: "50 RON fără depunere" },
+    license: "ONJN",
+    payoutSpeed: "24 ore",
+    verifiedAt: "oct. 2026",
+    badges: [{ label: "Fără depunere", tone: "accent" }],
+    reviewUrl: "/cazinouri-online/unibet-casino",
+    offerUrl: "/go/unibet-casino",
+  },
+  {
+    slug: "winbet-casino",
+    name: "Winbet Casino",
+    rating: 4.6,
+    bonus: { headline: "200 Rotiri Gratuite", freeSpins: 200 },
+    license: "ONJN",
+    payoutSpeed: "1–3 ore",
+    verifiedAt: "sept. 2026",
+    badges: [{ label: "Nou", tone: "info" }],
+    reviewUrl: "/cazinouri-online/winbet-casino",
+    offerUrl: "/go/winbet-casino",
+  },
+];

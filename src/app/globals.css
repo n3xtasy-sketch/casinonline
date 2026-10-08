@@ -1,26 +1,111 @@
 @import "tailwindcss";
 
+/* =========================================================================
+   CasinOnline.ro — Design tokens (source of truth: DESIGN.md)
+   Tailwind v4 @theme → generează utilitare: bg-*, text-*, border-*, rounded-*…
+   ========================================================================= */
+@theme {
+  /* ---- Surfaces ---- */
+  --color-base: #090d12;          /* body background */
+  --color-sidebar: #0d1117;       /* left sidebar */
+  --color-header: #0b0f14;        /* header base */
+  --color-surface: #121821;       /* card */
+  --color-elevated: #151c25;      /* elevated card */
+  --color-raised: #18212c;        /* hover card */
+  --color-border: #222c38;        /* default border */
+  --color-border-strong: #2b3745; /* strong border */
+
+  /* ---- Text ---- */
+  --color-ink: #f8fafc;           /* primary text */
+  --color-ink-secondary: #aab4c3; /* secondary text */
+  --color-ink-muted: #6e7a89;     /* muted text */
+  --color-ink-disabled: #4b5563;  /* disabled text */
+
+  /* ---- Accents / semantic ---- */
+  --color-accent: #22c55e;        /* primary action (green) */
+  --color-accent-hover: #16a34a;
+  --color-accent-active: #15803d;
+  --color-teal: #14b8a6;          /* secondary accent */
+  --color-gold: #f4b740;          /* rating / premium */
+  --color-danger: #ef4444;        /* warning / negative */
+  --color-info: #38bdf8;          /* informational */
+  --color-purple: #8b5cf6;        /* rare accent */
+  --color-link: #7dd3a0;          /* editorial links */
+  --color-link-hover: #a7f3d0;
+
+  /* ---- Form & overlay surfaces (DESIGN.md) ---- */
+  --color-field: #10161e;         /* input background */
+  --color-field-border: #26313e;  /* input border */
+  --color-panel: #111821;         /* dropdown / modal panel */
+  --color-panel-border: #273241;  /* dropdown / modal border */
+  --color-tooltip: #1a2330;       /* tooltip background */
+  --color-logo: #0d1218;          /* logo container (casino / provider) */
+  --color-footer: #080b0f;        /* footer background */
+
+  /* ---- Radii (DESIGN.md) ---- */
+  --radius-xs: 8px;   /* small control */
+  --radius-sm: 10px;  /* input / button */
+  --radius-md: 12px;  /* card */
+  --radius-lg: 14px;  /* feature card */
+  --radius-xl: 16px;  /* hero / modal */
+
+  /* ---- Shadows ---- */
+  --shadow-card: 0 8px 30px rgba(0, 0, 0, 0.18);
+  --shadow-elevated: 0 14px 40px rgba(0, 0, 0, 0.25);
+
+  /* ---- Fonts (Geist via next/font, fallback DESIGN.md) ---- */
+  --font-sans: var(--font-geist-sans), "Inter", system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
+
+  /* ---- Breakpoints (DESIGN.md) ----
+     default: sm 640 · md 768 · lg 1024 (left sidebar persistent)
+     xl 1200 (right sidebar appears) · 2xl 1440 (large desktop) */
+  --breakpoint-xl: 1200px;
+  --breakpoint-2xl: 1440px;
+
+  /* ---- Motion ---- */
+  --default-transition-duration: 180ms;
+  --default-transition-timing-function: ease-out;
+}
+
+/* Raw layout tokens (not utility-mapped) */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --header-h: 68px;
+  --shell-max: 1600px;
+  --sidebar-w: 240px;
+  --rightbar-w: 320px;
+  --header-bg: rgba(11, 15, 20, 0.88);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: var(--color-border);
   }
-}
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    min-height: 100dvh;
+    background-color: var(--color-base);
+    background-image: linear-gradient(180deg, #090d12 0%, #0b1016 100%);
+    background-attachment: fixed;
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background-color: color-mix(in srgb, var(--color-accent) 24%, transparent);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
 }
