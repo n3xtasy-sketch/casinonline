@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { breadcrumbSchema } from "@/lib/schema";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { FAQAccordion } from "@/components/ui/FAQAccordion";
 import { CasinoCard } from "@/components/casino/CasinoCard";
@@ -26,7 +28,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const provider = getProviderDetail(slug);
   if (!provider) return {};
-  return { title: `${provider.name} — Jocuri și cazinouri`, description: provider.intro };
+  return {
+    title: `${provider.name} — Jocuri și cazinouri`,
+    description: provider.intro,
+    alternates: { canonical: `/furnizori/${slug}` },
+  };
 }
 
 export default async function ProviderDetailPage({ params }: PageProps) {
@@ -47,15 +53,16 @@ export default async function ProviderDetailPage({ params }: PageProps) {
 
   const related = allProviders.filter((p) => p.slug !== slug).slice(0, 3);
 
+  const crumbs = [
+    { label: "Acasă", href: "/" },
+    { label: "Furnizori", href: "/furnizori" },
+    { label: provider.name },
+  ];
+
   return (
     <div className="flex flex-col gap-8">
-      <Breadcrumbs
-        items={[
-          { label: "Acasă", href: "/" },
-          { label: "Furnizori", href: "/furnizori" },
-          { label: provider.name },
-        ]}
-      />
+      <JsonLd data={breadcrumbSchema(crumbs)} />
+      <Breadcrumbs items={crumbs} />
 
       <ProviderDetailHeader provider={provider} />
 

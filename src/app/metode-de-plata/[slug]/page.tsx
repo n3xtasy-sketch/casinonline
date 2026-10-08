@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { breadcrumbSchema } from "@/lib/schema";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { FAQAccordion } from "@/components/ui/FAQAccordion";
 import { CasinoCard } from "@/components/casino/CasinoCard";
@@ -28,6 +30,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: `${method.name} la cazinouri online`,
     description: method.intro,
+    alternates: { canonical: `/metode-de-plata/${slug}` },
   };
 }
 
@@ -47,15 +50,16 @@ export default async function PaymentDetailPage({ params }: PageProps) {
     sameType.length ? sameType : allPaymentMethods.filter((m) => m.slug !== slug)
   ).slice(0, 3);
 
+  const crumbs = [
+    { label: "Acasă", href: "/" },
+    { label: "Metode de plată", href: "/metode-de-plata" },
+    { label: method.name },
+  ];
+
   return (
     <div className="flex flex-col gap-8">
-      <Breadcrumbs
-        items={[
-          { label: "Acasă", href: "/" },
-          { label: "Metode de plată", href: "/metode-de-plata" },
-          { label: method.name },
-        ]}
-      />
+      <JsonLd data={breadcrumbSchema(crumbs)} />
+      <Breadcrumbs items={crumbs} />
 
       <PaymentDetailHeader method={method} />
 

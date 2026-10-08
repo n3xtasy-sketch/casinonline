@@ -5,11 +5,14 @@ import { FilterChips } from "@/components/filters/FilterChips";
 import { SortSelect } from "@/components/filters/SortSelect";
 import { allPaymentMethods, paymentTypeFilters, paymentSortOptions } from "@/data/payments";
 import type { PaymentMethodCardData } from "@/types/payment";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { itemListSchema } from "@/lib/schema";
 
 export const metadata: Metadata = {
   title: "Metode de plată pentru cazinouri",
   description:
     "Compară metodele de plată acceptate de cazinourile online din România — carduri, portofele electronice, plăți mobile și preplătite: viteză, comisioane și limite.",
+  alternates: { canonical: "/metode-de-plata" },
 };
 
 // Query-dependent listing: render per request (full list in HTML for SEO).
@@ -37,6 +40,7 @@ export default async function PaymentListingPage({ searchParams }: PageProps) {
 
   return (
     <div className="flex flex-col gap-6">
+      <JsonLd data={itemListSchema(methods.map((m) => m.href))} />
       <header>
         <h1 className="text-3xl font-bold text-ink md:text-4xl">Metode de plată</h1>
         <p className="mt-2 max-w-[70ch] text-ink-secondary">

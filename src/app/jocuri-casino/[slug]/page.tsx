@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { breadcrumbSchema } from "@/lib/schema";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { Badge } from "@/components/ui/Badge";
 import { FAQAccordion } from "@/components/ui/FAQAccordion";
@@ -24,7 +26,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const game = getGameDetail(slug);
   if (!game) return {};
-  return { title: `${game.name} — ${game.provider}`, description: game.intro };
+  return {
+    title: `${game.name} — ${game.provider}`,
+    description: game.intro,
+    alternates: { canonical: `/jocuri-casino/${slug}` },
+  };
 }
 
 export default async function GameDetailPage({ params }: PageProps) {
@@ -46,15 +52,16 @@ export default async function GameDetailPage({ params }: PageProps) {
     )
     .slice(0, 4);
 
+  const crumbs = [
+    { label: "Acasă", href: "/" },
+    { label: "Jocuri", href: "/jocuri-casino" },
+    { label: game.name },
+  ];
+
   return (
     <div className="flex flex-col gap-8">
-      <Breadcrumbs
-        items={[
-          { label: "Acasă", href: "/" },
-          { label: "Jocuri", href: "/jocuri-casino" },
-          { label: game.name },
-        ]}
-      />
+      <JsonLd data={breadcrumbSchema(crumbs)} />
+      <Breadcrumbs items={crumbs} />
 
       <GameDetailHeader game={game} playUrl={playUrl} />
 

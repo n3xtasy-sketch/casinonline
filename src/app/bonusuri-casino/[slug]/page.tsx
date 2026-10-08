@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { breadcrumbSchema } from "@/lib/schema";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { FAQAccordion } from "@/components/ui/FAQAccordion";
 import { CasinoCard } from "@/components/casino/CasinoCard";
@@ -27,6 +29,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: `${bonus.bonusType} ${bonus.casinoName}`,
     description: bonus.intro,
+    alternates: { canonical: `/bonusuri-casino/${slug}` },
   };
 }
 
@@ -42,15 +45,16 @@ export default async function BonusDetailPage({ params }: PageProps) {
     sameType.length ? sameType : allBonuses.filter((b) => b.slug !== slug)
   ).slice(0, 3);
 
+  const crumbs = [
+    { label: "Acasă", href: "/" },
+    { label: "Bonusuri", href: "/bonusuri-casino" },
+    { label: `${bonus.bonusType} — ${bonus.casinoName}` },
+  ];
+
   return (
     <div className="flex flex-col gap-8">
-      <Breadcrumbs
-        items={[
-          { label: "Acasă", href: "/" },
-          { label: "Bonusuri", href: "/bonusuri-casino" },
-          { label: `${bonus.bonusType} — ${bonus.casinoName}` },
-        ]}
-      />
+      <JsonLd data={breadcrumbSchema(crumbs)} />
+      <Breadcrumbs items={crumbs} />
 
       <BonusDetailHeader bonus={bonus} />
 

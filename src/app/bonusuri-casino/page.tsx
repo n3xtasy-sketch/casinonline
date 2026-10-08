@@ -5,11 +5,14 @@ import { FilterChips } from "@/components/filters/FilterChips";
 import { SortSelect } from "@/components/filters/SortSelect";
 import { allBonuses, bonusTypeFilters, bonusSortOptions } from "@/data/bonuses";
 import type { BonusCardData } from "@/types/bonus";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { itemListSchema } from "@/lib/schema";
 
 export const metadata: Metadata = {
   title: "Bonusuri de cazino",
   description:
     "Compară cele mai bune bonusuri de cazino din România: bonus de bun venit, fără depunere, rotiri gratuite, cashback și fără rulaj. Filtrează după tip și sortează.",
+  alternates: { canonical: "/bonusuri-casino" },
 };
 
 // Query-dependent listing: render per request (full list in HTML for SEO).
@@ -38,6 +41,7 @@ export default async function BonusListingPage({ searchParams }: PageProps) {
 
   return (
     <div className="flex flex-col gap-6">
+      <JsonLd data={itemListSchema(bonuses.map((b) => b.href))} />
       <header>
         <h1 className="text-3xl font-bold text-ink md:text-4xl">Bonusuri de cazino</h1>
         <p className="mt-2 max-w-[70ch] text-ink-secondary">

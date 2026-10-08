@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { breadcrumbSchema } from "@/lib/schema";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -24,7 +26,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const casino = getCasinoDetail(slug);
   if (!casino) return {};
-  return { title: `${casino.name} — Recenzie`, description: casino.intro };
+  return {
+    title: `${casino.name} — Recenzie`,
+    description: casino.intro,
+    alternates: { canonical: `/cazinouri-online/${slug}` },
+  };
 }
 
 export default async function CasinoReviewPage({ params }: PageProps) {
@@ -34,15 +40,16 @@ export default async function CasinoReviewPage({ params }: PageProps) {
 
   const related = allCasinos.filter((c) => c.slug !== slug).slice(0, 3);
 
+  const crumbs = [
+    { label: "Acasă", href: "/" },
+    { label: "Cazinouri", href: "/cazinouri-online" },
+    { label: casino.name },
+  ];
+
   return (
     <div className="flex flex-col gap-8">
-      <Breadcrumbs
-        items={[
-          { label: "Acasă", href: "/" },
-          { label: "Cazinouri", href: "/cazinouri-online" },
-          { label: casino.name },
-        ]}
-      />
+      <JsonLd data={breadcrumbSchema(crumbs)} />
+      <Breadcrumbs items={crumbs} />
 
       <CasinoReviewHeader casino={casino} />
 

@@ -12,11 +12,14 @@ import {
   volatilityByValue,
 } from "@/data/games";
 import type { GameCardData } from "@/types/game";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { itemListSchema } from "@/lib/schema";
 
 export const metadata: Metadata = {
   title: "Jocuri de cazino",
   description:
     "Descoperă sloturi și jocuri de cazino: filtrează după furnizor, categorie și volatilitate, sortează după RTP și găsește-ți jocul preferat.",
+  alternates: { canonical: "/jocuri-casino" },
 };
 
 // Query-dependent listing: render per request (full list in HTML for SEO).
@@ -52,6 +55,7 @@ export default async function GameListingPage({ searchParams }: PageProps) {
 
   return (
     <div className="flex flex-col gap-6">
+      <JsonLd data={itemListSchema(games.map((g) => g.href))} />
       <header>
         <h1 className="text-3xl font-bold text-ink md:text-4xl">Jocuri de cazino</h1>
         <p className="mt-2 max-w-[70ch] text-ink-secondary">

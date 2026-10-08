@@ -3,11 +3,14 @@ import { ProviderCard } from "@/components/providers/ProviderCard";
 import { SortSelect } from "@/components/filters/SortSelect";
 import { allProviders, providerSortOptions } from "@/data/providers";
 import type { ProviderCardData } from "@/types/provider";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { itemListSchema } from "@/lib/schema";
 
 export const metadata: Metadata = {
   title: "Furnizori de jocuri de cazino",
   description:
     "Descoperă furnizorii de jocuri de cazino disponibili în România — Pragmatic Play, EGT, Play'n GO și alții — cu cele mai populare sloturi ale fiecăruia.",
+  alternates: { canonical: "/furnizori" },
 };
 
 // Query-dependent listing: render per request (full list in HTML for SEO).
@@ -33,6 +36,7 @@ export default async function ProviderListingPage({ searchParams }: PageProps) {
 
   return (
     <div className="flex flex-col gap-6">
+      <JsonLd data={itemListSchema(providers.map((p) => p.href))} />
       <header>
         <h1 className="text-3xl font-bold text-ink md:text-4xl">Furnizori de jocuri</h1>
         <p className="mt-2 max-w-[70ch] text-ink-secondary">

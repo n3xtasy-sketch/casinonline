@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/layout/AppShell";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { organizationSchema, websiteSchema } from "@/lib/schema";
+import { siteConfig } from "@/lib/site";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,12 +17,26 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteConfig.url),
   title: {
     default: "CasinOnline.ro — Cazinouri online, bonusuri și jocuri",
     template: "%s · CasinOnline.ro",
   },
-  description:
-    "Platformă premium de descoperire și comparare a cazinourilor online din România: bonusuri, jocuri, furnizori și metode de plată.",
+  description: siteConfig.description,
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    siteName: siteConfig.name,
+    locale: siteConfig.locale,
+    url: siteConfig.url,
+    title: "CasinOnline.ro — Cazinouri online, bonusuri și jocuri",
+    description: siteConfig.description,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "CasinOnline.ro — Cazinouri online, bonusuri și jocuri",
+    description: siteConfig.description,
+  },
 };
 
 export default function RootLayout({
@@ -28,6 +45,8 @@ export default function RootLayout({
   return (
     <html lang="ro" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body className="min-h-dvh antialiased">
+        <JsonLd data={organizationSchema()} />
+        <JsonLd data={websiteSchema()} />
         <AppShell>{children}</AppShell>
       </body>
     </html>

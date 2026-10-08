@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { breadcrumbSchema, articleSchema } from "@/lib/schema";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { FAQAccordion } from "@/components/ui/FAQAccordion";
 import { TableOfContents } from "@/components/ui/TableOfContents";
@@ -23,7 +25,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const guide = getGuideDetail(slug);
   if (!guide) return {};
-  return { title: guide.title, description: guide.excerpt };
+  return {
+    title: guide.title,
+    description: guide.excerpt,
+    alternates: { canonical: `/ghiduri/${slug}` },
+  };
 }
 
 export default async function GuideArticlePage({ params }: PageProps) {
@@ -42,15 +48,24 @@ export default async function GuideArticlePage({ params }: PageProps) {
     sameCategory.length ? sameCategory : allGuides.filter((g) => g.slug !== slug)
   ).slice(0, 3);
 
+  const crumbs = [
+    { label: "Acasă", href: "/" },
+    { label: "Ghiduri", href: "/ghiduri" },
+    { label: guide.title },
+  ];
+
   return (
     <article className="flex flex-col gap-8">
-      <Breadcrumbs
-        items={[
-          { label: "Acasă", href: "/" },
-          { label: "Ghiduri", href: "/ghiduri" },
-          { label: guide.title },
-        ]}
+      <JsonLd data={breadcrumbSchema(crumbs)} />
+      <JsonLd
+        data={articleSchema({
+          title: guide.title,
+          description: guide.excerpt,
+          author: guide.author,
+          path: `/ghiduri/${slug}`,
+        })}
       />
+      <Breadcrumbs items={crumbs} />
 
       <GuideArticleHeader guide={guide} />
 

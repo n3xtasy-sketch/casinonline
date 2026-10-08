@@ -9,11 +9,14 @@ import {
   casinoSortOptions,
 } from "@/data/casinos";
 import type { CasinoCardData } from "@/types/casino";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { itemListSchema } from "@/lib/schema";
 
 export const metadata: Metadata = {
   title: "Cazinouri online",
   description:
     "Compară cele mai bune cazinouri online licențiate ONJN din România: bonusuri, rating, viteză de retragere și metode de plată.",
+  alternates: { canonical: "/cazinouri-online" },
 };
 
 // Query-dependent listing: render per request (full list in HTML for SEO)
@@ -43,6 +46,7 @@ export default async function CasinoListingPage({ searchParams }: PageProps) {
 
   return (
     <div className="flex flex-col gap-6">
+      <JsonLd data={itemListSchema(casinos.map((c) => c.reviewUrl))} />
       <header>
         <h1 className="text-3xl font-bold text-ink md:text-4xl">Cazinouri online</h1>
         <p className="mt-2 max-w-[70ch] text-ink-secondary">

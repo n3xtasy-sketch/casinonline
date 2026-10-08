@@ -5,11 +5,14 @@ import { FilterChips } from "@/components/filters/FilterChips";
 import { SortSelect } from "@/components/filters/SortSelect";
 import { allGuides, guideCategoryFilters, guideSortOptions } from "@/data/guides";
 import type { GuideCardData } from "@/types/guide";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { itemListSchema } from "@/lib/schema";
 
 export const metadata: Metadata = {
   title: "Ghiduri de cazino",
   description:
     "Ghiduri și articole despre cazinouri online, bonusuri, jocuri și metode de plată. Învață cum funcționează rulajul, RTP-ul, verificarea KYC și multe altele.",
+  alternates: { canonical: "/ghiduri" },
 };
 
 // Query-dependent listing: render per request (full list in HTML for SEO).
@@ -39,6 +42,7 @@ export default async function GuideListingPage({ searchParams }: PageProps) {
 
   return (
     <div className="flex flex-col gap-6">
+      <JsonLd data={itemListSchema(guides.map((g) => g.href))} />
       <header>
         <h1 className="text-3xl font-bold text-ink md:text-4xl">Ghiduri de cazino</h1>
         <p className="mt-2 max-w-[70ch] text-ink-secondary">
