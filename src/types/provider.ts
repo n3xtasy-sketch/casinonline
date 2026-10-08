@@ -9,3 +9,15 @@ export interface ProviderCardData {
   /** Internal provider page. */
   href: string;
 }
+
+/** Extra fields for the provider detail page (merged with ProviderCardData). */
+export interface ProviderDetailExtra {
+  intro: string;
+  founded?: string;
+  country?: string;
+  specialty?: string;
+  rtpRange?: string;
+  faq?: { question: string; answer: string }[];
+}
+
+export type ProviderDetail = ProviderCardData & ProviderDetailExtra;
