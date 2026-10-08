@@ -13,13 +13,15 @@ interface Props {
   param: string;
   options: FilterOption[];
   allLabel?: string;
+  /** Optional group label shown before the chips. */
+  label?: string;
 }
 
 /**
  * Reusable single-select filter chips driven by a URL query param.
  * Server components read the same param to filter content (SEO-friendly).
  */
-export function FilterChips({ param, options, allLabel = "Toate" }: Props) {
+export function FilterChips({ param, options, allLabel = "Toate", label }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -42,7 +44,12 @@ export function FilterChips({ param, options, allLabel = "Toate" }: Props) {
     );
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap items-center gap-2">
+      {label ? (
+        <span className="mr-1 text-xs font-semibold uppercase tracking-[0.08em] text-ink-muted">
+          {label}
+        </span>
+      ) : null}
       <button type="button" onClick={() => select("")} className={chip(!current)}>
         {allLabel}
       </button>
