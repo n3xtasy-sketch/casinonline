@@ -11,20 +11,18 @@ import { CasinoCard } from "@/components/casino/CasinoCard";
 import { CasinoReviewHeader } from "@/components/casino/CasinoReviewHeader";
 import { CasinoFacts } from "@/components/casino/CasinoFacts";
 import { ProsCons } from "@/components/casino/ProsCons";
-import { allCasinos } from "@/data/casinos";
-import { getCasinoDetail, getAllCasinoSlugs } from "@/data/casino-details";
+import { getCasinoBySlug, getCasinos } from "@/lib/db/casinos";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
-export function generateStaticParams() {
-  return getAllCasinoSlugs().map((slug) => ({ slug }));
-}
+// DB-backed detail: render per request (no build-time DB dependency).
+export const instant = false;
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const casino = getCasinoDetail(slug);
+  const casino = await getCasinoBySlug(slug);
   if (!casino) return {};
   return {
     title: `${casino.name} — Recenzie`,
@@ -35,10 +33,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function CasinoReviewPage({ params }: PageProps) {
   const { slug } = await params;
-  const casino = getCasinoDetail(slug);
+  const casino = await getCasinoBySlug(slug);
   if (!casino) notFound();
 
-  const related = allCasinos.filter((c) => c.slug !== slug).slice(0, 3);
+  const related = (await getCasinos()).filter((c) => c.slug !== slug).slice(0, 3);
 
   const crumbs = [
     { label: "Acasă", href: "/" },

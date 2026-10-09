@@ -10,9 +10,8 @@ import { CasinoCard } from "@/components/casino/CasinoCard";
 import { GameCard } from "@/components/games/GameCard";
 import { GameDetailHeader } from "@/components/games/GameDetailHeader";
 import { GameSpecs } from "@/components/games/GameSpecs";
-import { allCasinos } from "@/data/casinos";
-import { getGameDetail } from "@/data/game-details";
 import { getGameBySlug, getGames } from "@/lib/db/games";
+import { getCasinosForGame } from "@/lib/db/casinos";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -37,12 +36,7 @@ export default async function GameDetailPage({ params }: PageProps) {
   const game = await getGameBySlug(slug);
   if (!game) notFound();
 
-  // game → casinos stays on mock until the Casinos module is connected
-  const availableCasinos = getGameDetail(slug)?.availableCasinos ?? [];
-  const casinos = availableCasinos
-    .map((s) => allCasinos.find((c) => c.slug === s))
-    .filter((c): c is NonNullable<typeof c> => c !== undefined);
-
+  const casinos = await getCasinosForGame(slug);
   const playUrl = casinos[0]?.offerUrl;
 
   const similar = (await getGames())

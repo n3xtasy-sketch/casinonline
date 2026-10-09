@@ -3,11 +3,8 @@ import { Button } from "@/components/ui/Button";
 import { CasinoCard } from "@/components/casino/CasinoCard";
 import { FilterChips } from "@/components/filters/FilterChips";
 import { SortSelect } from "@/components/filters/SortSelect";
-import {
-  allCasinos,
-  casinoFilterTags,
-  casinoSortOptions,
-} from "@/data/casinos";
+import { casinoFilterTags, casinoSortOptions } from "@/data/casinos";
+import { getCasinos } from "@/lib/db/casinos";
 import type { CasinoCardData } from "@/types/casino";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { itemListSchema } from "@/lib/schema";
@@ -41,7 +38,8 @@ export default async function CasinoListingPage({ searchParams }: PageProps) {
   const tag = typeof sp.tag === "string" ? sp.tag : "";
   const sort = typeof sp.sort === "string" ? sp.sort : DEFAULT_SORT;
 
-  const filtered = tag ? allCasinos.filter((c) => c.tags?.includes(tag)) : allCasinos;
+  const all = await getCasinos();
+  const filtered = tag ? all.filter((c) => c.tags?.includes(tag)) : all;
   const casinos = sortCasinos(filtered, sort);
 
   return (
