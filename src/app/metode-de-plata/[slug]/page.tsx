@@ -10,22 +10,19 @@ import { ProsCons } from "@/components/casino/ProsCons";
 import { PaymentMethodCard } from "@/components/payments/PaymentMethodCard";
 import { PaymentDetailHeader } from "@/components/payments/PaymentDetailHeader";
 import { PaymentFacts } from "@/components/payments/PaymentFacts";
-import { allPaymentMethods } from "@/data/payments";
-import { allCasinos } from "@/data/casinos";
-import { getCasinoDetail } from "@/data/casino-details";
-import { getPaymentMethodDetail, getAllPaymentSlugs } from "@/data/payment-details";
+import { getPaymentMethods, getPaymentMethodBySlug } from "@/lib/db/payments";
+import { getCasinosForPaymentMethod } from "@/lib/db/casinos";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
-export function generateStaticParams() {
-  return getAllPaymentSlugs().map((slug) => ({ slug }));
-}
+// DB-backed detail: render per request (no build-time DB dependency).
+export const instant = false;
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const method = getPaymentMethodDetail(slug);
+  const method = await getPaymentMethodBySlug(slug);
   if (!method) return {};
   return {
     title: `${method.name} la cazinouri online`,
@@ -36,18 +33,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function PaymentDetailPage({ params }: PageProps) {
   const { slug } = await params;
-  const method = getPaymentMethodDetail(slug);
+  const method = await getPaymentMethodBySlug(slug);
   if (!method) notFound();
 
-  const casinos = allCasinos
-    .filter((c) => getCasinoDetail(c.slug)?.paymentMethods?.includes(method.name))
-    .slice(0, 4);
+  const casinos = (await getCasinosForPaymentMethod(slug)).slice(0, 4);
 
-  const sameType = allPaymentMethods.filter(
+  const allMethods = await getPaymentMethods();
+  const sameType = allMethods.filter(
     (m) => m.slug !== slug && m.typeSlug === method.typeSlug,
   );
   const alternatives = (
-    sameType.length ? sameType : allPaymentMethods.filter((m) => m.slug !== slug)
+    sameType.length ? sameType : allMethods.filter((m) => m.slug !== slug)
   ).slice(0, 3);
 
   const crumbs = [

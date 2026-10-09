@@ -129,3 +129,16 @@ export async function getCasinosForGame(gameSlug: string): Promise<CasinoCardDat
   const casinos = (data as unknown as { casinos: CasinoCardRow[] } | null)?.casinos ?? [];
   return casinos.map(toCard);
 }
+
+/** Casinos that accept a given payment method (via casino_payment_methods). */
+export async function getCasinosForPaymentMethod(paymentSlug: string): Promise<CasinoCardData[]> {
+  const db = getSupabaseServerClient();
+  const { data, error } = await db
+    .from("payment_methods")
+    .select(`casinos(${CARD_SELECT})`)
+    .eq("slug", paymentSlug)
+    .maybeSingle();
+  if (error) throw new Error(`getCasinosForPaymentMethod: ${error.message}`);
+  const casinos = (data as unknown as { casinos: CasinoCardRow[] } | null)?.casinos ?? [];
+  return casinos.map(toCard);
+}

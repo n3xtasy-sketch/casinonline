@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/Button";
 import { PaymentMethodCard } from "@/components/payments/PaymentMethodCard";
 import { FilterChips } from "@/components/filters/FilterChips";
 import { SortSelect } from "@/components/filters/SortSelect";
-import { allPaymentMethods, paymentTypeFilters, paymentSortOptions } from "@/data/payments";
+import { paymentTypeFilters, paymentSortOptions } from "@/data/payments";
+import { getPaymentMethods } from "@/lib/db/payments";
 import type { PaymentMethodCardData } from "@/types/payment";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { itemListSchema } from "@/lib/schema";
@@ -35,7 +36,8 @@ export default async function PaymentListingPage({ searchParams }: PageProps) {
   const tip = typeof sp.tip === "string" ? sp.tip : "";
   const sort = typeof sp.sort === "string" ? sp.sort : DEFAULT_SORT;
 
-  const filtered = tip ? allPaymentMethods.filter((m) => m.typeSlug === tip) : allPaymentMethods;
+  const all = await getPaymentMethods();
+  const filtered = tip ? all.filter((m) => m.typeSlug === tip) : all;
   const methods = sortMethods(filtered, sort);
 
   return (
