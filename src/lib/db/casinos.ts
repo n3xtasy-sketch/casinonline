@@ -1,4 +1,5 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { cacheLife, cacheTag } from "next/cache";
 import type { CasinoCardData, CasinoDetail, CasinoBadge } from "@/types/casino";
 
 /** Maps a tag slug to a display badge tone (reconstructs the mock badge look). */
@@ -96,6 +97,9 @@ const DETAIL_SELECT = `${CARD_SELECT}, editor_score, intro, editor_review, pros,
 
 /** All casinos for the listing (default order: highest rating first). */
 export async function getCasinos(): Promise<CasinoCardData[]> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("casinos");
   const db = getSupabaseServerClient();
   const { data, error } = await db
     .from("casinos")
@@ -107,6 +111,9 @@ export async function getCasinos(): Promise<CasinoCardData[]> {
 
 /** Single casino (detail) by slug, or null when not found. */
 export async function getCasinoBySlug(slug: string): Promise<CasinoDetail | null> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("casinos");
   const db = getSupabaseServerClient();
   const { data, error } = await db
     .from("casinos")
@@ -119,6 +126,9 @@ export async function getCasinoBySlug(slug: string): Promise<CasinoDetail | null
 
 /** Casinos that offer a given game (via the casino_games relation). */
 export async function getCasinosForGame(gameSlug: string): Promise<CasinoCardData[]> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("casinos");
   const db = getSupabaseServerClient();
   const { data, error } = await db
     .from("games")
@@ -132,6 +142,9 @@ export async function getCasinosForGame(gameSlug: string): Promise<CasinoCardDat
 
 /** Single casino card by slug (e.g. the casino that offers a bonus). */
 export async function getCasinoCardBySlug(slug: string): Promise<CasinoCardData | null> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("casinos");
   const db = getSupabaseServerClient();
   const { data, error } = await db
     .from("casinos")
@@ -144,6 +157,9 @@ export async function getCasinoCardBySlug(slug: string): Promise<CasinoCardData 
 
 /** Casinos that offer games from a given provider (via casino_games → games). */
 export async function getCasinosForProvider(providerSlug: string): Promise<CasinoCardData[]> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("casinos");
   const db = getSupabaseServerClient();
   const { data, error } = await db
     .from("providers")
@@ -164,6 +180,9 @@ export async function getCasinosForProvider(providerSlug: string): Promise<Casin
 
 /** Casinos that accept a given payment method (via casino_payment_methods). */
 export async function getCasinosForPaymentMethod(paymentSlug: string): Promise<CasinoCardData[]> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("casinos");
   const db = getSupabaseServerClient();
   const { data, error } = await db
     .from("payment_methods")

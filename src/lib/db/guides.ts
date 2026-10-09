@@ -1,4 +1,5 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { cacheLife, cacheTag } from "next/cache";
 import type {
   GuideCardData,
   GuideDetail,
@@ -64,6 +65,9 @@ const DETAIL_SELECT = `${CARD_SELECT}, intro, reading_time, sections, related_li
 
 /** All guides for the listing (the page applies filter/sort). */
 export async function getGuides(): Promise<GuideCardData[]> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("guides");
   const db = getSupabaseServerClient();
   const { data, error } = await db.from("guides").select(CARD_SELECT).order("created_at");
   if (error) throw new Error(`getGuides: ${error.message}`);
@@ -72,6 +76,9 @@ export async function getGuides(): Promise<GuideCardData[]> {
 
 /** Single guide article by slug, or null when not found. */
 export async function getGuideBySlug(slug: string): Promise<GuideDetail | null> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("guides");
   const db = getSupabaseServerClient();
   const { data, error } = await db
     .from("guides")

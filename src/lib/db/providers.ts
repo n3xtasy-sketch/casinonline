@@ -1,4 +1,5 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { cacheLife, cacheTag } from "next/cache";
 import type { ProviderCardData, ProviderDetail } from "@/types/provider";
 
 /** DB row shapes (snake_case) for the providers table. */
@@ -46,6 +47,9 @@ const CARD_COLUMNS = "slug, name, logo_url, game_count, category";
 
 /** All providers for the listing (default order: most games first). */
 export async function getProviders(): Promise<ProviderCardData[]> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("providers");
   const db = getSupabaseServerClient();
   const { data, error } = await db
     .from("providers")
@@ -57,6 +61,9 @@ export async function getProviders(): Promise<ProviderCardData[]> {
 
 /** Single provider (detail) by slug, or null when not found. */
 export async function getProviderBySlug(slug: string): Promise<ProviderDetail | null> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("providers");
   const db = getSupabaseServerClient();
   const { data, error } = await db
     .from("providers")

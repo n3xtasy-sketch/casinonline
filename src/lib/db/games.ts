@@ -1,4 +1,5 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { cacheLife, cacheTag } from "next/cache";
 import type { GameCardData, GameDetail, GameVolatility } from "@/types/game";
 
 /** Embedded relations come back as objects (to-one) or null. */
@@ -62,6 +63,9 @@ const DETAIL_COLUMNS = `${CARD_COLUMNS}, intro, max_win, release_year, reels, pa
 
 /** All games for the listing (the page applies filters/sorting on the result). */
 export async function getGames(): Promise<GameCardData[]> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("games");
   const db = getSupabaseServerClient();
   const { data, error } = await db.from("games").select(CARD_COLUMNS).order("name");
   if (error) throw new Error(`getGames: ${error.message}`);
@@ -73,6 +77,9 @@ const CARD_COLUMNS_FOR_PROVIDER =
 
 /** Games belonging to a provider (via games.provider_id). */
 export async function getGamesForProvider(providerSlug: string): Promise<GameCardData[]> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("games");
   const db = getSupabaseServerClient();
   const { data, error } = await db
     .from("games")
@@ -85,6 +92,9 @@ export async function getGamesForProvider(providerSlug: string): Promise<GameCar
 
 /** Single game (detail) by slug, or null when not found. */
 export async function getGameBySlug(slug: string): Promise<GameDetail | null> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("games");
   const db = getSupabaseServerClient();
   const { data, error } = await db
     .from("games")

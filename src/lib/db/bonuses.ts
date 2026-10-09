@@ -1,4 +1,5 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { cacheLife, cacheTag } from "next/cache";
 import type { BonusCardData, BonusDetail } from "@/types/bonus";
 
 interface BonusRow {
@@ -60,6 +61,9 @@ const DETAIL_SELECT = `${CARD_SELECT}, intro, min_deposit, validity, terms, pros
 
 /** All bonuses for the listing (the page applies filter/sort). */
 export async function getBonuses(): Promise<BonusCardData[]> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("bonuses");
   const db = getSupabaseServerClient();
   const { data, error } = await db.from("bonuses").select(CARD_SELECT).order("created_at");
   if (error) throw new Error(`getBonuses: ${error.message}`);
@@ -68,6 +72,9 @@ export async function getBonuses(): Promise<BonusCardData[]> {
 
 /** Single bonus (detail) by slug, or null when not found. */
 export async function getBonusBySlug(slug: string): Promise<BonusDetail | null> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("bonuses");
   const db = getSupabaseServerClient();
   const { data, error } = await db
     .from("bonuses")

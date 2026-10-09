@@ -1,4 +1,5 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { cacheLife, cacheTag } from "next/cache";
 import type { PaymentMethodCardData, PaymentMethodDetail } from "@/types/payment";
 
 interface PaymentRow {
@@ -55,6 +56,9 @@ const DETAIL_SELECT = `${CARD_SELECT}, intro, deposits, withdrawals, deposit_spe
 
 /** All payment methods for the listing (the page applies filter/sort). */
 export async function getPaymentMethods(): Promise<PaymentMethodCardData[]> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("payments");
   const db = getSupabaseServerClient();
   const { data, error } = await db.from("payment_methods").select(CARD_SELECT).order("name");
   if (error) throw new Error(`getPaymentMethods: ${error.message}`);
@@ -63,6 +67,9 @@ export async function getPaymentMethods(): Promise<PaymentMethodCardData[]> {
 
 /** Single payment method (detail) by slug, or null when not found. */
 export async function getPaymentMethodBySlug(slug: string): Promise<PaymentMethodDetail | null> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("payments");
   const db = getSupabaseServerClient();
   const { data, error } = await db
     .from("payment_methods")
