@@ -10,21 +10,20 @@ import { CasinoCard } from "@/components/casino/CasinoCard";
 import { GameCard } from "@/components/games/GameCard";
 import { GameDetailHeader } from "@/components/games/GameDetailHeader";
 import { GameSpecs } from "@/components/games/GameSpecs";
-import { allGames } from "@/data/games";
 import { allCasinos } from "@/data/casinos";
-import { getGameDetail, getAllGameSlugs } from "@/data/game-details";
+import { getGameDetail } from "@/data/game-details";
+import { getGameBySlug, getGames } from "@/lib/db/games";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
-export function generateStaticParams() {
-  return getAllGameSlugs().map((slug) => ({ slug }));
-}
+// DB-backed detail: render per request (no build-time DB dependency).
+export const instant = false;
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const game = getGameDetail(slug);
+  const game = await getGameBySlug(slug);
   if (!game) return {};
   return {
     title: `${game.name} — ${game.provider}`,
@@ -35,16 +34,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function GameDetailPage({ params }: PageProps) {
   const { slug } = await params;
-  const game = getGameDetail(slug);
+  const game = await getGameBySlug(slug);
   if (!game) notFound();
 
-  const casinos = (game.availableCasinos ?? [])
+  // game → casinos stays on mock until the Casinos module is connected
+  const availableCasinos = getGameDetail(slug)?.availableCasinos ?? [];
+  const casinos = availableCasinos
     .map((s) => allCasinos.find((c) => c.slug === s))
     .filter((c): c is NonNullable<typeof c> => c !== undefined);
 
   const playUrl = casinos[0]?.offerUrl;
 
-  const similar = allGames
+  const similar = (await getGames())
     .filter(
       (g) =>
         g.slug !== slug &&

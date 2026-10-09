@@ -4,7 +4,6 @@ import { GameCard } from "@/components/games/GameCard";
 import { FilterChips } from "@/components/filters/FilterChips";
 import { SortSelect } from "@/components/filters/SortSelect";
 import {
-  allGames,
   gameProviderFilters,
   gameCategoryFilters,
   gameVolatilityFilters,
@@ -12,6 +11,7 @@ import {
   volatilityByValue,
 } from "@/data/games";
 import type { GameCardData } from "@/types/game";
+import { getGames } from "@/lib/db/games";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { itemListSchema } from "@/lib/schema";
 
@@ -45,7 +45,7 @@ export default async function GameListingPage({ searchParams }: PageProps) {
   const volatilitate = typeof sp.volatilitate === "string" ? sp.volatilitate : "";
   const sort = typeof sp.sort === "string" ? sp.sort : DEFAULT_SORT;
 
-  let filtered = allGames;
+  let filtered = await getGames();
   if (furnizor) filtered = filtered.filter((g) => g.providerSlug === furnizor);
   if (categorie) filtered = filtered.filter((g) => g.categorySlug === categorie);
   if (volatilitate && volatilityByValue[volatilitate]) {
