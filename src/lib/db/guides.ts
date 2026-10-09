@@ -33,6 +33,11 @@ function formatUpdated(iso: string): string {
   return RO_MONTH_YEAR.format(new Date(iso));
 }
 
+/** Allow only internal relative paths in related links (reject //, javascript:, data:, absolute URLs). */
+function isSafeInternalPath(href: unknown): boolean {
+  return typeof href === "string" && href.startsWith("/") && !href.startsWith("//");
+}
+
 function toCard(row: GuideRow): GuideCardData {
   return {
     slug: row.slug,
@@ -53,7 +58,7 @@ function toDetail(row: GuideDetailRow): GuideDetail {
     intro: row.intro ?? "",
     readingTime: row.reading_time ?? undefined,
     sections: row.sections ?? [],
-    relatedLinks: row.related_links ?? [],
+    relatedLinks: (row.related_links ?? []).filter((l) => isSafeInternalPath(l?.href)),
     faq: row.faq ?? [],
     publishedAt: row.published_at ?? undefined,
     modifiedAt: row.updated_at,
