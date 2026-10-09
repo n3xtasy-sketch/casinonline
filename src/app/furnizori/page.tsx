@@ -12,6 +12,22 @@ export const metadata: Metadata = {
   description:
     "Descoperă furnizorii de jocuri de cazino disponibili în România — Pragmatic Play, EGT, Play'n GO și alții — cu cele mai populare sloturi ale fiecăruia.",
   alternates: { canonical: "/furnizori" },
+  openGraph: {
+    title: "Furnizori de jocuri de cazino",
+    description:
+      "Descoperă furnizorii de jocuri de cazino disponibili în România — Pragmatic Play, EGT, Play'n GO și alții — cu cele mai populare sloturi ale fiecăruia.",
+    type: "website",
+    siteName: "CasinOnline.ro",
+    url: "/furnizori",
+    images: ["/opengraph-image"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    images: ["/opengraph-image"],
+    title: "Furnizori de jocuri de cazino",
+    description:
+      "Descoperă furnizorii de jocuri de cazino disponibili în România — Pragmatic Play, EGT, Play'n GO și alții — cu cele mai populare sloturi ale fiecăruia.",
+  },
 };
 
 // Query-dependent listing: render per request (full list in HTML for SEO).

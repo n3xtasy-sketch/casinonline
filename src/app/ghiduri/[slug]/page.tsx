@@ -23,10 +23,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const guide = await getGuideBySlug(slug);
   if (!guide) return {};
+  const title = guide.title;
+  const description = guide.excerpt;
+  const url = `/ghiduri/${slug}`;
   return {
-    title: guide.title,
-    description: guide.excerpt,
-    alternates: { canonical: `/ghiduri/${slug}` },
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: { type: "article", siteName: "CasinOnline.ro", title, description, url, images: ["/opengraph-image"] },
+    twitter: { card: "summary_large_image", title, description, images: ["/opengraph-image"] },
   };
 }
 

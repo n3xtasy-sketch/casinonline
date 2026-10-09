@@ -20,6 +20,22 @@ export const metadata: Metadata = {
   description:
     "Descoperă sloturi și jocuri de cazino: filtrează după furnizor, categorie și volatilitate, sortează după RTP și găsește-ți jocul preferat.",
   alternates: { canonical: "/jocuri-casino" },
+  openGraph: {
+    title: "Jocuri de cazino",
+    description:
+      "Descoperă sloturi și jocuri de cazino: filtrează după furnizor, categorie și volatilitate, sortează după RTP și găsește-ți jocul preferat.",
+    type: "website",
+    siteName: "CasinOnline.ro",
+    url: "/jocuri-casino",
+    images: ["/opengraph-image"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    images: ["/opengraph-image"],
+    title: "Jocuri de cazino",
+    description:
+      "Descoperă sloturi și jocuri de cazino: filtrează după furnizor, categorie și volatilitate, sortează după RTP și găsește-ți jocul preferat.",
+  },
 };
 
 // Query-dependent listing: render per request (full list in HTML for SEO).

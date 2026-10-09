@@ -24,10 +24,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const method = await getPaymentMethodBySlug(slug);
   if (!method) return {};
+  const title = `${method.name} la cazinouri online`;
+  const description = method.intro;
+  const url = `/metode-de-plata/${slug}`;
   return {
-    title: `${method.name} la cazinouri online`,
-    description: method.intro,
-    alternates: { canonical: `/metode-de-plata/${slug}` },
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: { type: "website", siteName: "CasinOnline.ro", title, description, url, images: ["/opengraph-image"] },
+    twitter: { card: "summary_large_image", title, description, images: ["/opengraph-image"] },
   };
 }
 

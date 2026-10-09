@@ -14,6 +14,22 @@ export const metadata: Metadata = {
   description:
     "Compară cele mai bune bonusuri de cazino din România: bonus de bun venit, fără depunere, rotiri gratuite, cashback și fără rulaj. Filtrează după tip și sortează.",
   alternates: { canonical: "/bonusuri-casino" },
+  openGraph: {
+    title: "Bonusuri de cazino",
+    description:
+      "Compară cele mai bune bonusuri de cazino din România: bonus de bun venit, fără depunere, rotiri gratuite, cashback și fără rulaj. Filtrează după tip și sortează.",
+    type: "website",
+    siteName: "CasinOnline.ro",
+    url: "/bonusuri-casino",
+    images: ["/opengraph-image"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    images: ["/opengraph-image"],
+    title: "Bonusuri de cazino",
+    description:
+      "Compară cele mai bune bonusuri de cazino din România: bonus de bun venit, fără depunere, rotiri gratuite, cashback și fără rulaj. Filtrează după tip și sortează.",
+  },
 };
 
 // Query-dependent listing: render per request (full list in HTML for SEO).

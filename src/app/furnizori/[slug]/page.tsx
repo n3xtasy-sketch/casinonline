@@ -25,10 +25,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const provider = await getProviderBySlug(slug);
   if (!provider) return {};
+  const title = `${provider.name} — Jocuri și cazinouri`;
+  const description = provider.intro;
+  const url = `/furnizori/${slug}`;
   return {
-    title: `${provider.name} — Jocuri și cazinouri`,
-    description: provider.intro,
-    alternates: { canonical: `/furnizori/${slug}` },
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: { type: "website", siteName: "CasinOnline.ro", title, description, url, images: ["/opengraph-image"] },
+    twitter: { card: "summary_large_image", title, description, images: ["/opengraph-image"] },
   };
 }
 

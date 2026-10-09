@@ -24,10 +24,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const bonus = await getBonusBySlug(slug);
   if (!bonus) return {};
+  const title = `${bonus.bonusType} ${bonus.casinoName}`;
+  const description = bonus.intro;
+  const url = `/bonusuri-casino/${slug}`;
   return {
-    title: `${bonus.bonusType} ${bonus.casinoName}`,
-    description: bonus.intro,
-    alternates: { canonical: `/bonusuri-casino/${slug}` },
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: { type: "website", siteName: "CasinOnline.ro", title, description, url, images: ["/opengraph-image"] },
+    twitter: { card: "summary_large_image", title, description, images: ["/opengraph-image"] },
   };
 }
 

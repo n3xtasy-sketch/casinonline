@@ -14,6 +14,22 @@ export const metadata: Metadata = {
   description:
     "Compară metodele de plată acceptate de cazinourile online din România — carduri, portofele electronice, plăți mobile și preplătite: viteză, comisioane și limite.",
   alternates: { canonical: "/metode-de-plata" },
+  openGraph: {
+    title: "Metode de plată pentru cazinouri",
+    description:
+      "Compară metodele de plată acceptate de cazinourile online din România — carduri, portofele electronice, plăți mobile și preplătite: viteză, comisioane și limite.",
+    type: "website",
+    siteName: "CasinOnline.ro",
+    url: "/metode-de-plata",
+    images: ["/opengraph-image"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    images: ["/opengraph-image"],
+    title: "Metode de plată pentru cazinouri",
+    description:
+      "Compară metodele de plată acceptate de cazinourile online din România — carduri, portofele electronice, plăți mobile și preplătite: viteză, comisioane și limite.",
+  },
 };
 
 // Query-dependent listing: render per request (full list in HTML for SEO).

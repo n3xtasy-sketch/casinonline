@@ -14,6 +14,22 @@ export const metadata: Metadata = {
   description:
     "Ghiduri și articole despre cazinouri online, bonusuri, jocuri și metode de plată. Învață cum funcționează rulajul, RTP-ul, verificarea KYC și multe altele.",
   alternates: { canonical: "/ghiduri" },
+  openGraph: {
+    title: "Ghiduri de cazino",
+    description:
+      "Ghiduri și articole despre cazinouri online, bonusuri, jocuri și metode de plată. Învață cum funcționează rulajul, RTP-ul, verificarea KYC și multe altele.",
+    type: "website",
+    siteName: "CasinOnline.ro",
+    url: "/ghiduri",
+    images: ["/opengraph-image"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    images: ["/opengraph-image"],
+    title: "Ghiduri de cazino",
+    description:
+      "Ghiduri și articole despre cazinouri online, bonusuri, jocuri și metode de plată. Învață cum funcționează rulajul, RTP-ul, verificarea KYC și multe altele.",
+  },
 };
 
 // Query-dependent listing: render per request (full list in HTML for SEO).

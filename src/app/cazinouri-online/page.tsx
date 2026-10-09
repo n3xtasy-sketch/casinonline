@@ -14,6 +14,22 @@ export const metadata: Metadata = {
   description:
     "Compară cele mai bune cazinouri online licențiate ONJN din România: bonusuri, rating, viteză de retragere și metode de plată.",
   alternates: { canonical: "/cazinouri-online" },
+  openGraph: {
+    title: "Cazinouri online",
+    description:
+      "Compară cele mai bune cazinouri online licențiate ONJN din România: bonusuri, rating, viteză de retragere și metode de plată.",
+    type: "website",
+    siteName: "CasinOnline.ro",
+    url: "/cazinouri-online",
+    images: ["/opengraph-image"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    images: ["/opengraph-image"],
+    title: "Cazinouri online",
+    description:
+      "Compară cele mai bune cazinouri online licențiate ONJN din România: bonusuri, rating, viteză de retragere și metode de plată.",
+  },
 };
 
 // Query-dependent listing: render per request (full list in HTML for SEO)
