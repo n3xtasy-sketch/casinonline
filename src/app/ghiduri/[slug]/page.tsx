@@ -10,20 +10,18 @@ import { RelatedLinks } from "@/components/ui/RelatedLinks";
 import { GuideCard } from "@/components/guides/GuideCard";
 import { GuideArticleHeader } from "@/components/guides/GuideArticleHeader";
 import { GuideBody } from "@/components/guides/GuideBody";
-import { allGuides } from "@/data/guides";
-import { getGuideDetail, getAllGuideSlugs } from "@/data/guide-details";
+import { getGuides, getGuideBySlug } from "@/lib/db/guides";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
-export function generateStaticParams() {
-  return getAllGuideSlugs().map((slug) => ({ slug }));
-}
+// DB-backed article: render per request (no build-time DB dependency).
+export const instant = false;
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const guide = getGuideDetail(slug);
+  const guide = await getGuideBySlug(slug);
   if (!guide) return {};
   return {
     title: guide.title,
@@ -34,18 +32,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function GuideArticlePage({ params }: PageProps) {
   const { slug } = await params;
-  const guide = getGuideDetail(slug);
+  const guide = await getGuideBySlug(slug);
   if (!guide) notFound();
 
   const tocItems = guide.sections
     .filter((s) => s.level === 2)
     .map((s) => ({ id: s.id, label: s.heading }));
 
-  const sameCategory = allGuides.filter(
+  const allGuidesList = await getGuides();
+  const sameCategory = allGuidesList.filter(
     (g) => g.categorySlug === guide.categorySlug && g.slug !== slug,
   );
   const related = (
-    sameCategory.length ? sameCategory : allGuides.filter((g) => g.slug !== slug)
+    sameCategory.length ? sameCategory : allGuidesList.filter((g) => g.slug !== slug)
   ).slice(0, 3);
 
   const crumbs = [

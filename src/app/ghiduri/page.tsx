@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/Button";
 import { GuideCard } from "@/components/guides/GuideCard";
 import { FilterChips } from "@/components/filters/FilterChips";
 import { SortSelect } from "@/components/filters/SortSelect";
-import { allGuides, guideCategoryFilters, guideSortOptions } from "@/data/guides";
+import { guideCategoryFilters, guideSortOptions } from "@/data/guides";
+import { getGuides } from "@/lib/db/guides";
 import type { GuideCardData } from "@/types/guide";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { itemListSchema } from "@/lib/schema";
@@ -35,9 +36,10 @@ export default async function GuideListingPage({ searchParams }: PageProps) {
   const categorie = typeof sp.categorie === "string" ? sp.categorie : "";
   const sort = typeof sp.sort === "string" ? sp.sort : DEFAULT_SORT;
 
+  const all = await getGuides();
   const filtered = categorie
-    ? allGuides.filter((g) => g.categorySlug === categorie)
-    : allGuides;
+    ? all.filter((g) => g.categorySlug === categorie)
+    : all;
   const guides = sortGuides(filtered, sort);
 
   return (
