@@ -6,14 +6,28 @@ import { GameCard } from "@/components/games/GameCard";
 import { BonusCard } from "@/components/bonuses/BonusCard";
 import { ProviderCard } from "@/components/providers/ProviderCard";
 import { GuideCard } from "@/components/guides/GuideCard";
-import { recommendedCasinos } from "@/data/casinos";
-import { popularGames } from "@/data/games";
-import { latestBonuses } from "@/data/bonuses";
-import { popularProviders } from "@/data/providers";
-import { latestGuides } from "@/data/guides";
+import {
+  getHomeCasinos,
+  getHomeGames,
+  getHomeBonuses,
+  getHomeProviders,
+  getHomeGuides,
+} from "@/lib/db/home";
 import { homeFaq } from "@/data/faq";
 
-export default function HomePage() {
+// DB-backed homepage: render per request (no build-time DB dependency).
+export const instant = false;
+
+export default async function HomePage() {
+  const [recommendedCasinos, popularGames, latestBonuses, popularProviders, latestGuides] =
+    await Promise.all([
+      getHomeCasinos(),
+      getHomeGames(),
+      getHomeBonuses(),
+      getHomeProviders(),
+      getHomeGuides(),
+    ]);
+
   return (
     <div className="flex flex-col gap-12">
       <HeroSection
