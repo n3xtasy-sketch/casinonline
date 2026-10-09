@@ -55,7 +55,7 @@ export default async function GameListingPage({ searchParams }: PageProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <JsonLd data={itemListSchema(games.map((g) => g.href))} />
+      <JsonLd data={itemListSchema(games.map((g) => ({ name: g.name, url: g.href })))} />
       <header>
         <h1 className="text-3xl font-bold text-ink md:text-4xl">Jocuri de cazino</h1>
         <p className="mt-2 max-w-[70ch] text-ink-secondary">

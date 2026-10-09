@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { JsonLd } from "@/components/seo/JsonLd";
-import { breadcrumbSchema, articleSchema } from "@/lib/schema";
+import { breadcrumbSchema, articleSchema, faqPageSchema } from "@/lib/schema";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { FAQAccordion } from "@/components/ui/FAQAccordion";
 import { TableOfContents } from "@/components/ui/TableOfContents";
@@ -62,8 +62,12 @@ export default async function GuideArticlePage({ params }: PageProps) {
           description: guide.excerpt,
           author: guide.author,
           path: `/ghiduri/${slug}`,
+          datePublished: guide.publishedAt,
+          dateModified: guide.modifiedAt,
+          image: guide.imageUrl,
         })}
       />
+      {guide.faq?.length ? <JsonLd data={faqPageSchema(guide.faq)} /> : null}
       <Breadcrumbs items={crumbs} />
 
       <GuideArticleHeader guide={guide} />

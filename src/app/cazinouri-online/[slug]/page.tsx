@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { JsonLd } from "@/components/seo/JsonLd";
-import { breadcrumbSchema } from "@/lib/schema";
+import { breadcrumbSchema, faqPageSchema, casinoReviewSchema } from "@/lib/schema";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -47,6 +47,14 @@ export default async function CasinoReviewPage({ params }: PageProps) {
   return (
     <div className="flex flex-col gap-8">
       <JsonLd data={breadcrumbSchema(crumbs)} />
+      <JsonLd
+        data={casinoReviewSchema({
+          name: casino.name,
+          path: `/cazinouri-online/${slug}`,
+          rating: casino.rating,
+        })}
+      />
+      {casino.faq?.length ? <JsonLd data={faqPageSchema(casino.faq)} /> : null}
       <Breadcrumbs items={crumbs} />
 
       <CasinoReviewHeader casino={casino} />

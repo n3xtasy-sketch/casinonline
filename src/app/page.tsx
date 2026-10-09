@@ -14,6 +14,8 @@ import {
   getHomeGuides,
 } from "@/lib/db/home";
 import { homeFaq } from "@/data/faq";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { faqPageSchema } from "@/lib/schema";
 
 // DB-backed homepage: render per request (no build-time DB dependency).
 export const instant = false;
@@ -104,6 +106,7 @@ export default async function HomePage() {
 
       {/* FAQ */}
       <section>
+        <JsonLd data={faqPageSchema(homeFaq)} />
         <SectionHeader title="Întrebări frecvente" />
         <FAQAccordion items={homeFaq} />
       </section>

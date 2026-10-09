@@ -36,6 +36,9 @@ export interface GuideDetailExtra {
   /** Internal links to casinos/games/bonuses/providers/payment pages. */
   relatedLinks: GuideRelatedLink[];
   faq?: { question: string; answer: string }[];
+  /** ISO timestamps for Article structured data (undefined when absent). */
+  publishedAt?: string;
+  modifiedAt?: string;
 }
 
 export type GuideDetail = GuideCardData & GuideDetailExtra;

@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { JsonLd } from "@/components/seo/JsonLd";
-import { breadcrumbSchema } from "@/lib/schema";
+import { breadcrumbSchema, faqPageSchema } from "@/lib/schema";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { Badge } from "@/components/ui/Badge";
 import { FAQAccordion } from "@/components/ui/FAQAccordion";
@@ -56,6 +56,7 @@ export default async function GameDetailPage({ params }: PageProps) {
   return (
     <div className="flex flex-col gap-8">
       <JsonLd data={breadcrumbSchema(crumbs)} />
+      {game.faq?.length ? <JsonLd data={faqPageSchema(game.faq)} /> : null}
       <Breadcrumbs items={crumbs} />
 
       <GameDetailHeader game={game} playUrl={playUrl} />

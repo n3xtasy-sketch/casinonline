@@ -37,7 +37,7 @@ export default async function ProviderListingPage({ searchParams }: PageProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <JsonLd data={itemListSchema(providers.map((p) => p.href))} />
+      <JsonLd data={itemListSchema(providers.map((p) => ({ name: p.name, url: p.href })))} />
       <header>
         <h1 className="text-3xl font-bold text-ink md:text-4xl">Furnizori de jocuri</h1>
         <p className="mt-2 max-w-[70ch] text-ink-secondary">

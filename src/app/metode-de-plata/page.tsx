@@ -42,7 +42,7 @@ export default async function PaymentListingPage({ searchParams }: PageProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <JsonLd data={itemListSchema(methods.map((m) => m.href))} />
+      <JsonLd data={itemListSchema(methods.map((m) => ({ name: m.name, url: m.href })))} />
       <header>
         <h1 className="text-3xl font-bold text-ink md:text-4xl">Metode de plată</h1>
         <p className="mt-2 max-w-[70ch] text-ink-secondary">

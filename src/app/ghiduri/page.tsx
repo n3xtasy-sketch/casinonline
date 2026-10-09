@@ -44,7 +44,7 @@ export default async function GuideListingPage({ searchParams }: PageProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <JsonLd data={itemListSchema(guides.map((g) => g.href))} />
+      <JsonLd data={itemListSchema(guides.map((g) => ({ name: g.title, url: g.href })))} />
       <header>
         <h1 className="text-3xl font-bold text-ink md:text-4xl">Ghiduri de cazino</h1>
         <p className="mt-2 max-w-[70ch] text-ink-secondary">

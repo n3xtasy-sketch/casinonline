@@ -44,7 +44,7 @@ export default async function CasinoListingPage({ searchParams }: PageProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <JsonLd data={itemListSchema(casinos.map((c) => c.reviewUrl))} />
+      <JsonLd data={itemListSchema(casinos.map((c) => ({ name: c.name, url: c.reviewUrl })))} />
       <header>
         <h1 className="text-3xl font-bold text-ink md:text-4xl">Cazinouri online</h1>
         <p className="mt-2 max-w-[70ch] text-ink-secondary">

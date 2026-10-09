@@ -55,6 +55,8 @@ function toDetail(row: GuideDetailRow): GuideDetail {
     sections: row.sections ?? [],
     relatedLinks: row.related_links ?? [],
     faq: row.faq ?? [],
+    publishedAt: row.published_at ?? undefined,
+    modifiedAt: row.updated_at,
   };
 }
 

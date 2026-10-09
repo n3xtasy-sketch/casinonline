@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { JsonLd } from "@/components/seo/JsonLd";
-import { breadcrumbSchema } from "@/lib/schema";
+import { breadcrumbSchema, faqPageSchema } from "@/lib/schema";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { FAQAccordion } from "@/components/ui/FAQAccordion";
 import { CasinoCard } from "@/components/casino/CasinoCard";
@@ -51,6 +51,7 @@ export default async function ProviderDetailPage({ params }: PageProps) {
   return (
     <div className="flex flex-col gap-8">
       <JsonLd data={breadcrumbSchema(crumbs)} />
+      {provider.faq?.length ? <JsonLd data={faqPageSchema(provider.faq)} /> : null}
       <Breadcrumbs items={crumbs} />
 
       <ProviderDetailHeader provider={provider} />
