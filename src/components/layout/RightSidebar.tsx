@@ -15,7 +15,7 @@ import {
 /** Contextual discovery sidebar — desktop only (>= xl). */
 export function RightSidebar({ className }: { className?: string }) {
   return (
-    <aside className={cn("min-w-0", className)}>
+    <aside aria-label="Recomandări" className={cn("min-w-0", className)}>
       <div className="sticky top-[88px] flex flex-col gap-4">
         <Suspense fallback={<SidebarFallback />}>
           <SidebarWidgets />

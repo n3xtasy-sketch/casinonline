@@ -1,8 +1,8 @@
 import type { MetadataRoute } from "next";
 import { absoluteUrl } from "@/lib/site";
-import { getSlugs } from "@/lib/db/slugs";
+import { getSlugs, type SlugRow } from "@/lib/db/slugs";
 
-/** Dynamic sitemap covering every hub and detail route (slugs come from DB). */
+/** Dynamic sitemap covering every hub and detail route (slugs + lastModified from DB). */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const hubs = [
     "/",
@@ -23,7 +23,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     getSlugs("guides"),
   ]);
 
-  const detail: Array<[string, string[]]> = [
+  const detail: Array<[string, SlugRow[]]> = [
     ["/cazinouri-online", casinos],
     ["/jocuri-casino", games],
     ["/furnizori", providers],
@@ -32,17 +32,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ["/ghiduri", guides],
   ];
 
+  // Latest content change → lastModified for the hub routes.
+  const latestIso = detail
+    .flatMap(([, rows]) => rows.map((r) => r.updatedAt))
+    .filter(Boolean)
+    .reduce((max, iso) => (iso > max ? iso : max), "");
+  const latest = latestIso ? new Date(latestIso) : undefined;
+
   const hubEntries: MetadataRoute.Sitemap = hubs.map((path) => ({
     url: absoluteUrl(path),
     changeFrequency: "weekly",
     priority: path === "/" ? 1 : 0.8,
+    ...(latest ? { lastModified: latest } : {}),
   }));
 
-  const detailEntries: MetadataRoute.Sitemap = detail.flatMap(([base, slugs]) =>
-    slugs.map((slug) => ({
-      url: absoluteUrl(`${base}/${slug}`),
+  const detailEntries: MetadataRoute.Sitemap = detail.flatMap(([base, rows]) =>
+    rows.map((r) => ({
+      url: absoluteUrl(`${base}/${r.slug}`),
       changeFrequency: "monthly" as const,
       priority: 0.6,
+      ...(r.updatedAt ? { lastModified: new Date(r.updatedAt) } : {}),
     })),
   );
 

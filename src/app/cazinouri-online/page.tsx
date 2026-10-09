@@ -69,6 +69,8 @@ export default async function CasinoListingPage({ searchParams }: PageProps) {
         </p>
       </header>
 
+      <h2 className="sr-only">Listă cazinouri</h2>
+
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <FilterChips param="tag" options={casinoFilterTags} />
         <SortSelect options={casinoSortOptions} defaultValue={DEFAULT_SORT} />

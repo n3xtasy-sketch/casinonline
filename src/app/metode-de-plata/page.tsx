@@ -67,6 +67,8 @@ export default async function PaymentListingPage({ searchParams }: PageProps) {
         </p>
       </header>
 
+      <h2 className="sr-only">Listă metode de plată</h2>
+
       <FilterChips param="tip" label="Tip" options={paymentTypeFilters} />
 
       <div className="flex items-center justify-between gap-4">

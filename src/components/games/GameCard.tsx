@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { Gamepad2 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -50,7 +51,15 @@ export function GameCard({ game }: { game: GameCardData }) {
       </div>
 
       <div className="p-3">
-        <h3 className="truncate text-sm font-semibold text-ink">{name}</h3>
+        <h3 className="truncate text-sm font-semibold text-ink">
+          <Link
+            href={href}
+            title={name}
+            className="rounded-sm outline-none transition-colors hover:text-accent focus-visible:text-accent"
+          >
+            {name}
+          </Link>
+        </h3>
         <p className="truncate text-xs text-ink-muted">{provider}</p>
       </div>
     </Card>

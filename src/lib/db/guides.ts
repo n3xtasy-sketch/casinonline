@@ -33,9 +33,17 @@ function formatUpdated(iso: string): string {
   return RO_MONTH_YEAR.format(new Date(iso));
 }
 
-/** Allow only internal relative paths in related links (reject //, javascript:, data:, absolute URLs). */
+/**
+ * Allow only internal relative paths in related links. Rejects control chars and
+ * backslashes (browsers normalize `\`, tab, newline, CR → could become protocol-
+ * relative // and redirect off-site), and requires exactly one leading slash.
+ */
 function isSafeInternalPath(href: unknown): boolean {
-  return typeof href === "string" && href.startsWith("/") && !href.startsWith("//");
+  return (
+    typeof href === "string" &&
+    !/[\u0000-\u001f\u007f\\]/.test(href) && // control chars (tab/newline/CR) + backslash
+    /^\/(?![/\\])/.test(href) // single leading slash, not // or /\
+  );
 }
 
 function toCard(row: GuideRow): GuideCardData {

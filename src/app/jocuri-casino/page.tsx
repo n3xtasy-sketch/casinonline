@@ -80,6 +80,8 @@ export default async function GameListingPage({ searchParams }: PageProps) {
         </p>
       </header>
 
+      <h2 className="sr-only">Listă jocuri</h2>
+
       <div className="flex flex-col gap-3">
         <FilterChips param="furnizor" label="Furnizor" options={gameProviderFilters} />
         <FilterChips param="categorie" label="Categorie" options={gameCategoryFilters} />

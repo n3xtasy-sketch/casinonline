@@ -69,6 +69,8 @@ export default async function GuideListingPage({ searchParams }: PageProps) {
         </p>
       </header>
 
+      <h2 className="sr-only">Listă ghiduri</h2>
+
       <FilterChips param="categorie" label="Categorie" options={guideCategoryFilters} />
 
       <div className="flex items-center justify-between gap-4">

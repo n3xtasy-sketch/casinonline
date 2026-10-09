@@ -62,6 +62,8 @@ export default async function ProviderListingPage({ searchParams }: PageProps) {
         </p>
       </header>
 
+      <h2 className="sr-only">Listă furnizori</h2>
+
       <div className="flex items-center justify-between gap-4">
         <p className="text-sm text-ink-muted">
           {providers.length} {providers.length === 1 ? "furnizor" : "furnizori"}

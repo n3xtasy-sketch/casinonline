@@ -1,22 +1,58 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { Logo } from "./Logo";
 import { SidebarNav } from "./SidebarNav";
 
-/** Mobile menu button + slide-in navigation drawer (< lg). */
+/** Mobile menu button + slide-in navigation drawer (< lg), as an accessible modal dialog. */
 export function MobileNav() {
   const [open, setOpen] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
-    document.addEventListener("keydown", onKey);
+    const panel = panelRef.current;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
     document.body.style.overflow = "hidden";
+
+    const focusables = () =>
+      panel
+        ? Array.from(
+            panel.querySelectorAll<HTMLElement>(
+              'a[href], button:not([disabled]), input, [tabindex]:not([tabindex="-1"])',
+            ),
+          )
+        : [];
+
+    // Move focus into the dialog on open.
+    focusables()[0]?.focus();
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setOpen(false);
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const items = focusables();
+      if (items.length === 0) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+
     return () => {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = "";
+      // Restore focus to the trigger that opened the drawer.
+      previouslyFocused?.focus?.();
     };
   }, [open]);
 
@@ -26,6 +62,8 @@ export function MobileNav() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Deschide meniul"
+        aria-haspopup="dialog"
+        aria-expanded={open}
         className="grid size-10 place-items-center rounded-sm text-ink-secondary transition-colors hover:bg-elevated hover:text-ink lg:hidden"
       >
         <Menu size={20} strokeWidth={1.9} />
@@ -38,7 +76,13 @@ export function MobileNav() {
             onClick={() => setOpen(false)}
             aria-hidden
           />
-          <div className="absolute inset-y-0 left-0 flex w-[280px] max-w-[85vw] flex-col border-r border-border bg-sidebar">
+          <div
+            ref={panelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Meniu"
+            className="absolute inset-y-0 left-0 flex w-[280px] max-w-[85vw] flex-col border-r border-border bg-sidebar"
+          >
             <div className="flex h-[var(--header-h)] items-center justify-between px-4">
               <Logo />
               <button

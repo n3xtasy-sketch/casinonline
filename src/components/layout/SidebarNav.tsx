@@ -14,7 +14,7 @@ export function SidebarNav({ onNavigate }: Props) {
   const pathname = usePathname();
 
   return (
-    <nav className="flex flex-col gap-6">
+    <nav aria-label="Navigare principală" className="flex flex-col gap-6">
       {sidebarGroups.map((group, i) => (
         <div key={group.label ?? i} className="flex flex-col gap-1">
           {group.label ? (

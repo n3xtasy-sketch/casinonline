@@ -68,6 +68,8 @@ export default async function BonusListingPage({ searchParams }: PageProps) {
         </p>
       </header>
 
+      <h2 className="sr-only">Listă bonusuri</h2>
+
       <FilterChips param="tip" label="Tip bonus" options={bonusTypeFilters} />
 
       <div className="flex items-center justify-between gap-4">
