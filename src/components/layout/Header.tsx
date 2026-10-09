@@ -1,7 +1,6 @@
 import { Heart } from "lucide-react";
 import { MobileNav } from "./MobileNav";
 import { SearchInput } from "@/components/ui/SearchInput";
-import { Button } from "@/components/ui/Button";
 import { IconButton } from "@/components/ui/IconButton";
 
 /** Sticky global header: mobile menu, search, favorites, auth actions. */
@@ -19,12 +18,6 @@ export function Header() {
         <IconButton label="Favorite">
           <Heart size={19} strokeWidth={1.9} />
         </IconButton>
-        <Button variant="secondary" href="/login" className="hidden sm:inline-flex">
-          Autentificare
-        </Button>
-        <Button variant="primary" href="/register">
-          Înregistrare
-        </Button>
       </div>
     </header>
   );

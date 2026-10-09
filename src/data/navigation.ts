@@ -6,19 +6,13 @@ import {
   Boxes,
   CreditCard,
   BookOpen,
-  Star,
-  GitCompare,
-  Heart,
   Cherry,
-  Radio,
-  CircleDot,
-  Spade,
   LayoutGrid,
   Rocket,
 } from "lucide-react";
 import type { NavGroup } from "@/types/navigation";
 
-/** Primary navigation (PROJECT.md / TASKS.md). */
+/** Primary navigation (PROJECT.md / TASKS.md). Only existing routes. */
 export const mainNav: NavGroup = {
   label: "Explorare",
   items: [
@@ -29,22 +23,16 @@ export const mainNav: NavGroup = {
     { label: "Furnizori", href: "/furnizori", icon: Boxes },
     { label: "Metode de plată", href: "/metode-de-plata", icon: CreditCard },
     { label: "Ghiduri", href: "/ghiduri", icon: BookOpen },
-    { label: "Recenzii", href: "/recenzii", icon: Star },
-    { label: "Compară", href: "/compara", icon: GitCompare },
-    { label: "Favorite", href: "/favorite", icon: Heart },
   ],
 };
 
-/** Game category navigation. */
+/** Game categories → the listing filtered via the supported ?categorie= param. */
 export const gameNav: NavGroup = {
   label: "Jocuri",
   items: [
-    { label: "Sloturi", href: "/jocuri-casino/sloturi", icon: Cherry },
-    { label: "Live Casino", href: "/jocuri-casino/live-casino", icon: Radio },
-    { label: "Ruletă", href: "/jocuri-casino/ruleta", icon: CircleDot },
-    { label: "Blackjack", href: "/jocuri-casino/blackjack", icon: Spade },
-    { label: "Jocuri de masă", href: "/jocuri-casino/jocuri-de-masa", icon: LayoutGrid },
-    { label: "Crash Games", href: "/jocuri-casino/crash-games", icon: Rocket },
+    { label: "Sloturi", href: "/jocuri-casino?categorie=sloturi", icon: Cherry },
+    { label: "Megaways", href: "/jocuri-casino?categorie=megaways", icon: LayoutGrid },
+    { label: "Jackpot", href: "/jocuri-casino?categorie=jackpot", icon: Rocket },
   ],
 };
 

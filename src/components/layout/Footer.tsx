@@ -6,16 +6,16 @@ const columns = [
     title: "Cazinouri",
     links: [
       { label: "Toate cazinourile", href: "/cazinouri-online" },
-      { label: "Cazinouri noi", href: "/cazinouri-online/noi" },
-      { label: "Retrageri rapide", href: "/cazinouri-online/retrageri-rapide" },
+      { label: "Cazinouri noi", href: "/cazinouri-online?tag=nou" },
+      { label: "Retrageri rapide", href: "/cazinouri-online?tag=retrageri-rapide" },
     ],
   },
   {
     title: "Bonusuri",
     links: [
       { label: "Toate bonusurile", href: "/bonusuri-casino" },
-      { label: "Bonus fără depunere", href: "/bonusuri-casino/bonus-fara-depunere" },
-      { label: "Rotiri gratuite", href: "/bonusuri-casino/rotiri-gratuite" },
+      { label: "Bonus fără depunere", href: "/bonusuri-casino?tip=fara-depunere" },
+      { label: "Rotiri gratuite", href: "/bonusuri-casino?tip=rotiri-gratuite" },
     ],
   },
   {
@@ -26,21 +26,13 @@ const columns = [
       { label: "Ghiduri", href: "/ghiduri" },
     ],
   },
-  {
-    title: "Despre",
-    links: [
-      { label: "Despre noi", href: "/despre" },
-      { label: "Metodologie recenzii", href: "/metodologie" },
-      { label: "Contact", href: "/contact" },
-    ],
-  },
 ];
 
 export function Footer() {
   return (
     <footer className="border-t border-border bg-footer">
       <div className="mx-auto max-w-[1600px] px-4 py-10 md:px-6">
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
           {columns.map((col) => (
             <nav key={col.title} aria-label={col.title}>
               <h2 className="mb-3 text-sm font-semibold text-ink">{col.title}</h2>
