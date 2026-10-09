@@ -10,7 +10,7 @@ import { ProsCons } from "@/components/casino/ProsCons";
 import { BonusCard } from "@/components/bonuses/BonusCard";
 import { BonusDetailHeader } from "@/components/bonuses/BonusDetailHeader";
 import { BonusFacts } from "@/components/bonuses/BonusFacts";
-import { getBonuses, getBonusBySlug } from "@/lib/db/bonuses";
+import { getBonusBySlug, getSimilarBonuses } from "@/lib/db/bonuses";
 import { getCasinoCardBySlug } from "@/lib/db/casinos";
 
 interface PageProps {
@@ -43,11 +43,7 @@ export default async function BonusDetailPage({ params }: PageProps) {
 
   const casino = await getCasinoCardBySlug(bonus.casinoSlug);
 
-  const allBon = await getBonuses();
-  const sameType = allBon.filter((b) => b.typeSlug === bonus.typeSlug && b.slug !== slug);
-  const similar = (
-    sameType.length ? sameType : allBon.filter((b) => b.slug !== slug)
-  ).slice(0, 3);
+  const similar = await getSimilarBonuses(bonus.typeSlug, slug);
 
   const crumbs = [
     { label: "Acasă", href: "/" },

@@ -10,7 +10,7 @@ import { ProsCons } from "@/components/casino/ProsCons";
 import { PaymentMethodCard } from "@/components/payments/PaymentMethodCard";
 import { PaymentDetailHeader } from "@/components/payments/PaymentDetailHeader";
 import { PaymentFacts } from "@/components/payments/PaymentFacts";
-import { getPaymentMethods, getPaymentMethodBySlug } from "@/lib/db/payments";
+import { getPaymentMethodBySlug, getAlternativePaymentMethods } from "@/lib/db/payments";
 import { getCasinosForPaymentMethod } from "@/lib/db/casinos";
 
 interface PageProps {
@@ -43,13 +43,7 @@ export default async function PaymentDetailPage({ params }: PageProps) {
 
   const casinos = (await getCasinosForPaymentMethod(slug)).slice(0, 4);
 
-  const allMethods = await getPaymentMethods();
-  const sameType = allMethods.filter(
-    (m) => m.slug !== slug && m.typeSlug === method.typeSlug,
-  );
-  const alternatives = (
-    sameType.length ? sameType : allMethods.filter((m) => m.slug !== slug)
-  ).slice(0, 3);
+  const alternatives = await getAlternativePaymentMethods(method.typeSlug, slug);
 
   const crumbs = [
     { label: "Acasă", href: "/" },

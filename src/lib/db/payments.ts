@@ -52,6 +52,8 @@ function toDetail(row: PaymentDetailRow): PaymentMethodDetail {
 }
 
 const CARD_SELECT = "slug, name, logo_url, payment_type:payment_types(slug, label)";
+// Inner join variant: lets us filter parents by the embedded payment type slug.
+const CARD_SELECT_INNER = "slug, name, logo_url, payment_type:payment_types!inner(slug, label)";
 const DETAIL_SELECT = `${CARD_SELECT}, intro, deposits, withdrawals, deposit_speed, withdrawal_speed, fees, min_limit, max_limit, pros, cons, faq`;
 
 /** All payment methods for the listing (the page applies filter/sort). */
@@ -78,4 +80,36 @@ export async function getPaymentMethodBySlug(slug: string): Promise<PaymentMetho
     .maybeSingle();
   if (error) throw new Error(`getPaymentMethodBySlug: ${error.message}`);
   return data ? toDetail(data as unknown as PaymentDetailRow) : null;
+}
+
+/** Alternative methods (same type, excluding one), falling back to any other method. */
+export async function getAlternativePaymentMethods(
+  typeSlug: string,
+  excludeSlug: string,
+  limit = 3,
+): Promise<PaymentMethodCardData[]> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("payments");
+  const db = getSupabaseServerClient();
+  const sameType = await db
+    .from("payment_methods")
+    .select(CARD_SELECT_INNER)
+    .eq("payment_type.slug", typeSlug)
+    .neq("slug", excludeSlug)
+    .order("name")
+    .limit(limit);
+  if (sameType.error) throw new Error(`getAlternativePaymentMethods: ${sameType.error.message}`);
+  let rows = (sameType.data ?? []) as unknown as PaymentRow[];
+  if (rows.length === 0) {
+    const others = await db
+      .from("payment_methods")
+      .select(CARD_SELECT)
+      .neq("slug", excludeSlug)
+      .order("name")
+      .limit(limit);
+    if (others.error) throw new Error(`getAlternativePaymentMethods: ${others.error.message}`);
+    rows = (others.data ?? []) as unknown as PaymentRow[];
+  }
+  return rows.map(toCard);
 }

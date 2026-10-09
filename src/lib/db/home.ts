@@ -1,8 +1,9 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
+import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getCasinos } from "./casinos";
 import { getGames } from "./games";
-import { getBonuses } from "./bonuses";
+import { getBonuses, getFeaturedBonus } from "./bonuses";
 import { getProviders } from "./providers";
 import { getGuides } from "./guides";
 import type { CasinoCardData } from "@/types/casino";
@@ -12,80 +13,77 @@ import type { ProviderCardData } from "@/types/provider";
 import type { GuideCardData } from "@/types/guide";
 import type { RankedRow, GamePick } from "@/types/widget";
 
-/* ---------- Homepage sections (full cards) ---------- */
+/* ---------- Homepage sections (full cards, limited in-query) ---------- */
 
-/** Recommended casinos (top rated). */
+/** Recommended casinos (top 4 by rating). */
 export async function getHomeCasinos(): Promise<CasinoCardData[]> {
-  "use cache";
-  cacheLife("hours");
-  cacheTag("casinos");
-  return (await getCasinos()).slice(0, 4);
+  return getCasinos(4);
 }
 
-/** Popular games. */
+/** Popular games (first 8). */
 export async function getHomeGames(): Promise<GameCardData[]> {
-  "use cache";
-  cacheLife("hours");
-  cacheTag("games");
-  return (await getGames()).slice(0, 8);
+  return getGames(8);
 }
 
-/** Latest bonuses. */
+/** Latest bonuses (first 3). created_at ties → slice the cached list to keep order stable. */
 export async function getHomeBonuses(): Promise<BonusCardData[]> {
-  "use cache";
-  cacheLife("hours");
-  cacheTag("bonuses");
   return (await getBonuses()).slice(0, 3);
 }
 
-/** Popular providers (most games first). */
+/** Popular providers (top 6 by game count). */
 export async function getHomeProviders(): Promise<ProviderCardData[]> {
-  "use cache";
-  cacheLife("hours");
-  cacheTag("providers");
-  return (await getProviders()).slice(0, 6);
+  return getProviders(6);
 }
 
-/** Latest guides (shared by homepage section and sidebar widget). */
+/** Latest guides (first 3). created_at ties → slice the cached list to keep order stable. */
 export async function getHomeGuides(): Promise<GuideCardData[]> {
-  "use cache";
-  cacheLife("hours");
-  cacheTag("guides");
   return (await getGuides()).slice(0, 3);
 }
 
-/* ---------- Right-sidebar widgets ---------- */
+/* ---------- Right-sidebar widgets (lightweight selects) ---------- */
 
-/** Top casinos ranked by rating (star metric is the DB rating). */
+/** Top 5 casinos ranked by rating — only name + rating are fetched. */
 export async function getTopCasinosRanked(): Promise<RankedRow[]> {
   "use cache";
   cacheLife("hours");
   cacheTag("casinos");
-  return (await getCasinos()).slice(0, 5).map((c) => ({ name: c.name, rating: c.rating }));
+  const db = getSupabaseServerClient();
+  const { data, error } = await db
+    .from("casinos")
+    .select("name, rating")
+    .order("rating", { ascending: false })
+    .limit(5);
+  if (error) throw new Error(`getTopCasinosRanked: ${error.message}`);
+  return (data as unknown as { name: string; rating: number | null }[]).map((c) => ({
+    name: c.name,
+    rating: c.rating ?? 0,
+  }));
 }
 
 /**
- * Popular games (ordered by RTP). Games have no 0–5 rating in the schema, so
- * the widget shows name + provider only — no rating is presented.
+ * Top 5 games by RTP — only name + provider are fetched. Games have no 0–5
+ * rating in the schema, so the widget shows name + provider (no rating).
  */
 export async function getPopularGames(): Promise<GamePick[]> {
   "use cache";
   cacheLife("hours");
   cacheTag("games");
-  const games = await getGames();
-  return [...games]
-    .filter((g) => g.rtp != null)
-    .sort((a, b) => (b.rtp ?? 0) - (a.rtp ?? 0))
-    .slice(0, 5)
-    .map((g) => ({ name: g.name, provider: g.provider }));
+  const db = getSupabaseServerClient();
+  const { data, error } = await db
+    .from("games")
+    .select("name, provider:providers(name)")
+    .not("rtp", "is", null)
+    .order("rtp", { ascending: false })
+    .order("name")
+    .limit(5);
+  if (error) throw new Error(`getPopularGames: ${error.message}`);
+  return (data as unknown as { name: string; provider: { name: string } | null }[]).map((g) => ({
+    name: g.name,
+    provider: g.provider?.name ?? "",
+  }));
 }
 
-/** Bonus of the day: prefer a welcome bonus, else the latest. */
+/** Bonus of the day (delegates to the dedicated featured-bonus query). */
 export async function getBonusOfTheDay(): Promise<BonusCardData | null> {
-  "use cache";
-  cacheLife("hours");
-  cacheTag("bonuses");
-  const bonuses = await getBonuses();
-  const welcome = bonuses.find((b) => b.typeSlug === "bonus-de-bun-venit");
-  return welcome ?? bonuses[0] ?? null;
+  return getFeaturedBonus();
 }

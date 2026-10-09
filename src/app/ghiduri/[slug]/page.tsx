@@ -10,7 +10,7 @@ import { RelatedLinks } from "@/components/ui/RelatedLinks";
 import { GuideCard } from "@/components/guides/GuideCard";
 import { GuideArticleHeader } from "@/components/guides/GuideArticleHeader";
 import { GuideBody } from "@/components/guides/GuideBody";
-import { getGuides, getGuideBySlug } from "@/lib/db/guides";
+import { getGuideBySlug, getSimilarGuides } from "@/lib/db/guides";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -44,13 +44,7 @@ export default async function GuideArticlePage({ params }: PageProps) {
     .filter((s) => s.level === 2)
     .map((s) => ({ id: s.id, label: s.heading }));
 
-  const allGuidesList = await getGuides();
-  const sameCategory = allGuidesList.filter(
-    (g) => g.categorySlug === guide.categorySlug && g.slug !== slug,
-  );
-  const related = (
-    sameCategory.length ? sameCategory : allGuidesList.filter((g) => g.slug !== slug)
-  ).slice(0, 3);
+  const related = await getSimilarGuides(guide.categorySlug, slug);
 
   const crumbs = [
     { label: "Acasă", href: "/" },

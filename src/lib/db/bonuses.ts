@@ -70,6 +70,27 @@ export async function getBonuses(): Promise<BonusCardData[]> {
   return (data as unknown as BonusRow[]).map(toCard);
 }
 
+/**
+ * Similar bonuses (same type, excluding one), falling back to any other bonus.
+ * Reuses the cached full list (created_at timestamps are tied, so a LIMIT query
+ * would reorder ties vs the current slice behaviour — output must stay stable).
+ */
+export async function getSimilarBonuses(
+  typeSlug: string,
+  excludeSlug: string,
+  limit = 3,
+): Promise<BonusCardData[]> {
+  const all = await getBonuses();
+  const sameType = all.filter((b) => b.typeSlug === typeSlug && b.slug !== excludeSlug);
+  return (sameType.length ? sameType : all.filter((b) => b.slug !== excludeSlug)).slice(0, limit);
+}
+
+/** Bonus of the day: a welcome bonus if any, else the earliest-seeded bonus. */
+export async function getFeaturedBonus(): Promise<BonusCardData | null> {
+  const all = await getBonuses();
+  return all.find((b) => b.typeSlug === "bonus-de-bun-venit") ?? all[0] ?? null;
+}
+
 /** Single bonus (detail) by slug, or null when not found. */
 export async function getBonusBySlug(slug: string): Promise<BonusDetail | null> {
   "use cache";

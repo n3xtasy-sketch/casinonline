@@ -10,7 +10,7 @@ import { GameCard } from "@/components/games/GameCard";
 import { ProviderCard } from "@/components/providers/ProviderCard";
 import { ProviderDetailHeader } from "@/components/providers/ProviderDetailHeader";
 import { ProviderFacts } from "@/components/providers/ProviderFacts";
-import { getProviderBySlug, getProviders } from "@/lib/db/providers";
+import { getProviderBySlug, getRelatedProviders } from "@/lib/db/providers";
 import { getGamesForProvider } from "@/lib/db/games";
 import { getCasinosForProvider } from "@/lib/db/casinos";
 
@@ -45,7 +45,7 @@ export default async function ProviderDetailPage({ params }: PageProps) {
   const games = (await getGamesForProvider(slug)).slice(0, 8);
   const casinos = (await getCasinosForProvider(slug)).slice(0, 4);
 
-  const related = (await getProviders()).filter((p) => p.slug !== slug).slice(0, 3);
+  const related = await getRelatedProviders(slug);
 
   const crumbs = [
     { label: "Acasă", href: "/" },

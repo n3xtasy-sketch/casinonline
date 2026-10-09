@@ -62,12 +62,14 @@ const CARD_COLUMNS =
 const DETAIL_COLUMNS = `${CARD_COLUMNS}, intro, max_win, release_year, reels, paylines, bet_range, mechanics, bonus_features, faq`;
 
 /** All games for the listing (the page applies filters/sorting on the result). */
-export async function getGames(): Promise<GameCardData[]> {
+export async function getGames(limit?: number): Promise<GameCardData[]> {
   "use cache";
   cacheLife("hours");
   cacheTag("games");
   const db = getSupabaseServerClient();
-  const { data, error } = await db.from("games").select(CARD_COLUMNS).order("name");
+  let query = db.from("games").select(CARD_COLUMNS).order("name");
+  if (limit) query = query.limit(limit);
+  const { data, error } = await query;
   if (error) throw new Error(`getGames: ${error.message}`);
   return (data as unknown as GameRow[]).map(toCard);
 }

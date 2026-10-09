@@ -46,7 +46,23 @@ function toDetail(row: ProviderDetailRow): ProviderDetail {
 const CARD_COLUMNS = "slug, name, logo_url, game_count, category";
 
 /** All providers for the listing (default order: most games first). */
-export async function getProviders(): Promise<ProviderCardData[]> {
+export async function getProviders(limit?: number): Promise<ProviderCardData[]> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("providers");
+  const db = getSupabaseServerClient();
+  let query = db.from("providers").select(CARD_COLUMNS).order("game_count", { ascending: false });
+  if (limit) query = query.limit(limit);
+  const { data, error } = await query;
+  if (error) throw new Error(`getProviders: ${error.message}`);
+  return (data as ProviderRow[]).map(toCard);
+}
+
+/** Other providers for the "related" block (most games first), excluding one slug. */
+export async function getRelatedProviders(
+  excludeSlug: string,
+  limit = 3,
+): Promise<ProviderCardData[]> {
   "use cache";
   cacheLife("hours");
   cacheTag("providers");
@@ -54,8 +70,10 @@ export async function getProviders(): Promise<ProviderCardData[]> {
   const { data, error } = await db
     .from("providers")
     .select(CARD_COLUMNS)
-    .order("game_count", { ascending: false });
-  if (error) throw new Error(`getProviders: ${error.message}`);
+    .neq("slug", excludeSlug)
+    .order("game_count", { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(`getRelatedProviders: ${error.message}`);
   return (data as ProviderRow[]).map(toCard);
 }
 

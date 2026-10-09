@@ -96,7 +96,20 @@ const CARD_SELECT =
 const DETAIL_SELECT = `${CARD_SELECT}, editor_score, intro, editor_review, pros, cons, faq, min_deposit, withdrawal_time, kyc, support, mobile, payment_methods(name)`;
 
 /** All casinos for the listing (default order: highest rating first). */
-export async function getCasinos(): Promise<CasinoCardData[]> {
+export async function getCasinos(limit?: number): Promise<CasinoCardData[]> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("casinos");
+  const db = getSupabaseServerClient();
+  let query = db.from("casinos").select(CARD_SELECT).order("rating", { ascending: false });
+  if (limit) query = query.limit(limit);
+  const { data, error } = await query;
+  if (error) throw new Error(`getCasinos: ${error.message}`);
+  return (data as unknown as CasinoCardRow[]).map(toCard);
+}
+
+/** Other casinos for the "related" block (top-rated first), excluding one slug. */
+export async function getRelatedCasinos(excludeSlug: string, limit = 3): Promise<CasinoCardData[]> {
   "use cache";
   cacheLife("hours");
   cacheTag("casinos");
@@ -104,8 +117,10 @@ export async function getCasinos(): Promise<CasinoCardData[]> {
   const { data, error } = await db
     .from("casinos")
     .select(CARD_SELECT)
-    .order("rating", { ascending: false });
-  if (error) throw new Error(`getCasinos: ${error.message}`);
+    .neq("slug", excludeSlug)
+    .order("rating", { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(`getRelatedCasinos: ${error.message}`);
   return (data as unknown as CasinoCardRow[]).map(toCard);
 }
 

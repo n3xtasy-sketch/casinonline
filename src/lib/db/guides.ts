@@ -76,6 +76,21 @@ export async function getGuides(): Promise<GuideCardData[]> {
   return (data as unknown as GuideRow[]).map(toCard);
 }
 
+/**
+ * Related guides (same category, excluding one), falling back to any other guide.
+ * Reuses the cached full list (created_at timestamps are tied, so a LIMIT query
+ * would reorder ties vs the current slice behaviour — output must stay stable).
+ */
+export async function getSimilarGuides(
+  categorySlug: string,
+  excludeSlug: string,
+  limit = 3,
+): Promise<GuideCardData[]> {
+  const all = await getGuides();
+  const sameCat = all.filter((g) => g.categorySlug === categorySlug && g.slug !== excludeSlug);
+  return (sameCat.length ? sameCat : all.filter((g) => g.slug !== excludeSlug)).slice(0, limit);
+}
+
 /** Single guide article by slug, or null when not found. */
 export async function getGuideBySlug(slug: string): Promise<GuideDetail | null> {
   "use cache";

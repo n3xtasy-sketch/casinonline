@@ -1,11 +1,6 @@
 import type { MetadataRoute } from "next";
 import { absoluteUrl } from "@/lib/site";
-import { getCasinos } from "@/lib/db/casinos";
-import { getGames } from "@/lib/db/games";
-import { getProviders } from "@/lib/db/providers";
-import { getPaymentMethods } from "@/lib/db/payments";
-import { getBonuses } from "@/lib/db/bonuses";
-import { getGuides } from "@/lib/db/guides";
+import { getSlugs } from "@/lib/db/slugs";
 
 /** Dynamic sitemap covering every hub and detail route (slugs come from DB). */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -20,21 +15,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   const [casinos, games, providers, payments, bonuses, guides] = await Promise.all([
-    getCasinos(),
-    getGames(),
-    getProviders(),
-    getPaymentMethods(),
-    getBonuses(),
-    getGuides(),
+    getSlugs("casinos"),
+    getSlugs("games"),
+    getSlugs("providers"),
+    getSlugs("payment_methods"),
+    getSlugs("bonuses"),
+    getSlugs("guides"),
   ]);
 
   const detail: Array<[string, string[]]> = [
-    ["/cazinouri-online", casinos.map((c) => c.slug)],
-    ["/jocuri-casino", games.map((g) => g.slug)],
-    ["/furnizori", providers.map((p) => p.slug)],
-    ["/metode-de-plata", payments.map((m) => m.slug)],
-    ["/bonusuri-casino", bonuses.map((b) => b.slug)],
-    ["/ghiduri", guides.map((g) => g.slug)],
+    ["/cazinouri-online", casinos],
+    ["/jocuri-casino", games],
+    ["/furnizori", providers],
+    ["/metode-de-plata", payments],
+    ["/bonusuri-casino", bonuses],
+    ["/ghiduri", guides],
   ];
 
   const hubEntries: MetadataRoute.Sitemap = hubs.map((path) => ({

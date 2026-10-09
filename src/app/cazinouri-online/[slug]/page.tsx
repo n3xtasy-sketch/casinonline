@@ -11,7 +11,7 @@ import { CasinoCard } from "@/components/casino/CasinoCard";
 import { CasinoReviewHeader } from "@/components/casino/CasinoReviewHeader";
 import { CasinoFacts } from "@/components/casino/CasinoFacts";
 import { ProsCons } from "@/components/casino/ProsCons";
-import { getCasinoBySlug, getCasinos } from "@/lib/db/casinos";
+import { getCasinoBySlug, getRelatedCasinos } from "@/lib/db/casinos";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -41,7 +41,7 @@ export default async function CasinoReviewPage({ params }: PageProps) {
   const casino = await getCasinoBySlug(slug);
   if (!casino) notFound();
 
-  const related = (await getCasinos()).filter((c) => c.slug !== slug).slice(0, 3);
+  const related = await getRelatedCasinos(slug);
 
   const crumbs = [
     { label: "Acasă", href: "/" },
