@@ -68,6 +68,21 @@ export async function getGames(): Promise<GameCardData[]> {
   return (data as unknown as GameRow[]).map(toCard);
 }
 
+const CARD_COLUMNS_FOR_PROVIDER =
+  "slug, name, thumbnail_url, rtp, volatility, provider:providers!inner(slug, name), category:game_categories(slug)";
+
+/** Games belonging to a provider (via games.provider_id). */
+export async function getGamesForProvider(providerSlug: string): Promise<GameCardData[]> {
+  const db = getSupabaseServerClient();
+  const { data, error } = await db
+    .from("games")
+    .select(CARD_COLUMNS_FOR_PROVIDER)
+    .eq("provider.slug", providerSlug)
+    .order("name");
+  if (error) throw new Error(`getGamesForProvider: ${error.message}`);
+  return (data as unknown as GameRow[]).map(toCard);
+}
+
 /** Single game (detail) by slug, or null when not found. */
 export async function getGameBySlug(slug: string): Promise<GameDetail | null> {
   const db = getSupabaseServerClient();

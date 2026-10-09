@@ -1,14 +1,14 @@
 import type { MetadataRoute } from "next";
 import { absoluteUrl } from "@/lib/site";
-import { getAllCasinoSlugs } from "@/data/casino-details";
-import { getAllGameSlugs } from "@/data/game-details";
-import { getAllProviderSlugs } from "@/data/provider-details";
-import { getAllPaymentSlugs } from "@/data/payment-details";
-import { getAllBonusSlugs } from "@/data/bonus-details";
-import { getAllGuideSlugs } from "@/data/guide-details";
+import { getCasinos } from "@/lib/db/casinos";
+import { getGames } from "@/lib/db/games";
+import { getProviders } from "@/lib/db/providers";
+import { getPaymentMethods } from "@/lib/db/payments";
+import { getBonuses } from "@/lib/db/bonuses";
+import { getGuides } from "@/lib/db/guides";
 
-/** Dynamic sitemap covering every known static and detail route. */
-export default function sitemap(): MetadataRoute.Sitemap {
+/** Dynamic sitemap covering every hub and detail route (slugs come from DB). */
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const hubs = [
     "/",
     "/cazinouri-online",
@@ -19,13 +19,22 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/ghiduri",
   ];
 
+  const [casinos, games, providers, payments, bonuses, guides] = await Promise.all([
+    getCasinos(),
+    getGames(),
+    getProviders(),
+    getPaymentMethods(),
+    getBonuses(),
+    getGuides(),
+  ]);
+
   const detail: Array<[string, string[]]> = [
-    ["/cazinouri-online", getAllCasinoSlugs()],
-    ["/jocuri-casino", getAllGameSlugs()],
-    ["/furnizori", getAllProviderSlugs()],
-    ["/metode-de-plata", getAllPaymentSlugs()],
-    ["/bonusuri-casino", getAllBonusSlugs()],
-    ["/ghiduri", getAllGuideSlugs()],
+    ["/cazinouri-online", casinos.map((c) => c.slug)],
+    ["/jocuri-casino", games.map((g) => g.slug)],
+    ["/furnizori", providers.map((p) => p.slug)],
+    ["/metode-de-plata", payments.map((m) => m.slug)],
+    ["/bonusuri-casino", bonuses.map((b) => b.slug)],
+    ["/ghiduri", guides.map((g) => g.slug)],
   ];
 
   const hubEntries: MetadataRoute.Sitemap = hubs.map((path) => ({

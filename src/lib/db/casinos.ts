@@ -142,6 +142,26 @@ export async function getCasinoCardBySlug(slug: string): Promise<CasinoCardData 
   return data ? toCard(data as unknown as CasinoCardRow) : null;
 }
 
+/** Casinos that offer games from a given provider (via casino_games → games). */
+export async function getCasinosForProvider(providerSlug: string): Promise<CasinoCardData[]> {
+  const db = getSupabaseServerClient();
+  const { data, error } = await db
+    .from("providers")
+    .select(`games(casinos(${CARD_SELECT}))`)
+    .eq("slug", providerSlug)
+    .maybeSingle();
+  if (error) throw new Error(`getCasinosForProvider: ${error.message}`);
+  const games =
+    (data as unknown as { games: { casinos: CasinoCardRow[] | null }[] } | null)?.games ?? [];
+  const bySlug = new Map<string, CasinoCardData>();
+  for (const g of games) {
+    for (const c of g.casinos ?? []) {
+      if (!bySlug.has(c.slug)) bySlug.set(c.slug, toCard(c));
+    }
+  }
+  return [...bySlug.values()];
+}
+
 /** Casinos that accept a given payment method (via casino_payment_methods). */
 export async function getCasinosForPaymentMethod(paymentSlug: string): Promise<CasinoCardData[]> {
   const db = getSupabaseServerClient();

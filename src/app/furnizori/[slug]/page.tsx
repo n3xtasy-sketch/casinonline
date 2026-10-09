@@ -10,10 +10,9 @@ import { GameCard } from "@/components/games/GameCard";
 import { ProviderCard } from "@/components/providers/ProviderCard";
 import { ProviderDetailHeader } from "@/components/providers/ProviderDetailHeader";
 import { ProviderFacts } from "@/components/providers/ProviderFacts";
-import { allGames } from "@/data/games";
-import { allCasinos } from "@/data/casinos";
-import { getGameDetail } from "@/data/game-details";
 import { getProviderBySlug, getProviders } from "@/lib/db/providers";
+import { getGamesForProvider } from "@/lib/db/games";
+import { getCasinosForProvider } from "@/lib/db/casinos";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -38,16 +37,8 @@ export default async function ProviderDetailPage({ params }: PageProps) {
   const provider = await getProviderBySlug(slug);
   if (!provider) notFound();
 
-  const games = allGames.filter((g) => g.providerSlug === slug).slice(0, 8);
-
-  const casinoSlugs = new Set<string>();
-  for (const g of allGames.filter((g) => g.providerSlug === slug)) {
-    getGameDetail(g.slug)?.availableCasinos?.forEach((cs) => casinoSlugs.add(cs));
-  }
-  const casinos = [...casinoSlugs]
-    .map((cs) => allCasinos.find((c) => c.slug === cs))
-    .filter((c): c is NonNullable<typeof c> => c !== undefined)
-    .slice(0, 4);
+  const games = (await getGamesForProvider(slug)).slice(0, 8);
+  const casinos = (await getCasinosForProvider(slug)).slice(0, 4);
 
   const related = (await getProviders()).filter((p) => p.slug !== slug).slice(0, 3);
 
