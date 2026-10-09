@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/Button";
 import { BonusCard } from "@/components/bonuses/BonusCard";
 import { FilterChips } from "@/components/filters/FilterChips";
 import { SortSelect } from "@/components/filters/SortSelect";
-import { allBonuses, bonusTypeFilters, bonusSortOptions } from "@/data/bonuses";
+import { bonusTypeFilters, bonusSortOptions } from "@/data/bonuses";
+import { getBonuses } from "@/lib/db/bonuses";
 import type { BonusCardData } from "@/types/bonus";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { itemListSchema } from "@/lib/schema";
@@ -36,7 +37,8 @@ export default async function BonusListingPage({ searchParams }: PageProps) {
   const tip = typeof sp.tip === "string" ? sp.tip : "";
   const sort = typeof sp.sort === "string" ? sp.sort : DEFAULT_SORT;
 
-  const filtered = tip ? allBonuses.filter((b) => b.typeSlug === tip) : allBonuses;
+  const all = await getBonuses();
+  const filtered = tip ? all.filter((b) => b.typeSlug === tip) : all;
   const bonuses = sortBonuses(filtered, sort);
 
   return (

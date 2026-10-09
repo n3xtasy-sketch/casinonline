@@ -130,6 +130,18 @@ export async function getCasinosForGame(gameSlug: string): Promise<CasinoCardDat
   return casinos.map(toCard);
 }
 
+/** Single casino card by slug (e.g. the casino that offers a bonus). */
+export async function getCasinoCardBySlug(slug: string): Promise<CasinoCardData | null> {
+  const db = getSupabaseServerClient();
+  const { data, error } = await db
+    .from("casinos")
+    .select(CARD_SELECT)
+    .eq("slug", slug)
+    .maybeSingle();
+  if (error) throw new Error(`getCasinoCardBySlug: ${error.message}`);
+  return data ? toCard(data as unknown as CasinoCardRow) : null;
+}
+
 /** Casinos that accept a given payment method (via casino_payment_methods). */
 export async function getCasinosForPaymentMethod(paymentSlug: string): Promise<CasinoCardData[]> {
   const db = getSupabaseServerClient();

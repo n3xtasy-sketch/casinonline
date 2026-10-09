@@ -10,21 +10,19 @@ import { ProsCons } from "@/components/casino/ProsCons";
 import { BonusCard } from "@/components/bonuses/BonusCard";
 import { BonusDetailHeader } from "@/components/bonuses/BonusDetailHeader";
 import { BonusFacts } from "@/components/bonuses/BonusFacts";
-import { allBonuses } from "@/data/bonuses";
-import { allCasinos } from "@/data/casinos";
-import { getBonusDetail, getAllBonusSlugs } from "@/data/bonus-details";
+import { getBonuses, getBonusBySlug } from "@/lib/db/bonuses";
+import { getCasinoCardBySlug } from "@/lib/db/casinos";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
-export function generateStaticParams() {
-  return getAllBonusSlugs().map((slug) => ({ slug }));
-}
+// DB-backed detail: render per request (no build-time DB dependency).
+export const instant = false;
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const bonus = getBonusDetail(slug);
+  const bonus = await getBonusBySlug(slug);
   if (!bonus) return {};
   return {
     title: `${bonus.bonusType} ${bonus.casinoName}`,
@@ -35,14 +33,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function BonusDetailPage({ params }: PageProps) {
   const { slug } = await params;
-  const bonus = getBonusDetail(slug);
+  const bonus = await getBonusBySlug(slug);
   if (!bonus) notFound();
 
-  const casino = allCasinos.find((c) => c.slug === bonus.casinoSlug);
+  const casino = await getCasinoCardBySlug(bonus.casinoSlug);
 
-  const sameType = allBonuses.filter((b) => b.typeSlug === bonus.typeSlug && b.slug !== slug);
+  const allBon = await getBonuses();
+  const sameType = allBon.filter((b) => b.typeSlug === bonus.typeSlug && b.slug !== slug);
   const similar = (
-    sameType.length ? sameType : allBonuses.filter((b) => b.slug !== slug)
+    sameType.length ? sameType : allBon.filter((b) => b.slug !== slug)
   ).slice(0, 3);
 
   const crumbs = [
