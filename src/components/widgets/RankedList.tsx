@@ -1,5 +1,5 @@
 import { Star } from "lucide-react";
-import type { RankedRow } from "@/data/mock";
+import type { RankedRow } from "@/types/widget";
 
 /** Compact ranked list used inside right-sidebar widgets. */
 export function RankedList({ rows }: { rows: RankedRow[] }) {

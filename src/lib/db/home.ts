@@ -9,12 +9,7 @@ import type { GameCardData } from "@/types/game";
 import type { BonusCardData } from "@/types/bonus";
 import type { ProviderCardData } from "@/types/provider";
 import type { GuideCardData } from "@/types/guide";
-
-/** Compact {name, rating} row for the right-sidebar ranked widgets. */
-export interface RankedRowData {
-  name: string;
-  rating: number;
-}
+import type { RankedRow, GamePick } from "@/types/widget";
 
 /* ---------- Homepage sections (full cards) ---------- */
 
@@ -46,21 +41,21 @@ export async function getHomeGuides(): Promise<GuideCardData[]> {
 /* ---------- Right-sidebar widgets ---------- */
 
 /** Top casinos ranked by rating (star metric is the DB rating). */
-export async function getTopCasinosRanked(): Promise<RankedRowData[]> {
+export async function getTopCasinosRanked(): Promise<RankedRow[]> {
   return (await getCasinos()).slice(0, 5).map((c) => ({ name: c.name, rating: c.rating }));
 }
 
 /**
- * Popular games ranked by RTP. Games have no 0–5 rating in the schema, so the
- * star value is derived from RTP (rtp / 20 → ~4.8 for 96%), capped at 5.
+ * Popular games (ordered by RTP). Games have no 0–5 rating in the schema, so
+ * the widget shows name + provider only — no rating is presented.
  */
-export async function getPopularGamesRanked(): Promise<RankedRowData[]> {
+export async function getPopularGames(): Promise<GamePick[]> {
   const games = await getGames();
   return [...games]
     .filter((g) => g.rtp != null)
     .sort((a, b) => (b.rtp ?? 0) - (a.rtp ?? 0))
     .slice(0, 5)
-    .map((g) => ({ name: g.name, rating: Math.min(5, (g.rtp ?? 0) / 20) }));
+    .map((g) => ({ name: g.name, provider: g.provider }));
 }
 
 /** Bonus of the day: prefer a welcome bonus, else the latest. */

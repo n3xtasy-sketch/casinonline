@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import {
   getTopCasinosRanked,
-  getPopularGamesRanked,
+  getPopularGames,
   getBonusOfTheDay,
   getHomeGuides,
 } from "@/lib/db/home";
@@ -29,7 +29,7 @@ export function RightSidebar({ className }: { className?: string }) {
 async function SidebarWidgets() {
   const [topCasinos, popularGames, bonus, guides] = await Promise.all([
     getTopCasinosRanked(),
-    getPopularGamesRanked(),
+    getPopularGames(),
     getBonusOfTheDay(),
     getHomeGuides(),
   ]);
@@ -41,7 +41,20 @@ async function SidebarWidgets() {
       </WidgetCard>
 
       <WidgetCard title="Jocuri populare">
-        <RankedList rows={popularGames} />
+        <ol className="flex flex-col">
+          {popularGames.map((game, i) => (
+            <li
+              key={game.name}
+              className="flex h-[54px] items-center gap-3 border-b border-border/60 last:border-0"
+            >
+              <span className="w-5 text-sm font-bold tabular-nums text-ink-muted">{i + 1}</span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-ink">{game.name}</p>
+                <p className="truncate text-xs text-ink-muted">{game.provider}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
       </WidgetCard>
 
       <WidgetCard title="Bonusul zilei">
