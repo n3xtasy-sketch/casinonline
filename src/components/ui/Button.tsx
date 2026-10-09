@@ -24,6 +24,17 @@ export function Button({ variant = "primary", href, className, children, ...rest
   const classes = cn(base, variants[variant], className);
 
   if (href) {
+    // Affiliate / outbound destinations need a full navigation (not next/link):
+    // /go/* is a redirect route handler, and monetized links must carry
+    // rel="sponsored nofollow" (Google affiliate-link policy).
+    const isAffiliate = href.startsWith("/go/") || /^https?:\/\//.test(href);
+    if (isAffiliate) {
+      return (
+        <a href={href} rel="sponsored nofollow noopener" className={classes}>
+          {children}
+        </a>
+      );
+    }
     return (
       <Link href={href} className={classes}>
         {children}

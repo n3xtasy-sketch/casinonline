@@ -306,17 +306,32 @@ async function main() {
   }
   await insert("casino_games", dedupe(casinoGames, ["casino_id", "game_id"]));
 
-  // 11. affiliate_links (casino review CTA + bonus claim)
+  // Real affiliate destinations (PLACEHOLDER operator homepages — replace with
+  // real tracking URLs before launch). Keyed by casino slug; /go/<slug> → 302 here.
+  const AFFILIATE_URLS: Record<string, string> = {
+    "superbet-casino": "https://www.superbet.ro",
+    "betano-casino": "https://www.betano.ro",
+    "unibet-casino": "https://www.unibet.ro",
+    "winbet-casino": "https://www.winbet.ro",
+    "netbet-casino": "https://www.netbet.ro",
+    "vlad-casino": "https://www.vladcazino.ro",
+    "las-vegas-casino": "https://www.lasvegas.ro",
+    "maxbet-casino": "https://www.maxbet.ro",
+  };
+
+  // 11. affiliate_links (casino review CTA + bonus claim) — url = real operator destination
   const affiliate: Row[] = [];
   for (const c of allCasinos) {
     const casino_id = casinoMap.get(c.slug);
-    if (casino_id && c.offerUrl)
-      affiliate.push({ casino_id, placement: "review_cta", url: c.offerUrl, campaign: null, is_active: true });
+    const url = AFFILIATE_URLS[c.slug];
+    if (casino_id && url)
+      affiliate.push({ casino_id, placement: "review_cta", url, campaign: null, is_active: true });
   }
   for (const b of allBonuses) {
     const casino_id = casinoMap.get(b.casinoSlug);
-    if (casino_id && b.claimUrl)
-      affiliate.push({ casino_id, placement: "bonus_claim", url: b.claimUrl, campaign: b.slug, is_active: true });
+    const url = AFFILIATE_URLS[b.casinoSlug];
+    if (casino_id && url)
+      affiliate.push({ casino_id, placement: "bonus_claim", url, campaign: b.slug, is_active: true });
   }
   await insert("affiliate_links", affiliate);
 
