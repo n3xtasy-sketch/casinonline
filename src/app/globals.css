@@ -18,7 +18,7 @@
   /* ---- Text ---- */
   --color-ink: #f8fafc;           /* primary text */
   --color-ink-secondary: #aab4c3; /* secondary text */
-  --color-ink-muted: #6e7a89;     /* muted text */
+  --color-ink-muted: #8b96a5;     /* muted text (AA ≥4.5:1 on all surfaces) */
   --color-ink-disabled: #4b5563;  /* disabled text */
 
   /* ---- Accents / semantic ---- */

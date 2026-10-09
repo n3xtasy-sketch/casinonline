@@ -44,13 +44,18 @@ export function FilterChips({ param, options, allLabel = "Toate", label }: Props
     );
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2" role="group" aria-label={label ?? "Filtre"}>
       {label ? (
         <span className="mr-1 text-xs font-semibold uppercase tracking-[0.08em] text-ink-muted">
           {label}
         </span>
       ) : null}
-      <button type="button" onClick={() => select("")} className={chip(!current)}>
+      <button
+        type="button"
+        onClick={() => select("")}
+        aria-pressed={!current}
+        className={chip(!current)}
+      >
         {allLabel}
       </button>
       {options.map((o) => (
@@ -58,6 +63,7 @@ export function FilterChips({ param, options, allLabel = "Toate", label }: Props
           key={o.value}
           type="button"
           onClick={() => select(o.value)}
+          aria-pressed={current === o.value}
           className={chip(current === o.value)}
         >
           {o.label}
