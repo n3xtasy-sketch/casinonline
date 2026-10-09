@@ -30,11 +30,12 @@ const db = createClient(url, key, { auth: { persistSession: false } });
 
 type Row = Record<string, unknown>;
 
-async function insertMap(table: string, rows: Row[], keyField = "slug") {
-  const { data, error } = await db.from(table).insert(rows).select(`id, ${keyField}`);
+async function insertMap(table: string, rows: Row[]) {
+  const { data, error } = await db.from(table).insert(rows).select("id, slug");
   if (error) throw new Error(`${table}: ${error.message}`);
+  const out = (data ?? []) as unknown as Array<{ id: string; slug: string }>;
   const map = new Map<string, string>();
-  for (const r of data ?? []) map.set((r as Row)[keyField] as string, (r as Row).id as string);
+  for (const r of out) map.set(r.slug, r.id);
   console.log(`  ${table.padEnd(24)} ${map.size}`);
   return map;
 }

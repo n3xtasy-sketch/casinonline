@@ -10,23 +10,21 @@ import { GameCard } from "@/components/games/GameCard";
 import { ProviderCard } from "@/components/providers/ProviderCard";
 import { ProviderDetailHeader } from "@/components/providers/ProviderDetailHeader";
 import { ProviderFacts } from "@/components/providers/ProviderFacts";
-import { allProviders } from "@/data/providers";
 import { allGames } from "@/data/games";
 import { allCasinos } from "@/data/casinos";
 import { getGameDetail } from "@/data/game-details";
-import { getProviderDetail, getAllProviderSlugs } from "@/data/provider-details";
+import { getProviderBySlug, getProviders } from "@/lib/db/providers";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
-export function generateStaticParams() {
-  return getAllProviderSlugs().map((slug) => ({ slug }));
-}
+// DB-backed detail: render per request (no build-time DB dependency).
+export const instant = false;
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const provider = getProviderDetail(slug);
+  const provider = await getProviderBySlug(slug);
   if (!provider) return {};
   return {
     title: `${provider.name} — Jocuri și cazinouri`,
@@ -37,7 +35,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function ProviderDetailPage({ params }: PageProps) {
   const { slug } = await params;
-  const provider = getProviderDetail(slug);
+  const provider = await getProviderBySlug(slug);
   if (!provider) notFound();
 
   const games = allGames.filter((g) => g.providerSlug === slug).slice(0, 8);
@@ -51,7 +49,7 @@ export default async function ProviderDetailPage({ params }: PageProps) {
     .filter((c): c is NonNullable<typeof c> => c !== undefined)
     .slice(0, 4);
 
-  const related = allProviders.filter((p) => p.slug !== slug).slice(0, 3);
+  const related = (await getProviders()).filter((p) => p.slug !== slug).slice(0, 3);
 
   const crumbs = [
     { label: "Acasă", href: "/" },

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { ProviderCard } from "@/components/providers/ProviderCard";
 import { SortSelect } from "@/components/filters/SortSelect";
-import { allProviders, providerSortOptions } from "@/data/providers";
+import { providerSortOptions } from "@/data/providers";
+import { getProviders } from "@/lib/db/providers";
 import type { ProviderCardData } from "@/types/provider";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { itemListSchema } from "@/lib/schema";
@@ -32,7 +33,7 @@ interface PageProps {
 export default async function ProviderListingPage({ searchParams }: PageProps) {
   const sp = await searchParams;
   const sort = typeof sp.sort === "string" ? sp.sort : DEFAULT_SORT;
-  const providers = sortProviders(allProviders, sort);
+  const providers = sortProviders(await getProviders(), sort);
 
   return (
     <div className="flex flex-col gap-6">
