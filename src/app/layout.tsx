@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { AppShell } from "@/components/layout/AppShell";
-import { JsonLd } from "@/components/seo/JsonLd";
-import { organizationSchema, websiteSchema } from "@/lib/schema";
 import { siteConfig } from "@/lib/site";
 
 const geistSans = Geist({
@@ -44,11 +41,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ro" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body className="min-h-dvh antialiased">
-        <JsonLd data={organizationSchema()} />
-        <JsonLd data={websiteSchema()} />
-        <AppShell>{children}</AppShell>
-      </body>
+      <body className="min-h-dvh antialiased">{children}</body>
     </html>
   );
 }

@@ -6,8 +6,8 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      // Affiliate redirect paths should not be indexed.
-      disallow: "/go/",
+      // Affiliate redirect + admin area should not be indexed.
+      disallow: ["/go/", "/admin"],
     },
     sitemap: `${siteConfig.url}/sitemap.xml`,
     host: siteConfig.url,
