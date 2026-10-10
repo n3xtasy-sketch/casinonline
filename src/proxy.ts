@@ -2,11 +2,11 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 /**
- * Refreshes the Supabase auth session on /admin requests and gates them:
+ * Proxy (ex-middleware): refreshes the Supabase auth session on /admin requests and gates them:
  * no session → redirect to /admin/login (the is_admin check happens in the
  * /admin layout). Scoped to /admin so public routes/caching are untouched.
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(

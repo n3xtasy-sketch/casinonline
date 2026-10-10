@@ -40,7 +40,11 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="ro" className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html
+      lang="ro"
+      data-scroll-behavior="smooth"
+      className={`${geistSans.variable} ${geistMono.variable}`}
+    >
       <body className="min-h-dvh antialiased">{children}</body>
     </html>
   );

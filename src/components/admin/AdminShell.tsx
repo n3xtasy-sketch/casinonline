@@ -19,7 +19,7 @@ import { logoutAction } from "@/app/admin/actions";
 /** Nav items. `ready: true` are built; the rest are placeholders until CRUD (Phase 2+). */
 const items = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard, ready: true },
-  { label: "Cazinouri", href: "/admin/cazinouri", icon: Dice5 },
+  { label: "Cazinouri", href: "/admin/cazinouri", icon: Dice5, ready: true },
   { label: "Bonusuri", href: "/admin/bonusuri", icon: Gift },
   { label: "Jocuri", href: "/admin/jocuri", icon: Gamepad2 },
   { label: "Furnizori", href: "/admin/furnizori", icon: Boxes },
@@ -36,13 +36,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-dvh bg-base">
       <aside
         aria-label="Administrare"
-        className="flex w-60 shrink-0 flex-col border-r border-border bg-sidebar"
+        className="sticky top-0 flex h-dvh w-60 shrink-0 flex-col border-r border-border bg-sidebar"
       >
         <div className="flex h-14 items-center px-4 text-sm font-bold text-ink">
           Admin · CasinOnline
         </div>
 
-        <nav aria-label="Meniu admin" className="flex flex-1 flex-col gap-1 px-3 py-2">
+        <nav aria-label="Meniu admin" className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-2">
           {items.map((it) => {
             const Icon = it.icon;
             if (!it.ready) {
