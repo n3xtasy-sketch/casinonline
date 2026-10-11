@@ -1,0 +1,73 @@
+import "server-only";
+import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
+import type { Option } from "@/lib/db/admin-casinos";
+import type { GuideSection, GuideRelatedLink } from "@/types/guide";
+import { serializeSections, serializeRelatedLinks } from "@/lib/guide-format";
+
+export interface GuideEditData {
+  id: string;
+  slug: string;
+  title: string;
+  categoryId: string;
+  excerpt: string;
+  imageUrl: string;
+  author: string;
+  intro: string;
+  readingTime: string;
+  /** Pre-serialized to the markdown-ish textarea format (never raw JSON). */
+  sectionsText: string;
+  /** Pre-serialized to "href | label" lines. */
+  relatedLinksText: string;
+  faq: { question: string; answer: string }[];
+  /** YYYY-MM-DD for the date input (empty when unset). */
+  publishedAt: string;
+}
+
+export async function listGuideCategories(): Promise<Option[]> {
+  const db = await getSupabaseAuthClient();
+  const { data, error } = await db.from("guide_categories").select("id, label").order("sort_order");
+  if (error) throw new Error(`listGuideCategories: ${error.message}`);
+  return (data as unknown as Option[]) ?? [];
+}
+
+interface EditRow {
+  id: string;
+  slug: string;
+  title: string;
+  category_id: string | null;
+  excerpt: string | null;
+  image_url: string | null;
+  author: string | null;
+  intro: string | null;
+  reading_time: string | null;
+  sections: GuideSection[] | null;
+  related_links: GuideRelatedLink[] | null;
+  faq: { question: string; answer: string }[] | null;
+  published_at: string | null;
+}
+
+const EDIT_SELECT =
+  "id, slug, title, category_id, excerpt, image_url, author, intro, reading_time, sections, related_links, faq, published_at";
+
+export async function getGuideEdit(slug: string): Promise<GuideEditData | null> {
+  const db = await getSupabaseAuthClient();
+  const { data, error } = await db.from("guides").select(EDIT_SELECT).eq("slug", slug).maybeSingle();
+  if (error) throw new Error(`getGuideEdit: ${error.message}`);
+  if (!data) return null;
+  const r = data as unknown as EditRow;
+  return {
+    id: r.id,
+    slug: r.slug,
+    title: r.title,
+    categoryId: r.category_id ?? "",
+    excerpt: r.excerpt ?? "",
+    imageUrl: r.image_url ?? "",
+    author: r.author ?? "",
+    intro: r.intro ?? "",
+    readingTime: r.reading_time ?? "",
+    sectionsText: serializeSections(r.sections),
+    relatedLinksText: serializeRelatedLinks(r.related_links),
+    faq: r.faq ?? [],
+    publishedAt: r.published_at ? r.published_at.slice(0, 10) : "",
+  };
+}
