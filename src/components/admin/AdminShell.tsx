@@ -21,7 +21,7 @@ const items = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard, ready: true },
   { label: "Cazinouri", href: "/admin/cazinouri", icon: Dice5, ready: true },
   { label: "Bonusuri", href: "/admin/bonusuri", icon: Gift, ready: true },
-  { label: "Jocuri", href: "/admin/jocuri", icon: Gamepad2 },
+  { label: "Jocuri", href: "/admin/jocuri", icon: Gamepad2, ready: true },
   { label: "Furnizori", href: "/admin/furnizori", icon: Boxes },
   { label: "Metode de plată", href: "/admin/metode-de-plata", icon: CreditCard },
   { label: "Ghiduri", href: "/admin/ghiduri", icon: BookOpen },
