@@ -23,7 +23,7 @@ const items = [
   { label: "Bonusuri", href: "/admin/bonusuri", icon: Gift, ready: true },
   { label: "Jocuri", href: "/admin/jocuri", icon: Gamepad2, ready: true },
   { label: "Furnizori", href: "/admin/furnizori", icon: Boxes, ready: true },
-  { label: "Metode de plată", href: "/admin/metode-de-plata", icon: CreditCard },
+  { label: "Metode de plată", href: "/admin/metode-de-plata", icon: CreditCard, ready: true },
   { label: "Ghiduri", href: "/admin/ghiduri", icon: BookOpen },
   { label: "Affiliate Links", href: "/admin/affiliate-links", icon: Link2 },
 ];
