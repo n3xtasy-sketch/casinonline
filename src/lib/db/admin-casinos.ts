@@ -8,10 +8,24 @@ export interface Option {
   label: string;
 }
 
+export type CasinoStatus = "active" | "archived";
+
+export interface AdminCasinoRow {
+  id: string;
+  slug: string;
+  name: string;
+  rating: number | null;
+  license: string | null;
+  payoutSpeed: string | null;
+  status: CasinoStatus;
+  reviewUrl: string;
+}
+
 export interface CasinoEditData {
   id: string;
   slug: string;
   name: string;
+  status: CasinoStatus;
   logoUrl: string;
   rating: string;
   editorScore: string;
@@ -32,6 +46,41 @@ export interface CasinoEditData {
   paymentMethodIds: string[];
   gameIds: string[];
   affiliateUrl: string;
+}
+
+/** Admin casino listing — sees every row (incl. archived) via the admin session. */
+export async function listAdminCasinos(
+  filter: "all" | "active" | "archived" = "all",
+): Promise<AdminCasinoRow[]> {
+  const db = await getSupabaseAuthClient();
+  let query = db
+    .from("casinos")
+    .select("id, slug, name, rating, license, payout_speed, status")
+    .order("status")
+    .order("rating", { ascending: false });
+  if (filter !== "all") query = query.eq("status", filter);
+  const { data, error } = await query;
+  if (error) throw new Error(`listAdminCasinos: ${error.message}`);
+  return (
+    (data as unknown as {
+      id: string;
+      slug: string;
+      name: string;
+      rating: number | null;
+      license: string | null;
+      payout_speed: string | null;
+      status: CasinoStatus;
+    }[]) ?? []
+  ).map((r) => ({
+    id: r.id,
+    slug: r.slug,
+    name: r.name,
+    rating: r.rating,
+    license: r.license,
+    payoutSpeed: r.payout_speed,
+    status: r.status,
+    reviewUrl: `/cazinouri-online/${r.slug}`,
+  }));
 }
 
 export async function listTags(): Promise<Option[]> {
@@ -65,6 +114,7 @@ interface EditRow {
   id: string;
   slug: string;
   name: string;
+  status: CasinoStatus;
   logo_url: string | null;
   rating: number | null;
   editor_score: number | null;
@@ -88,7 +138,7 @@ interface EditRow {
 }
 
 const EDIT_SELECT =
-  "id, slug, name, logo_url, rating, editor_score, license, payout_speed, withdrawal_time, verified_at, min_deposit, kyc, support, mobile, intro, editor_review, pros, cons, faq, casino_tags(tag_id), casino_payment_methods(payment_method_id), casino_games(game_id), affiliate_links(url, placement)";
+  "id, slug, name, status, logo_url, rating, editor_score, license, payout_speed, withdrawal_time, verified_at, min_deposit, kyc, support, mobile, intro, editor_review, pros, cons, faq, casino_tags(tag_id), casino_payment_methods(payment_method_id), casino_games(game_id), affiliate_links(url, placement)";
 
 /** Full editable casino (admin only) by slug, or null. */
 export async function getCasinoEdit(slug: string): Promise<CasinoEditData | null> {
@@ -104,6 +154,7 @@ export async function getCasinoEdit(slug: string): Promise<CasinoEditData | null
     id: r.id,
     slug: r.slug,
     name: r.name,
+    status: r.status ?? "active",
     logoUrl: r.logo_url ?? "",
     rating: r.rating != null ? String(r.rating) : "",
     editorScore: r.editor_score != null ? String(r.editor_score) : "",

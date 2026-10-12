@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { CasinoForm } from "@/components/admin/CasinoForm";
 import { getCasinoEdit, listTags, listPaymentMethods, listGames } from "@/lib/db/admin-casinos";
+import { CasinoStatusButton } from "@/components/admin/CasinoStatusButton";
 import { updateCasino } from "../../actions";
 
 interface PageProps {
@@ -21,9 +22,15 @@ export default async function EditCasinoPage({ params }: PageProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-bold text-ink">Editează: {casino.name}</h1>
-        <p className="mt-1 text-sm text-ink-secondary">Modificările apar public imediat (revalidateTag).</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-ink">Editează: {casino.name}</h1>
+          <p className="mt-1 text-sm text-ink-secondary">
+            Modificările apar public imediat (updateTag).
+            {casino.status === "archived" ? " Cazinoul este arhivat (invizibil public)." : ""}
+          </p>
+        </div>
+        <CasinoStatusButton id={casino.id} name={casino.name} status={casino.status} />
       </div>
       <CasinoForm mode="edit" action={action} initial={casino} tags={tags} paymentMethods={paymentMethods} games={games} />
     </div>

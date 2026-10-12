@@ -21,6 +21,46 @@ export interface BonusEditData {
   faq: { question: string; answer: string }[];
 }
 
+export interface AdminBonusRow {
+  slug: string;
+  offer: string;
+  bonusType: string;
+  casinoName: string;
+  freeSpins: number | null;
+  casinoArchived: boolean;
+}
+
+/**
+ * Admin bonus listing — uses the admin session so bonuses of ARCHIVED casinos stay
+ * visible/editable (the public reader hides them). Flags archived-casino bonuses.
+ */
+export async function listAdminBonuses(): Promise<AdminBonusRow[]> {
+  const db = await getSupabaseAuthClient();
+  const { data, error } = await db
+    .from("bonuses")
+    .select(
+      "slug, offer, free_spins, bonus_type:bonus_types(label), casino:casinos(name, status)",
+    )
+    .order("created_at");
+  if (error) throw new Error(`listAdminBonuses: ${error.message}`);
+  return (
+    (data as unknown as {
+      slug: string;
+      offer: string;
+      free_spins: number | null;
+      bonus_type: { label: string } | null;
+      casino: { name: string; status: string } | null;
+    }[]) ?? []
+  ).map((r) => ({
+    slug: r.slug,
+    offer: r.offer,
+    bonusType: r.bonus_type?.label ?? "",
+    casinoName: r.casino?.name ?? "",
+    freeSpins: r.free_spins,
+    casinoArchived: r.casino?.status === "archived",
+  }));
+}
+
 export async function listCasinos(): Promise<Option[]> {
   const db = await getSupabaseAuthClient();
   const { data, error } = await db.from("casinos").select("id, name").order("name");

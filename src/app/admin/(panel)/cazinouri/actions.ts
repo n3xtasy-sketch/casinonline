@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { updateTag } from "next/cache";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import type { CasinoFormState } from "./types";
+import type { CasinoStatus } from "@/lib/db/admin-casinos";
 
 type DB = Awaited<ReturnType<typeof getSupabaseAuthClient>>;
 
@@ -139,6 +140,25 @@ export async function createCasino(
   await upsertAffiliate(db, casinoId, strOrNull(formData.get("affiliateUrl")));
 
   updateTag("casinos");
+  redirect("/admin/cazinouri");
+}
+
+/**
+ * Archive / reactivate a casino (soft-delete). No physical delete. Refreshes the
+ * casino surfaces AND bonuses (archived casino's bonuses drop from public listings).
+ */
+export async function setCasinoStatus(formData: FormData): Promise<void> {
+  const db = await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const status = String(formData.get("status") ?? "") as CasinoStatus;
+  if (!id || (status !== "active" && status !== "archived")) {
+    throw new Error("Parametri invalizi pentru schimbarea statusului.");
+  }
+  const { error } = await db.from("casinos").update({ status }).eq("id", id);
+  if (error) throw new Error(`Eroare la schimbarea statusului: ${error.message}`);
+
+  updateTag("casinos");
+  updateTag("bonuses");
   redirect("/admin/cazinouri");
 }
 

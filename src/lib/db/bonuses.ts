@@ -67,7 +67,9 @@ export async function getBonuses(): Promise<BonusCardData[]> {
   const db = getSupabaseServerClient();
   const { data, error } = await db.from("bonuses").select(CARD_SELECT).order("created_at");
   if (error) throw new Error(`getBonuses: ${error.message}`);
-  return (data as unknown as BonusRow[]).map(toCard);
+  // Drop bonuses whose casino is not publicly visible (archived → RLS nulls the
+  // embed). Keeps dead-CTA bonuses out of listings/homepage/sidebar.
+  return (data as unknown as BonusRow[]).filter((r) => r.casino).map(toCard);
 }
 
 /**
@@ -103,5 +105,8 @@ export async function getBonusBySlug(slug: string): Promise<BonusDetail | null> 
     .eq("slug", slug)
     .maybeSingle();
   if (error) throw new Error(`getBonusBySlug: ${error.message}`);
-  return data ? toDetail(data as unknown as BonusDetailRow) : null;
+  // Archived casino → RLS nulls the embed → treat the bonus as not found so the
+  // detail page 404s (not just hidden from listings).
+  const row = data as unknown as BonusDetailRow | null;
+  return row && row.casino ? toDetail(row) : null;
 }

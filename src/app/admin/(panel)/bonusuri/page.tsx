@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
-import { getBonuses } from "@/lib/db/bonuses";
+import { listAdminBonuses } from "@/lib/db/admin-bonuses";
 
-/** Bonus listing (Admin). Create + Edit; no delete in this phase. */
+/** Bonus listing (Admin). Uses the admin reader so bonuses of archived casinos
+ * stay visible/editable even though the public site hides them. */
 export default async function AdminBonusesPage() {
-  const bonuses = await getBonuses();
+  const bonuses = await listAdminBonuses();
 
   return (
     <div className="flex flex-col gap-6">
@@ -41,7 +42,14 @@ export default async function AdminBonusesPage() {
               <tr key={b.slug} className="border-b border-border/60 last:border-0">
                 <td className="px-4 py-3 font-medium text-ink">{b.offer}</td>
                 <td className="px-4 py-3 text-ink-secondary">{b.bonusType || "—"}</td>
-                <td className="px-4 py-3 text-ink-secondary">{b.casinoName}</td>
+                <td className="px-4 py-3 text-ink-secondary">
+                  {b.casinoName}
+                  {b.casinoArchived ? (
+                    <span className="ml-2 inline-flex items-center rounded-full bg-ink-muted/15 px-2 py-0.5 text-xs font-medium text-ink-muted">
+                      cazino arhivat
+                    </span>
+                  ) : null}
+                </td>
                 <td className="px-4 py-3 tabular-nums text-ink-secondary">{b.freeSpins ?? "—"}</td>
                 <td className="px-4 py-3 font-mono text-xs text-ink-muted">{b.slug}</td>
                 <td className="px-4 py-3">
