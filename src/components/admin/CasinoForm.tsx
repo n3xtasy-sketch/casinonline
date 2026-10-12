@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import type { CasinoFormState } from "@/app/admin/(panel)/cazinouri/types";
 import type { CasinoEditData, Option } from "@/lib/db/admin-casinos";
+import { MediaField } from "@/components/admin/MediaField";
 
 interface Props {
   mode: "create" | "edit";
@@ -95,7 +96,7 @@ export function CasinoForm({ mode, action, initial, tags, paymentMethods, games 
       </label>
 
       <Field label="Nume *" name="name" defaultValue={initial?.name} required />
-      <Field label="Logo URL" name="logo_url" type="url" defaultValue={initial?.logoUrl} />
+      <MediaField label="Logo" name="logo_url" defaultValue={initial?.logoUrl} folder="casinos" />
 
       <div className="grid gap-5 sm:grid-cols-2">
         <Field label="Rating (0–5)" name="rating" type="number" min="0" max="5" step="0.1" defaultValue={initial?.rating} />

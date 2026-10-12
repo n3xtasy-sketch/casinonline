@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import type { ProviderFormState } from "@/app/admin/(panel)/furnizori/types";
 import type { ProviderEditData } from "@/lib/db/admin-providers";
+import { MediaField } from "@/components/admin/MediaField";
 
 interface Props {
   mode: "create" | "edit";
@@ -55,7 +56,7 @@ export function ProviderForm({ mode, action, initial, categories }: Props) {
       </label>
 
       <Text label="Nume provider *" name="name" defaultValue={initial?.name} required />
-      <Text label="Logo (URL)" name="logo_url" type="url" defaultValue={initial?.logoUrl} />
+      <MediaField label="Logo" name="logo_url" defaultValue={initial?.logoUrl} folder="providers" />
 
       <div className="grid gap-5 sm:grid-cols-2">
         <label className="flex flex-col gap-1.5 text-sm">

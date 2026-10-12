@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import type { GameFormState } from "@/app/admin/(panel)/jocuri/types";
 import type { GameEditData } from "@/lib/db/admin-games";
 import type { Option } from "@/lib/db/admin-casinos";
+import { MediaField } from "@/components/admin/MediaField";
 
 interface Props {
   mode: "create" | "edit";
@@ -125,7 +126,7 @@ export function GameForm({ mode, action, initial, providers, categories, casinos
         </label>
       </div>
 
-      <Text label="Imagine / thumbnail (URL)" name="thumbnail_url" type="url" defaultValue={initial?.thumbnailUrl} />
+      <MediaField label="Imagine / thumbnail" name="thumbnail_url" defaultValue={initial?.thumbnailUrl} folder="games" />
 
       <div className="grid gap-5 sm:grid-cols-2">
         <Text label="RTP (%)" name="rtp" type="number" min="0" max="100" step="0.01" defaultValue={initial?.rtp} placeholder="96.5" />

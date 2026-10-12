@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import type { GuideFormState } from "@/app/admin/(panel)/ghiduri/types";
 import type { GuideEditData } from "@/lib/db/admin-guides";
 import type { Option } from "@/lib/db/admin-casinos";
+import { MediaField } from "@/components/admin/MediaField";
 
 interface Props {
   mode: "create" | "edit";
@@ -75,14 +76,12 @@ export function GuideForm({ mode, action, initial, categories }: Props) {
           <input name="reading_time" defaultValue={initial?.readingTime} className={input} placeholder="5 min" />
         </label>
         <label className="flex flex-col gap-1.5 text-sm">
-          <span className="font-medium text-ink-secondary">Imagine (URL)</span>
-          <input name="image_url" type="url" defaultValue={initial?.imageUrl} className={input} />
-        </label>
-        <label className="flex flex-col gap-1.5 text-sm">
           <span className="font-medium text-ink-secondary">Publicat la</span>
           <input name="published_at" type="date" defaultValue={initial?.publishedAt} className={input} />
         </label>
       </div>
+
+      <MediaField label="Imagine" name="image_url" defaultValue={initial?.imageUrl} folder="guides" />
 
       <label className="flex flex-col gap-1.5 text-sm">
         <span className="font-medium text-ink-secondary">Excerpt</span>

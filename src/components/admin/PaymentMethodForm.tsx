@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import type { PaymentFormState } from "@/app/admin/(panel)/metode-de-plata/types";
 import type { PaymentMethodEditData } from "@/lib/db/admin-payments";
 import type { Option } from "@/lib/db/admin-casinos";
+import { MediaField } from "@/components/admin/MediaField";
 
 interface Props {
   mode: "create" | "edit";
@@ -109,7 +110,7 @@ export function PaymentMethodForm({ mode, action, initial, paymentTypes, casinos
         </label>
       </div>
 
-      <Text label="Logo (URL)" name="logo_url" type="url" defaultValue={initial?.logoUrl} />
+      <MediaField label="Logo" name="logo_url" defaultValue={initial?.logoUrl} folder="payments" />
 
       <div className="grid gap-5 sm:grid-cols-2">
         <Text label="Viteză depunere" name="deposit_speed" defaultValue={initial?.depositSpeed} placeholder="Instant" />
