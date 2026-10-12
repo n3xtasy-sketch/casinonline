@@ -1,14 +1,32 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { getRedirect } from "@/lib/redirects-cache";
+import { normalizePath } from "@/lib/redirects";
 
 /**
- * Proxy (ex-middleware): refreshes the Supabase auth session on /admin requests and gates them:
- * no session → redirect to /admin/login (the is_admin check happens in the
- * /admin layout). Scoped to /admin so public routes/caching are untouched.
+ * Proxy (ex-middleware), two branches:
+ *  - /admin/*  → refresh Supabase auth session + gate (no session → /admin/login).
+ *  - everything else → admin-managed redirect lookup (cached TTL map; no per-request DB).
+ *
+ * The matcher already excludes /_next, /api, /go and asset files, so those are never
+ * touched. Public requests do NOT create a Supabase auth client (no getUser per page).
  */
 export async function proxy(request: NextRequest) {
-  let response = NextResponse.next({ request });
+  const { pathname } = request.nextUrl;
 
+  if (!pathname.startsWith("/admin")) {
+    const hit = await getRedirect(normalizePath(pathname));
+    if (hit) {
+      const url = request.nextUrl.clone();
+      url.pathname = hit.to; // internal path (validated at write time)
+      url.hash = "";
+      return NextResponse.redirect(url, hit.code);
+    }
+    return NextResponse.next();
+  }
+
+  // /admin branch — unchanged auth behaviour.
+  let response = NextResponse.next({ request });
   const supabase = createServerClient(
     process.env.SUPABASE_URL!,
     process.env.SUPABASE_ANON_KEY!,
@@ -32,8 +50,7 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { pathname } = request.nextUrl;
-  if (pathname.startsWith("/admin") && pathname !== "/admin/login" && !user) {
+  if (pathname !== "/admin/login" && !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/admin/login";
     return NextResponse.redirect(url);
@@ -43,5 +60,7 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  // All routes except Next internals, api, /go, and asset files (with an extension).
+  // /admin/* still matches (no dot) → handled by the auth branch above.
+  matcher: ["/((?!_next/|api/|go/|.*\\.).*)"],
 };
