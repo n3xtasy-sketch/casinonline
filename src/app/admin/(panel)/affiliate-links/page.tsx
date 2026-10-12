@@ -5,8 +5,8 @@ import {
   listAllCasinos,
   type AffiliateLinkFilters,
 } from "@/lib/db/admin-affiliates";
-import { placementLabel, AFFILIATE_PLACEMENTS } from "@/lib/affiliate-placements";
-import { AffiliateActiveButton } from "@/components/admin/AffiliateActiveButton";
+import { AFFILIATE_PLACEMENTS } from "@/lib/affiliate-placements";
+import { BulkAffiliateTable } from "@/components/admin/BulkAffiliateTable";
 
 const selectCls =
   "h-9 rounded-sm border border-border bg-field px-2 text-sm text-ink outline-none focus-visible:border-accent";
@@ -81,58 +81,7 @@ export default async function AdminAffiliateLinksPage({ searchParams }: PageProp
         </Link>
       </form>
 
-      <div className="overflow-x-auto rounded-md border border-border bg-surface">
-        <table className="w-full min-w-[820px] text-sm">
-          <thead>
-            <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-ink-muted">
-              <th className="px-4 py-3 font-semibold">Cazino</th>
-              <th className="px-4 py-3 font-semibold">Placement</th>
-              <th className="px-4 py-3 font-semibold">URL</th>
-              <th className="px-4 py-3 font-semibold">Campanie</th>
-              <th className="px-4 py-3 font-semibold">Status</th>
-              <th className="px-4 py-3 font-semibold">Acțiuni</th>
-            </tr>
-          </thead>
-          <tbody>
-            {links.map((l) => (
-              <tr key={l.id} className="border-b border-border/60 last:border-0">
-                <td className="px-4 py-3 font-medium text-ink">{l.casinoName}</td>
-                <td className="px-4 py-3 text-ink-secondary">{placementLabel(l.placement)}</td>
-                <td className="max-w-[240px] truncate px-4 py-3 font-mono text-xs text-ink-muted" title={l.url}>
-                  {l.url}
-                </td>
-                <td className="px-4 py-3 text-ink-secondary">{l.campaign || "—"}</td>
-                <td className="px-4 py-3">
-                  <span
-                    className={
-                      l.isActive
-                        ? "inline-flex items-center rounded-full bg-accent/12 px-2 py-0.5 text-xs font-medium text-accent"
-                        : "inline-flex items-center rounded-full bg-ink-muted/15 px-2 py-0.5 text-xs font-medium text-ink-muted"
-                    }
-                  >
-                    {l.isActive ? "Activ" : "Inactiv"}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-4">
-                    <Link
-                      href={`/admin/affiliate-links/${l.id}/edit`}
-                      className="font-medium text-accent hover:text-link-hover"
-                    >
-                      Editează
-                    </Link>
-                    <AffiliateActiveButton
-                      id={l.id}
-                      isActive={l.isActive}
-                      label={`${l.casinoName} · ${placementLabel(l.placement)}`}
-                    />
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <BulkAffiliateTable rows={links} />
     </div>
   );
 }
