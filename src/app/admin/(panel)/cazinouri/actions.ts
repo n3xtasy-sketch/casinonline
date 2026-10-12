@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { updateTag } from "next/cache";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
+import { logActivity } from "@/lib/db/activity";
 import type { CasinoFormState } from "./types";
 import type { CasinoStatus } from "@/lib/db/admin-casinos";
 
@@ -139,6 +140,7 @@ export async function createCasino(
   await syncJunction(db, "casino_games", "game_id", casinoId, formData.getAll("gameIds").map(String));
   await upsertAffiliate(db, casinoId, strOrNull(formData.get("affiliateUrl")));
 
+  await logActivity(db, { action: "casino.create", entityType: "casino", entityId: casinoId, label: fields.name });
   updateTag("casinos");
   redirect("/admin/cazinouri");
 }
@@ -157,6 +159,13 @@ export async function setCasinoStatus(formData: FormData): Promise<void> {
   const { error } = await db.from("casinos").update({ status }).eq("id", id);
   if (error) throw new Error(`Eroare la schimbarea statusului: ${error.message}`);
 
+  const { data: c } = await db.from("casinos").select("name").eq("id", id).maybeSingle();
+  await logActivity(db, {
+    action: status === "archived" ? "casino.archive" : "casino.reactivate",
+    entityType: "casino",
+    entityId: id,
+    label: (c as { name?: string } | null)?.name ?? null,
+  });
   updateTag("casinos");
   updateTag("bonuses");
   redirect("/admin/cazinouri");
@@ -184,6 +193,7 @@ export async function updateCasino(
   await syncJunction(db, "casino_games", "game_id", id, formData.getAll("gameIds").map(String));
   await upsertAffiliate(db, id, strOrNull(formData.get("affiliateUrl")));
 
+  await logActivity(db, { action: "casino.update", entityType: "casino", entityId: id, label: fields.name });
   updateTag("casinos");
   redirect("/admin/cazinouri");
 }

@@ -1,6 +1,7 @@
 "use server";
 
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
+import { logActivity } from "@/lib/db/activity";
 import { slugify } from "@/lib/guide-format";
 import { MEDIA_BUCKET, isMediaFolder, MAX_UPLOAD_BYTES } from "@/lib/media";
 import { listMedia, findMediaUsage, type MediaFile, type MediaUsage } from "@/lib/db/admin-media";
@@ -48,6 +49,7 @@ export async function uploadMedia(formData: FormData): Promise<UploadResult> {
   if (error) return { error: `Eroare la upload: ${error.message}` };
 
   const { data } = db.storage.from(MEDIA_BUCKET).getPublicUrl(key);
+  await logActivity(db, { action: "media.upload", entityType: "media", label: key, metadata: { path: key } });
   return { url: data.publicUrl, path: key };
 }
 
@@ -71,5 +73,6 @@ export async function deleteMedia(path: string, force = false): Promise<DeleteRe
 
   const { error } = await db.storage.from(MEDIA_BUCKET).remove([path]);
   if (error) return { error: `Eroare la ștergere: ${error.message}` };
+  await logActivity(db, { action: "media.delete", entityType: "media", label: path, metadata: { path, forced: force } });
   return { ok: true };
 }

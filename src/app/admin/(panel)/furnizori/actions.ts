@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { updateTag } from "next/cache";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
+import { logActivity } from "@/lib/db/activity";
 import type { ProviderFormState } from "./types";
 
 type DB = Awaited<ReturnType<typeof getSupabaseAuthClient>>;
@@ -91,6 +92,7 @@ export async function createProvider(
     return { error: `Eroare la salvare: ${error.message}` };
   }
 
+  await logActivity(db, { action: "provider.create", entityType: "provider", label: fields.name });
   refresh();
   redirect("/admin/furnizori");
 }
@@ -108,6 +110,7 @@ export async function updateProvider(
   const { error } = await db.from("providers").update(fields).eq("id", id);
   if (error) return { error: `Eroare la salvare: ${error.message}` };
 
+  await logActivity(db, { action: "provider.update", entityType: "provider", entityId: id, label: fields.name });
   refresh();
   redirect("/admin/furnizori");
 }

@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { updateTag } from "next/cache";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
+import { logActivity } from "@/lib/db/activity";
 import type { PaymentFormState } from "./types";
 
 type DB = Awaited<ReturnType<typeof getSupabaseAuthClient>>;
@@ -115,6 +116,7 @@ export async function createPaymentMethod(
 
   await syncCasinos(db, (inserted as { id: string }).id, formData.getAll("casinoIds").map(String));
 
+  await logActivity(db, { action: "payment.create", entityType: "payment_method", entityId: (inserted as { id: string }).id, label: fields.name });
   refresh();
   redirect("/admin/metode-de-plata");
 }
@@ -135,6 +137,7 @@ export async function updatePaymentMethod(
 
   await syncCasinos(db, id, formData.getAll("casinoIds").map(String));
 
+  await logActivity(db, { action: "payment.update", entityType: "payment_method", entityId: id, label: fields.name });
   refresh();
   redirect("/admin/metode-de-plata");
 }

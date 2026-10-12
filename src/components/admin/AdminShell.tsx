@@ -14,6 +14,7 @@ import {
   Image as ImageIcon,
   Search,
   Milestone,
+  History,
   LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -32,6 +33,7 @@ const items = [
   { label: "Media", href: "/admin/media", icon: ImageIcon, ready: true },
   { label: "SEO", href: "/admin/seo", icon: Search, ready: true },
   { label: "Redirects", href: "/admin/redirects", icon: Milestone, ready: true },
+  { label: "Activity", href: "/admin/activity", icon: History, ready: true },
 ];
 
 export function AdminShell({ children }: { children: React.ReactNode }) {

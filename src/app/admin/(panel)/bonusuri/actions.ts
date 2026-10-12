@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { updateTag } from "next/cache";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
+import { logActivity } from "@/lib/db/activity";
 import type { BonusFormState } from "./types";
 
 type DB = Awaited<ReturnType<typeof getSupabaseAuthClient>>;
@@ -109,6 +110,7 @@ export async function createBonus(
     return { error: `Eroare la salvare: ${error.message}` };
   }
 
+  await logActivity(db, { action: "bonus.create", entityType: "bonus", label: fields.offer });
   refresh();
   redirect("/admin/bonusuri");
 }
@@ -128,6 +130,7 @@ export async function updateBonus(
   const { error } = await db.from("bonuses").update({ claim_url, ...fields }).eq("id", id);
   if (error) return { error: `Eroare la salvare: ${error.message}` };
 
+  await logActivity(db, { action: "bonus.update", entityType: "bonus", entityId: id, label: fields.offer });
   refresh();
   redirect("/admin/bonusuri");
 }

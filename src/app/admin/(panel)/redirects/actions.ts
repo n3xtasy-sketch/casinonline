@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
+import { logActivity } from "@/lib/db/activity";
 import {
   normalizePath,
   isInternalRedirectPath,
@@ -94,6 +95,7 @@ export async function createRedirect(
     if (insErr.code === "23505") return { error: "Există deja un redirect pentru acest from_path." };
     return { error: `Eroare la salvare: ${insErr.message}` };
   }
+  await logActivity(db, { action: "redirect.create", entityType: "redirect", label: row.from_path, metadata: { to: row.to_path, code: row.status_code } });
   redirect("/admin/redirects");
 }
 
@@ -116,6 +118,7 @@ export async function updateRedirect(
     if (updErr.code === "23505") return { error: "Există deja un redirect pentru acest from_path." };
     return { error: `Eroare la salvare: ${updErr.message}` };
   }
+  await logActivity(db, { action: "redirect.update", entityType: "redirect", entityId: id, label: row.from_path, metadata: { to: row.to_path, code: row.status_code } });
   redirect("/admin/redirects");
 }
 
@@ -138,5 +141,6 @@ export async function setRedirectActive(id: string, active: boolean): Promise<To
   }
   const { error } = await db.from("redirects").update({ is_active: active }).eq("id", id);
   if (error) return { error: `Eroare: ${error.message}` };
+  await logActivity(db, { action: "redirect.toggle", entityType: "redirect", entityId: id, metadata: { active } });
   return { ok: true };
 }

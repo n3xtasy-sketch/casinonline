@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { updateTag } from "next/cache";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
+import { logActivity } from "@/lib/db/activity";
 import { isSafeInternalPath } from "@/lib/guide-format";
 import { SEO_TYPES, type SeoType } from "@/lib/seo";
 import type { SeoFormState } from "./types";
@@ -70,6 +71,7 @@ export async function saveSeo(
     .upsert(row, { onConflict: "entity_type,entity_id" });
   if (error) return { error: `Eroare la salvare: ${error.message}` };
 
+  await logActivity(db, { action: "seo.save", entityType: "seo", entityId: id, label: type });
   updateTag("seo");
   updateTag(ENTITY_TAG[type]);
   redirect("/admin/seo");
@@ -96,6 +98,7 @@ export async function resetSeo(type: SeoType, id: string): Promise<void> {
       { onConflict: "entity_type,entity_id" },
     );
   if (error) throw new Error(`Eroare la reset: ${error.message}`);
+  await logActivity(db, { action: "seo.reset", entityType: "seo", entityId: id, label: type });
   updateTag("seo");
   updateTag(ENTITY_TAG[type]);
   redirect("/admin/seo");

@@ -1,6 +1,7 @@
 "use server";
 
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
+import { logActivity } from "@/lib/db/activity";
 import type { BulkResult } from "@/lib/bulk";
 
 type DB = Awaited<ReturnType<typeof getSupabaseAuthClient>>;
@@ -28,6 +29,7 @@ export async function bulkDeactivateAffiliate(ids: string[]): Promise<BulkResult
   // Deactivation never conflicts → single atomic statement.
   const { error } = await db.from("affiliate_links").update({ is_active: false }).in("id", ids);
   if (error) return { ok: 0, failed: ids.map((id) => ({ id, reason: error.message })) };
+  await logActivity(db, { action: "affiliate_link.bulk_deactivate", entityType: "affiliate_link", label: `${ids.length} linkuri`, metadata: { count: ids.length } });
   return { ok: ids.length, failed: [] };
 }
 
@@ -52,5 +54,6 @@ export async function bulkActivateAffiliate(ids: string[]): Promise<BulkResult> 
       ok++;
     }
   }
+  await logActivity(db, { action: "affiliate_link.bulk_activate", entityType: "affiliate_link", label: `${ok} linkuri`, metadata: { ok, failed: failed.length } });
   return { ok, failed };
 }

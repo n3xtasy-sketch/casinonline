@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
+import { logActivity } from "@/lib/db/activity";
 import { PLACEMENT_VALUES } from "@/lib/affiliate-placements";
 import type { AffiliateFormState } from "./types";
 
@@ -100,6 +101,7 @@ export async function createAffiliateLink(
     return { error: `Eroare la salvare: ${insErr.message}` };
   }
   // No updateTag: /go resolves live via the RPC; no cached surface embeds this.
+  await logActivity(db, { action: "affiliate_link.create", entityType: "affiliate_link", label: fields.placement, metadata: { placement: fields.placement } });
   redirect("/admin/affiliate-links");
 }
 
@@ -119,6 +121,7 @@ export async function updateAffiliateLink(
     if (updErr.code === "23505") return { error: DUP_MSG };
     return { error: `Eroare la salvare: ${updErr.message}` };
   }
+  await logActivity(db, { action: "affiliate_link.update", entityType: "affiliate_link", entityId: id, label: fields.placement, metadata: { placement: fields.placement } });
   redirect("/admin/affiliate-links");
 }
 
@@ -153,5 +156,6 @@ export async function setAffiliateActive(formData: FormData): Promise<void> {
 
   const { error } = await db.from("affiliate_links").update({ is_active: active }).eq("id", id);
   if (error) throw new Error(`Eroare la schimbarea statusului: ${error.message}`);
+  await logActivity(db, { action: active ? "affiliate_link.activate" : "affiliate_link.deactivate", entityType: "affiliate_link", entityId: id });
   redirect("/admin/affiliate-links");
 }

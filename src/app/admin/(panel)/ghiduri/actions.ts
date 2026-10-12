@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { updateTag } from "next/cache";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
+import { logActivity } from "@/lib/db/activity";
 import { parseSections, parseRelatedLinks } from "@/lib/guide-format";
 import type { GuideFormState } from "./types";
 
@@ -105,6 +106,7 @@ export async function createGuide(
     return { error: `Eroare la salvare: ${insErr.message}` };
   }
 
+  await logActivity(db, { action: "guide.create", entityType: "guide", label: String(fields.title ?? "") });
   updateTag("guides");
   redirect("/admin/ghiduri");
 }
@@ -125,6 +127,7 @@ export async function updateGuide(
     .eq("id", id);
   if (updErr) return { error: `Eroare la salvare: ${updErr.message}` };
 
+  await logActivity(db, { action: "guide.update", entityType: "guide", entityId: id, label: String(fields.title ?? "") });
   updateTag("guides");
   redirect("/admin/ghiduri");
 }

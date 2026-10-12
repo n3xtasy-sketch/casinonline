@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { updateTag } from "next/cache";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
+import { logActivity } from "@/lib/db/activity";
 import type { GameFormState } from "./types";
 
 type DB = Awaited<ReturnType<typeof getSupabaseAuthClient>>;
@@ -118,6 +119,7 @@ export async function createGame(
 
   await syncCasinos(db, (inserted as { id: string }).id, formData.getAll("casinoIds").map(String));
 
+  await logActivity(db, { action: "game.create", entityType: "game", entityId: (inserted as { id: string }).id, label: fields.name });
   refresh();
   redirect("/admin/jocuri");
 }
@@ -140,6 +142,7 @@ export async function updateGame(
 
   await syncCasinos(db, id, formData.getAll("casinoIds").map(String));
 
+  await logActivity(db, { action: "game.update", entityType: "game", entityId: id, label: fields.name });
   refresh();
   redirect("/admin/jocuri");
 }
