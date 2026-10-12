@@ -1,4 +1,5 @@
 import "server-only";
+import type { ContentStatus } from "@/lib/content-status";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import type { Option } from "@/lib/db/admin-casinos";
 import type { GuideSection, GuideRelatedLink } from "@/types/guide";
@@ -70,4 +71,34 @@ export async function getGuideEdit(slug: string): Promise<GuideEditData | null> 
     faq: r.faq ?? [],
     publishedAt: r.published_at ? r.published_at.slice(0, 10) : "",
   };
+}
+
+export interface AdminGuideRow {
+  id: string;
+  slug: string;
+  title: string;
+  category: string;
+  author: string;
+  status: ContentStatus;
+}
+
+export async function listAdminGuides(filter: "all" | ContentStatus = "all"): Promise<AdminGuideRow[]> {
+  const db = await getSupabaseAuthClient();
+  let q = db
+    .from("guides")
+    .select("id, slug, title, author, status, category:guide_categories(label)")
+    .order("status")
+    .order("title");
+  if (filter !== "all") q = q.eq("status", filter);
+  const { data, error } = await q;
+  if (error) throw new Error(`listAdminGuides: ${error.message}`);
+  return (
+    (data as unknown as {
+      id: string; slug: string; title: string; author: string | null;
+      status: ContentStatus; category: { label?: string } | null;
+    }[]) ?? []
+  ).map((r) => ({
+    id: r.id, slug: r.slug, title: r.title, category: r.category?.label ?? "",
+    author: r.author ?? "", status: r.status,
+  }));
 }

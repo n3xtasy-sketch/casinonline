@@ -1,4 +1,5 @@
 import "server-only";
+import type { ContentStatus } from "@/lib/content-status";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
 
 export interface ProviderEditData {
@@ -72,4 +73,34 @@ export async function listProviderCategories(): Promise<string[]> {
       .filter((c): c is string => Boolean(c)),
   );
   return [...set].sort();
+}
+
+export interface AdminProviderRow {
+  id: string;
+  slug: string;
+  name: string;
+  category: string | null;
+  gameCount: number;
+  status: ContentStatus;
+}
+
+export async function listAdminProviders(filter: "all" | ContentStatus = "all"): Promise<AdminProviderRow[]> {
+  const db = await getSupabaseAuthClient();
+  let q = db
+    .from("providers")
+    .select("id, slug, name, category, game_count, status")
+    .order("status")
+    .order("name");
+  if (filter !== "all") q = q.eq("status", filter);
+  const { data, error } = await q;
+  if (error) throw new Error(`listAdminProviders: ${error.message}`);
+  return (
+    (data as unknown as {
+      id: string; slug: string; name: string; category: string | null;
+      game_count: number | null; status: ContentStatus;
+    }[]) ?? []
+  ).map((r) => ({
+    id: r.id, slug: r.slug, name: r.name, category: r.category,
+    gameCount: r.game_count ?? 0, status: r.status,
+  }));
 }

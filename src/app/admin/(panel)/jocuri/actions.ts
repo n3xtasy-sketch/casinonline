@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { updateTag } from "next/cache";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import { logActivity } from "@/lib/db/activity";
+import { applyStatusChange } from "@/lib/db/content-status";
+import type { ContentStatus } from "@/lib/content-status";
 import type { GameFormState } from "./types";
 
 type DB = Awaited<ReturnType<typeof getSupabaseAuthClient>>;
@@ -145,4 +147,15 @@ export async function updateGame(
   await logActivity(db, { action: "game.update", entityType: "game", entityId: id, label: fields.name });
   refresh();
   redirect("/admin/jocuri");
+}
+
+export async function setGameStatus(id: string, next: ContentStatus): Promise<{ error?: string }> {
+  const db = await requireAdmin();
+  return applyStatusChange(db, {
+    table: "games",
+    id,
+    next,
+    entityType: "game",
+    tags: ["games", "casinos", "providers"],
+  });
 }

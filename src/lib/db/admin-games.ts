@@ -1,4 +1,5 @@
 import "server-only";
+import type { ContentStatus } from "@/lib/content-status";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import type { Option } from "@/lib/db/admin-casinos";
 
@@ -90,4 +91,35 @@ export async function getGameEdit(slug: string): Promise<GameEditData | null> {
     faq: r.faq ?? [],
     casinoIds: (r.casino_games ?? []).map((c) => c.casino_id),
   };
+}
+
+export interface AdminGameRow {
+  id: string;
+  slug: string;
+  name: string;
+  provider: string;
+  rtp: number | null;
+  volatility: string | null;
+  status: ContentStatus;
+}
+
+export async function listAdminGames(filter: "all" | ContentStatus = "all"): Promise<AdminGameRow[]> {
+  const db = await getSupabaseAuthClient();
+  let q = db
+    .from("games")
+    .select("id, slug, name, rtp, volatility, status, provider:providers(name)")
+    .order("status")
+    .order("name");
+  if (filter !== "all") q = q.eq("status", filter);
+  const { data, error } = await q;
+  if (error) throw new Error(`listAdminGames: ${error.message}`);
+  return (
+    (data as unknown as {
+      id: string; slug: string; name: string; rtp: number | null;
+      volatility: string | null; status: ContentStatus; provider: { name?: string } | null;
+    }[]) ?? []
+  ).map((r) => ({
+    id: r.id, slug: r.slug, name: r.name, provider: r.provider?.name ?? "",
+    rtp: r.rtp, volatility: r.volatility, status: r.status,
+  }));
 }

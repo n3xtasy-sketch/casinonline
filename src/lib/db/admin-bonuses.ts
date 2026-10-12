@@ -1,6 +1,7 @@
 import "server-only";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import type { Option } from "@/lib/db/admin-casinos";
+import type { ContentStatus } from "@/lib/content-status";
 
 export interface BonusEditData {
   id: string;
@@ -22,42 +23,50 @@ export interface BonusEditData {
 }
 
 export interface AdminBonusRow {
+  id: string;
   slug: string;
   offer: string;
   bonusType: string;
   casinoName: string;
   freeSpins: number | null;
   casinoArchived: boolean;
+  status: ContentStatus;
 }
 
 /**
  * Admin bonus listing — uses the admin session so bonuses of ARCHIVED casinos stay
  * visible/editable (the public reader hides them). Flags archived-casino bonuses.
  */
-export async function listAdminBonuses(): Promise<AdminBonusRow[]> {
+export async function listAdminBonuses(filter: "all" | ContentStatus = "all"): Promise<AdminBonusRow[]> {
   const db = await getSupabaseAuthClient();
-  const { data, error } = await db
+  let query = db
     .from("bonuses")
     .select(
-      "slug, offer, free_spins, bonus_type:bonus_types(label), casino:casinos(name, status)",
+      "id, slug, offer, free_spins, status, bonus_type:bonus_types(label), casino:casinos(name, status)",
     )
     .order("created_at");
+  if (filter !== "all") query = query.eq("status", filter);
+  const { data, error } = await query;
   if (error) throw new Error(`listAdminBonuses: ${error.message}`);
   return (
     (data as unknown as {
+      id: string;
       slug: string;
       offer: string;
       free_spins: number | null;
+      status: ContentStatus;
       bonus_type: { label: string } | null;
       casino: { name: string; status: string } | null;
     }[]) ?? []
   ).map((r) => ({
+    id: r.id,
     slug: r.slug,
     offer: r.offer,
     bonusType: r.bonus_type?.label ?? "",
     casinoName: r.casino?.name ?? "",
     freeSpins: r.free_spins,
     casinoArchived: r.casino?.status === "archived",
+    status: r.status,
   }));
 }
 

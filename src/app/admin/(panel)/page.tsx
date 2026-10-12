@@ -58,7 +58,7 @@ export default async function AdminDashboard() {
     {
       label: "Cazinouri",
       value: counts.casinosActive + counts.casinosArchived,
-      sub: `${counts.casinosActive} active · ${counts.casinosArchived} arhivate`,
+      sub: `${counts.casinosActive} publicate · ${counts.casinosArchived} arhivate`,
       href: "/admin/cazinouri",
     },
     { label: "Bonusuri", value: counts.bonuses, href: "/admin/bonusuri" },

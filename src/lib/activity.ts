@@ -45,6 +45,23 @@ export const ACTIVITY_ACTIONS = [
   { value: "seo.reset", label: "SEO resetat" },
   { value: "media.upload", label: "Media încărcat" },
   { value: "media.delete", label: "Media șters" },
+  { value: "casino.publish", label: "Cazino publicat" },
+  { value: "casino.unpublish", label: "Cazino retras (draft)" },
+  { value: "bonus.publish", label: "Bonus publicat" },
+  { value: "bonus.unpublish", label: "Bonus retras (draft)" },
+  { value: "bonus.archive", label: "Bonus arhivat" },
+  { value: "game.publish", label: "Joc publicat" },
+  { value: "game.unpublish", label: "Joc retras (draft)" },
+  { value: "game.archive", label: "Joc arhivat" },
+  { value: "provider.publish", label: "Furnizor publicat" },
+  { value: "provider.unpublish", label: "Furnizor retras (draft)" },
+  { value: "provider.archive", label: "Furnizor arhivat" },
+  { value: "payment.publish", label: "Metodă publicată" },
+  { value: "payment.unpublish", label: "Metodă retrasă (draft)" },
+  { value: "payment.archive", label: "Metodă arhivată" },
+  { value: "guide.publish", label: "Ghid publicat" },
+  { value: "guide.unpublish", label: "Ghid retras (draft)" },
+  { value: "guide.archive", label: "Ghid arhivat" },
 ] as const;
 
 const ACTION_LABELS = new Map<string, string>(ACTIVITY_ACTIONS.map((a) => [a.value, a.label]));

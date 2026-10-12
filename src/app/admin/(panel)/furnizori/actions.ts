@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { updateTag } from "next/cache";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import { logActivity } from "@/lib/db/activity";
+import { applyStatusChange } from "@/lib/db/content-status";
+import type { ContentStatus } from "@/lib/content-status";
 import type { ProviderFormState } from "./types";
 
 type DB = Awaited<ReturnType<typeof getSupabaseAuthClient>>;
@@ -113,4 +115,15 @@ export async function updateProvider(
   await logActivity(db, { action: "provider.update", entityType: "provider", entityId: id, label: fields.name });
   refresh();
   redirect("/admin/furnizori");
+}
+
+export async function setProviderStatus(id: string, next: ContentStatus): Promise<{ error?: string }> {
+  const db = await requireAdmin();
+  return applyStatusChange(db, {
+    table: "providers",
+    id,
+    next,
+    entityType: "provider",
+    tags: ["providers", "games"],
+  });
 }

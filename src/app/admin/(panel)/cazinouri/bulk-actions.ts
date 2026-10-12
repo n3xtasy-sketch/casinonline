@@ -29,7 +29,7 @@ function refreshCasinos() {
 
 async function setStatus(
   ids: string[],
-  status: "active" | "archived",
+  status: "published" | "archived",
   action: string,
 ): Promise<BulkResult> {
   const db = await requireAdmin();
@@ -46,7 +46,7 @@ export async function bulkArchiveCasinos(ids: string[]): Promise<BulkResult> {
   return setStatus(ids, "archived", "casino.bulk_archive");
 }
 export async function bulkActivateCasinos(ids: string[]): Promise<BulkResult> {
-  return setStatus(ids, "active", "casino.bulk_activate");
+  return setStatus(ids, "published", "casino.bulk_activate");
 }
 
 export async function bulkAddTag(ids: string[], tagId: string): Promise<BulkResult> {

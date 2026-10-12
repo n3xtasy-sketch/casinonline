@@ -1,5 +1,6 @@
 import "server-only";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
+import type { ContentStatus } from "@/lib/content-status";
 
 /** Admin read helpers for the casino form. Use the admin session (RLS = is_admin). */
 
@@ -8,7 +9,7 @@ export interface Option {
   label: string;
 }
 
-export type CasinoStatus = "active" | "archived";
+export type CasinoStatus = ContentStatus;
 
 export interface AdminCasinoRow {
   id: string;
@@ -50,7 +51,7 @@ export interface CasinoEditData {
 
 /** Admin casino listing — sees every row (incl. archived) via the admin session. */
 export async function listAdminCasinos(
-  filter: "all" | "active" | "archived" = "all",
+  filter: "all" | ContentStatus = "all",
 ): Promise<AdminCasinoRow[]> {
   const db = await getSupabaseAuthClient();
   let query = db

@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { updateTag } from "next/cache";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import { logActivity } from "@/lib/db/activity";
+import { applyStatusChange } from "@/lib/db/content-status";
+import type { ContentStatus } from "@/lib/content-status";
 import type { BonusFormState } from "./types";
 
 type DB = Awaited<ReturnType<typeof getSupabaseAuthClient>>;
@@ -133,4 +135,15 @@ export async function updateBonus(
   await logActivity(db, { action: "bonus.update", entityType: "bonus", entityId: id, label: fields.offer });
   refresh();
   redirect("/admin/bonusuri");
+}
+
+export async function setBonusStatus(id: string, next: ContentStatus): Promise<{ error?: string }> {
+  const db = await requireAdmin();
+  return applyStatusChange(db, {
+    table: "bonuses",
+    id,
+    next,
+    entityType: "bonus",
+    tags: ["bonuses", "casinos"],
+  });
 }

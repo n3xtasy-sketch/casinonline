@@ -140,7 +140,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     affReviewRes,
     cpmRes,
   ] = await Promise.all([
-    count(db, "casinos", "status", "active"),
+    count(db, "casinos", "status", "published"),
     count(db, "casinos", "status", "archived"),
     count(db, "bonuses"),
     count(db, "games"),
@@ -182,7 +182,7 @@ export async function getDashboardData(): Promise<DashboardData> {
   // casino_id presence in bonuses (for "casino without bonus")
   const bonusCasinoSlugs = new Set(bonuses.map((b) => b.casino?.slug).filter(Boolean) as string[]);
 
-  const activeCasinos = casinos.filter((c) => c.status === "active");
+  const activeCasinos = casinos.filter((c) => c.status === "published");
 
   const rules: HealthRule[] = [
     // ---- jocuri ----

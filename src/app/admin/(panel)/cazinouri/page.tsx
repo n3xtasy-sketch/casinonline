@@ -4,11 +4,12 @@ import { listAdminCasinos, listTags } from "@/lib/db/admin-casinos";
 import { BulkCasinoTable } from "@/components/admin/BulkCasinoTable";
 import { cn } from "@/lib/cn";
 
-type Filter = "all" | "active" | "archived";
+type Filter = "all" | "draft" | "published" | "archived";
 
 const TABS: { key: Filter; label: string }[] = [
   { key: "all", label: "Toate" },
-  { key: "active", label: "Active" },
+  { key: "draft", label: "Draft" },
+  { key: "published", label: "Publicate" },
   { key: "archived", label: "Arhivate" },
 ];
 
@@ -18,7 +19,8 @@ interface PageProps {
 
 export default async function AdminCasinosPage({ searchParams }: PageProps) {
   const sp = await searchParams;
-  const filter: Filter = sp.status === "active" || sp.status === "archived" ? sp.status : "all";
+  const filter: Filter =
+    sp.status === "draft" || sp.status === "published" || sp.status === "archived" ? sp.status : "all";
   const [casinos, tags] = await Promise.all([listAdminCasinos(filter), listTags()]);
 
   return (

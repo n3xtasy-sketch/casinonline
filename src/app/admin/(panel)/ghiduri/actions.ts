@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { updateTag } from "next/cache";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import { logActivity } from "@/lib/db/activity";
+import { applyStatusChange } from "@/lib/db/content-status";
+import type { ContentStatus } from "@/lib/content-status";
 import { parseSections, parseRelatedLinks } from "@/lib/guide-format";
 import type { GuideFormState } from "./types";
 
@@ -130,4 +132,16 @@ export async function updateGuide(
   await logActivity(db, { action: "guide.update", entityType: "guide", entityId: id, label: String(fields.title ?? "") });
   updateTag("guides");
   redirect("/admin/ghiduri");
+}
+
+export async function setGuideStatus(id: string, next: ContentStatus): Promise<{ error?: string }> {
+  const db = await requireAdmin();
+  return applyStatusChange(db, {
+    table: "guides",
+    id,
+    next,
+    entityType: "guide",
+    tags: ["guides"],
+    stampPublishedAt: true,
+  });
 }

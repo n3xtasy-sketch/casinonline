@@ -1,4 +1,5 @@
 import "server-only";
+import type { ContentStatus } from "@/lib/content-status";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import type { Option } from "@/lib/db/admin-casinos";
 
@@ -81,4 +82,32 @@ export async function getPaymentMethodEdit(slug: string): Promise<PaymentMethodE
     faq: r.faq ?? [],
     casinoIds: (r.casino_payment_methods ?? []).map((c) => c.casino_id),
   };
+}
+
+export interface AdminPaymentRow {
+  id: string;
+  slug: string;
+  name: string;
+  type: string;
+  status: ContentStatus;
+}
+
+export async function listAdminPayments(filter: "all" | ContentStatus = "all"): Promise<AdminPaymentRow[]> {
+  const db = await getSupabaseAuthClient();
+  let q = db
+    .from("payment_methods")
+    .select("id, slug, name, status, payment_type:payment_types(label)")
+    .order("status")
+    .order("name");
+  if (filter !== "all") q = q.eq("status", filter);
+  const { data, error } = await q;
+  if (error) throw new Error(`listAdminPayments: ${error.message}`);
+  return (
+    (data as unknown as {
+      id: string; slug: string; name: string; status: ContentStatus;
+      payment_type: { label?: string } | null;
+    }[]) ?? []
+  ).map((r) => ({
+    id: r.id, slug: r.slug, name: r.name, type: r.payment_type?.label ?? "", status: r.status,
+  }));
 }

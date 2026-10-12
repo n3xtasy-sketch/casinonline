@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { updateTag } from "next/cache";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import { logActivity } from "@/lib/db/activity";
+import { applyStatusChange } from "@/lib/db/content-status";
+import type { ContentStatus } from "@/lib/content-status";
 import type { PaymentFormState } from "./types";
 
 type DB = Awaited<ReturnType<typeof getSupabaseAuthClient>>;
@@ -140,4 +142,15 @@ export async function updatePaymentMethod(
   await logActivity(db, { action: "payment.update", entityType: "payment_method", entityId: id, label: fields.name });
   refresh();
   redirect("/admin/metode-de-plata");
+}
+
+export async function setPaymentStatus(id: string, next: ContentStatus): Promise<{ error?: string }> {
+  const db = await requireAdmin();
+  return applyStatusChange(db, {
+    table: "payment_methods",
+    id,
+    next,
+    entityType: "payment",
+    tags: ["payments", "casinos"],
+  });
 }
