@@ -10,6 +10,8 @@ interface Props {
   name: string;
   defaultValue?: string;
   folder?: MediaFolder;
+  /** Mirror the current value to a parent (e.g. for live previews). Optional. */
+  onChange?: (url: string) => void;
 }
 
 /**
@@ -17,9 +19,13 @@ interface Props {
  * Media Library in a modal. Picking an image writes its public URL into the input.
  * Drop-in for Casino/Game/Provider/Guide/Payment forms (wired up later).
  */
-export function MediaField({ label, name, defaultValue = "", folder = "general" }: Props) {
+export function MediaField({ label, name, defaultValue = "", folder = "general", onChange }: Props) {
   const [value, setValue] = useState(defaultValue);
   const [open, setOpen] = useState(false);
+  const apply = (v: string) => {
+    setValue(v);
+    onChange?.(v);
+  };
 
   const input =
     "h-10 flex-1 rounded-sm border border-border bg-field px-3 text-sm text-ink outline-none focus-visible:border-accent";
@@ -32,7 +38,7 @@ export function MediaField({ label, name, defaultValue = "", folder = "general" 
           name={name}
           type="url"
           value={value}
-          onChange={(e) => setValue(e.target.value)}
+          onChange={(e) => apply(e.target.value)}
           placeholder="https://… sau alege din librărie"
           className={input}
         />
@@ -78,7 +84,7 @@ export function MediaField({ label, name, defaultValue = "", folder = "general" 
             <MediaManager
               initialFolder={folder}
               onPick={(url) => {
-                setValue(url);
+                apply(url);
                 setOpen(false);
               }}
             />

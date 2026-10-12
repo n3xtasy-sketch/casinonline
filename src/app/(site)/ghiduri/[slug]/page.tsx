@@ -11,6 +11,8 @@ import { GuideCard } from "@/components/guides/GuideCard";
 import { GuideArticleHeader } from "@/components/guides/GuideArticleHeader";
 import { GuideBody } from "@/components/guides/GuideBody";
 import { getGuideBySlug, getSimilarGuides } from "@/lib/db/guides";
+import { buildMetadata, entityDefaultMeta } from "@/lib/seo";
+import { getSeoForSlug } from "@/lib/db/seo";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -23,16 +25,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const guide = await getGuideBySlug(slug);
   if (!guide) return {};
-  const title = guide.title;
-  const description = guide.excerpt;
-  const url = `/ghiduri/${slug}`;
-  return {
-    title,
-    description,
-    alternates: { canonical: url },
-    openGraph: { type: "article", siteName: "CasinOnline.ro", title, description, url, images: ["/opengraph-image"] },
-    twitter: { card: "summary_large_image", title, description, images: ["/opengraph-image"] },
-  };
+  return buildMetadata(entityDefaultMeta("guide", guide), await getSeoForSlug("guide", slug));
 }
 
 export default async function GuideArticlePage({ params }: PageProps) {

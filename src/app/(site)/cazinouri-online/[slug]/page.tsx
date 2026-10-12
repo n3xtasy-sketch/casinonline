@@ -12,6 +12,8 @@ import { CasinoReviewHeader } from "@/components/casino/CasinoReviewHeader";
 import { CasinoFacts } from "@/components/casino/CasinoFacts";
 import { ProsCons } from "@/components/casino/ProsCons";
 import { getCasinoBySlug, getRelatedCasinos } from "@/lib/db/casinos";
+import { buildMetadata, entityDefaultMeta } from "@/lib/seo";
+import { getSeoForSlug } from "@/lib/db/seo";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -24,16 +26,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const casino = await getCasinoBySlug(slug);
   if (!casino) return {};
-  const title = `${casino.name} — Recenzie`;
-  const description = casino.intro;
-  const url = `/cazinouri-online/${slug}`;
-  return {
-    title,
-    description,
-    alternates: { canonical: url },
-    openGraph: { type: "website", siteName: "CasinOnline.ro", title, description, url, images: ["/opengraph-image"] },
-    twitter: { card: "summary_large_image", title, description, images: ["/opengraph-image"] },
-  };
+  return buildMetadata(entityDefaultMeta("casino", casino), await getSeoForSlug("casino", slug));
 }
 
 export default async function CasinoReviewPage({ params }: PageProps) {

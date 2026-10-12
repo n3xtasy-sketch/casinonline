@@ -11,6 +11,8 @@ import { BonusCard } from "@/components/bonuses/BonusCard";
 import { BonusDetailHeader } from "@/components/bonuses/BonusDetailHeader";
 import { BonusFacts } from "@/components/bonuses/BonusFacts";
 import { getBonusBySlug, getSimilarBonuses } from "@/lib/db/bonuses";
+import { buildMetadata, entityDefaultMeta } from "@/lib/seo";
+import { getSeoForSlug } from "@/lib/db/seo";
 import { getCasinoCardBySlug } from "@/lib/db/casinos";
 
 interface PageProps {
@@ -24,16 +26,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const bonus = await getBonusBySlug(slug);
   if (!bonus) return {};
-  const title = `${bonus.bonusType} ${bonus.casinoName}`;
-  const description = bonus.intro;
-  const url = `/bonusuri-casino/${slug}`;
-  return {
-    title,
-    description,
-    alternates: { canonical: url },
-    openGraph: { type: "website", siteName: "CasinOnline.ro", title, description, url, images: ["/opengraph-image"] },
-    twitter: { card: "summary_large_image", title, description, images: ["/opengraph-image"] },
-  };
+  return buildMetadata(entityDefaultMeta("bonus", bonus), await getSeoForSlug("bonus", slug));
 }
 
 export default async function BonusDetailPage({ params }: PageProps) {

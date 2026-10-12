@@ -12,6 +12,7 @@ import {
   BookOpen,
   Link2,
   Image as ImageIcon,
+  Search,
   LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -28,6 +29,7 @@ const items = [
   { label: "Ghiduri", href: "/admin/ghiduri", icon: BookOpen, ready: true },
   { label: "Affiliate Links", href: "/admin/affiliate-links", icon: Link2, ready: true },
   { label: "Media", href: "/admin/media", icon: ImageIcon, ready: true },
+  { label: "SEO", href: "/admin/seo", icon: Search, ready: true },
 ];
 
 export function AdminShell({ children }: { children: React.ReactNode }) {

@@ -11,6 +11,8 @@ import { GameCard } from "@/components/games/GameCard";
 import { GameDetailHeader } from "@/components/games/GameDetailHeader";
 import { GameSpecs } from "@/components/games/GameSpecs";
 import { getGameBySlug, getGames } from "@/lib/db/games";
+import { buildMetadata, entityDefaultMeta } from "@/lib/seo";
+import { getSeoForSlug } from "@/lib/db/seo";
 import { getCasinosForGame } from "@/lib/db/casinos";
 
 interface PageProps {
@@ -24,16 +26,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const game = await getGameBySlug(slug);
   if (!game) return {};
-  const title = `${game.name} — ${game.provider}`;
-  const description = game.intro;
-  const url = `/jocuri-casino/${slug}`;
-  return {
-    title,
-    description,
-    alternates: { canonical: url },
-    openGraph: { type: "website", siteName: "CasinOnline.ro", title, description, url, images: ["/opengraph-image"] },
-    twitter: { card: "summary_large_image", title, description, images: ["/opengraph-image"] },
-  };
+  return buildMetadata(entityDefaultMeta("game", game), await getSeoForSlug("game", slug));
 }
 
 export default async function GameDetailPage({ params }: PageProps) {

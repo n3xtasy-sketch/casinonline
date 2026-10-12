@@ -11,6 +11,8 @@ import { PaymentMethodCard } from "@/components/payments/PaymentMethodCard";
 import { PaymentDetailHeader } from "@/components/payments/PaymentDetailHeader";
 import { PaymentFacts } from "@/components/payments/PaymentFacts";
 import { getPaymentMethodBySlug, getAlternativePaymentMethods } from "@/lib/db/payments";
+import { buildMetadata, entityDefaultMeta } from "@/lib/seo";
+import { getSeoForSlug } from "@/lib/db/seo";
 import { getCasinosForPaymentMethod } from "@/lib/db/casinos";
 
 interface PageProps {
@@ -24,16 +26,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const method = await getPaymentMethodBySlug(slug);
   if (!method) return {};
-  const title = `${method.name} la cazinouri online`;
-  const description = method.intro;
-  const url = `/metode-de-plata/${slug}`;
-  return {
-    title,
-    description,
-    alternates: { canonical: url },
-    openGraph: { type: "website", siteName: "CasinOnline.ro", title, description, url, images: ["/opengraph-image"] },
-    twitter: { card: "summary_large_image", title, description, images: ["/opengraph-image"] },
-  };
+  return buildMetadata(entityDefaultMeta("payment_method", method), await getSeoForSlug("payment_method", slug));
 }
 
 export default async function PaymentDetailPage({ params }: PageProps) {

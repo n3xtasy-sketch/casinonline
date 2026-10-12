@@ -11,6 +11,8 @@ import { ProviderCard } from "@/components/providers/ProviderCard";
 import { ProviderDetailHeader } from "@/components/providers/ProviderDetailHeader";
 import { ProviderFacts } from "@/components/providers/ProviderFacts";
 import { getProviderBySlug, getRelatedProviders } from "@/lib/db/providers";
+import { buildMetadata, entityDefaultMeta } from "@/lib/seo";
+import { getSeoForSlug } from "@/lib/db/seo";
 import { getGamesForProvider } from "@/lib/db/games";
 import { getCasinosForProvider } from "@/lib/db/casinos";
 
@@ -25,16 +27,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const provider = await getProviderBySlug(slug);
   if (!provider) return {};
-  const title = `${provider.name} — Jocuri și cazinouri`;
-  const description = provider.intro;
-  const url = `/furnizori/${slug}`;
-  return {
-    title,
-    description,
-    alternates: { canonical: url },
-    openGraph: { type: "website", siteName: "CasinOnline.ro", title, description, url, images: ["/opengraph-image"] },
-    twitter: { card: "summary_large_image", title, description, images: ["/opengraph-image"] },
-  };
+  return buildMetadata(entityDefaultMeta("provider", provider), await getSeoForSlug("provider", slug));
 }
 
 export default async function ProviderDetailPage({ params }: PageProps) {
