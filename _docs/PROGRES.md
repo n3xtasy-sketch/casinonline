@@ -1,7 +1,34 @@
-# CasinOnline.ro — Stare proiect
+# CasinOnline.ro — Documentație v1.0
 
-> Platformă de afiliere cazinouri online (RO), Next.js + Supabase.
-> Actualizat: 2026-10-12. Acest document e strict documentație (nu reflectă cod funcțional modificat la scriere).
+> Platformă de afiliere cazinouri online (RO), Next.js 16 + Supabase.
+> Single source of truth. Actualizat: 2026-10-13.
+
+---
+
+## Status
+
+**Platforma este feature-complete (v1.0).**
+Toate modulele publice și întregul backoffice (admin) sunt implementate, testate și documentate.
+Dezvoltările viitoare sunt **evolutive** (feature-uri noi — vezi *Roadmap v2*), nu infrastructură de bază.
+
+Un dezvoltator nou ar trebui să înțeleagă arhitectura și filosofia din acest document în < 1 oră.
+
+---
+
+## Principii de arhitectură
+
+Regulile care guvernează tot proiectul. Orice cod nou le respectă.
+
+1. **RLS este întotdeauna sursa de adevăr** pentru vizibilitate/acces — nu filtre împrăștiate în query-uri.
+2. **Fără `service_role` în runtime** (app/server/edge). Aplicația folosește doar cheia anon + sesiunea de auth; `service_role` doar în scripturi locale de mentenanță.
+3. **Slug-urile sunt imuabile** — editabile doar la CREATE, read-only la EDIT; sunt chei stabile (redirect-uri, SEO, import/export).
+4. **Nu există DELETE fizic de conținut** — soft prin `status='archived'` (entități) / `is_active=false` (affiliate links). Media + activity sunt excepții operaționale.
+5. **`status` (content_status) controlează vizibilitatea publică** — publicul vede doar `published`; adminul vede tot.
+6. **Server Actions pentru toate mutațiile** (admin-only, gated `requireAdmin()` + RLS). Public = doar citiri.
+7. **`cacheTag()` + `updateTag()`** (Next 16) pentru cache/invalidare — nu `revalidatePath`/`revalidateTag` legacy.
+8. **Un helper comun înaintea logicii duplicate** (ex. `applyStatusChange`, `logActivity`, `buildMetadata`, validator import) — dar acțiuni publice separate per entitate când logica poate diverge.
+9. **FK prin slug** la import/export (nu UUID-uri brute) — fișiere lizibile și portabile.
+10. **Media exclusiv în Supabase Storage** (bucket public, write admin-only); entitățile stochează doar URL-ul.
 
 ---
 
@@ -9,186 +36,165 @@
 
 | Strat | Tehnologie |
 |---|---|
-| Framework | Next.js **16.4** (App Router, Turbopack) |
-| UI | React **19.3**, Tailwind CSS **v4** (`@theme` tokens în `globals.css`) |
-| Iconițe | lucide-react |
-| Limbaj | TypeScript 5 (strict) |
-| Date | Supabase (Postgres + RLS), `@supabase/ssr` 0.12.7, `@supabase/supabase-js` 2.117.3 |
-| Auth admin | Supabase Auth (cookie-based, cheie anon) |
-| Rendering | Partial Prerendering via `cacheComponents: true` + `partialPrefetching: true` |
-
-**Config cheie** (`next.config.ts`): `cacheComponents: true` (PPR). Consecință: config-urile de rută `dynamic`, `experimental_ppr`, `dynamicParams` sunt **respinse** la build — vezi decizia soft-404 (§13).
+| Framework | Next.js **16.4** (App Router, Turbopack, `cacheComponents` PPR) |
+| UI | React **19.3**, Tailwind CSS **v4** (`@theme` tokens), lucide-react |
+| Limbaj | TypeScript 5 strict |
+| Date | Supabase (Postgres + RLS + Storage), `@supabase/ssr` 0.12, `supabase-js` 2.117 |
+| Auth | Supabase Auth (cookie, cheie anon) — doar pentru admin |
+| Config | `next.config.ts`: `cacheComponents`, `partialPrefetching`, `experimental.serverActions.bodySizeLimit=6mb` |
 
 ---
 
 ## 2. Structură rute
 
-### Public — route group `(site)` (layout cu `AppShell` + JSON-LD org/website)
-- `/` — homepage (cazinouri recomandate, jocuri populare, bonusuri recente, furnizori, ghiduri + RightSidebar)
-- `/cazinouri-online` + `/cazinouri-online/[slug]`
-- `/jocuri-casino` + `/jocuri-casino/[slug]`
-- `/furnizori` + `/furnizori/[slug]`
-- `/metode-de-plata` + `/metode-de-plata/[slug]`
-- `/bonusuri-casino` + `/bonusuri-casino/[slug]`
-- `/ghiduri` + `/ghiduri/[slug]`
-- `/go/[slug]` — redirect afiliat (route handler, 302, robots-disallowed)
-- `sitemap.ts`, `robots.txt`, `opengraph-image`, `(site)/not-found.tsx`
+**Public — `(site)`** (layout `AppShell` + JSON-LD org/website): `/`, `/cazinouri-online[/slug]`, `/jocuri-casino[/slug]`, `/furnizori[/slug]`, `/metode-de-plata[/slug]`, `/bonusuri-casino[/slug]`, `/ghiduri[/slug]`, `/go/[slug]` (redirect afiliat 302), `sitemap.ts`, `robots.txt`, `opengraph-image`.
 
-### Admin — `/admin` (noindex) → route group `(panel)` (guard `is_admin`, `AdminShell`)
-- `/admin/login`
-- `/admin` (dashboard)
-- `/admin/cazinouri` (+ `/nou`, `/[slug]/edit`) — cu arhivare
-- `/admin/bonusuri` (+ `/nou`, `/[slug]/edit`)
-- `/admin/jocuri` (+ `/nou`, `/[slug]/edit`)
-- `/admin/furnizori` (+ `/nou`, `/[slug]/edit`)
-- `/admin/metode-de-plata` (+ `/nou`, `/[slug]/edit`)
-- `/admin/ghiduri` (+ `/nou`, `/[slug]/edit`)
-- `/admin/affiliate-links` (+ `/nou`, `/[id]/edit`)
+**Admin — `/admin`** (noindex) → `(panel)` (guard `is_admin`, `AdminShell`): `/admin/login`, `/admin` (dashboard), `cazinouri`, `bonusuri`, `jocuri`, `furnizori`, `metode-de-plata`, `ghiduri`, `affiliate-links`, `media`, `seo`, `redirects`, `activity`, `import` (fiecare cu `/nou` + `/[slug|id]/edit` unde e cazul) + `/admin/export/[entity]` (route handler download).
 
-`src/proxy.ts` (nu `middleware.ts` — redenumit în Next 16): reîmprospătează sesiunea Supabase și redirecționează `/admin/*` neautentificat la `/admin/login`. Guard-ul de rol `is_admin` se face server-side în `(panel)/layout.tsx`.
+**`src/proxy.ts`** (ex-middleware, Next 16) — 2 branch-uri: `/admin/*` → refresh sesiune + gate login; restul → lookup redirect (cache TTL). Matcher exclude `/_next`, `/api`, `/go`, asset-uri.
 
 ---
 
-## 3. Module publice finalizate
+## 3. Module publice (finalizate)
 
-Toate paginile publice citesc **server-side din Supabase** (cheie anon), fără mock:
-Cazinouri · Jocuri · Furnizori · Metode de plată · Bonusuri · Ghiduri · Homepage + RightSidebar · redirect afiliat `/go` · sitemap/robots/OG.
-
-Readere în `src/lib/db/`: `casinos.ts`, `games.ts`, `providers.ts`, `payments.ts`, `bonuses.ts`, `guides.ts`, `home.ts`, `slugs.ts` (+ helperele admin, vezi §9).
+Toate citesc server-side din Supabase (cheie anon, gated RLS = doar `published`): Cazinouri · Jocuri · Furnizori · Metode de plată · Bonusuri · Ghiduri · Homepage + RightSidebar · redirect `/go` · sitemap/robots/OG. Readere în `src/lib/db/`.
 
 ---
 
-## 4. Supabase — schema & relații
+## 4. Module Admin (complete)
 
-**Entități:** `casinos`, `games`, `providers`, `payment_methods`, `bonuses`, `guides`.
-**Vocabulare (lookup):** `tags`, `bonus_types`, `payment_types`, `game_categories`, `guide_categories`.
-**Afiliere:** `affiliate_links` (casino_id, placement, url, campaign, is_active).
-**Junction M2M:** `casino_tags`, `casino_payment_methods`, `casino_games`.
-**Auth/rol:** `profiles` (id → auth.users, `is_admin`).
-**Derivat:** view casino↔provider (prin `casino_games` → `games.provider_id`), `security_invoker`.
-
-Relații cheie:
-- `games.provider_id → providers`, `games.category_id → game_categories`
-- `bonuses.casino_id → casinos`, `bonuses.bonus_type_id → bonus_types`
-- `payment_methods.payment_type_id → payment_types`
-- `guides.category_id → guide_categories`
-- `affiliate_links.casino_id → casinos` (ON DELETE CASCADE)
-- `casinos.status` (`active`|`archived`) — soft-archive (vezi §8/§11)
-- `providers.game_count` — menținut automat de trigger din `count(*)` pe `games`
-
-JSON structurat în coloane: `faq` (`[{question,answer}]`), `sections` ghiduri (`[{id,heading,level,body[]}]`), `related_links`, `pros`/`cons`/`bonus_features` (text[]).
-
----
-
-## 5. Caching
-
-- Readerele publice: `"use cache"` + `cacheLife("hours")` + `cacheTag("<entitate>")` (`casinos`, `games`, `providers`, `payments`, `bonuses`, `guides`; sitemap tag-at după numele tabelului).
-- Invalidare la scriere (admin): `updateTag("<tag>")` (API Next 16, **nu** `revalidateTag`).
-  - Casino → `updateTag("casinos")`; Bonus → `casinos`+`bonuses`; Joc → `games`+`casinos`+`providers`; Furnizor → `providers`+`games`; Metodă → `payments`+`casinos`; Ghid → `guides`; Arhivare casino → `casinos`+`bonuses`.
-- **Affiliate Links: fără `updateTag`** — `/go` rezolvă live prin RPC, nicio pagină cache-uită nu depinde de ele.
-- `(panel)/layout.tsx` folosește `connection()` pentru a forța dynamic (evită eroarea `Date.now()` din clientul Supabase sub `cacheComponents`).
-
----
-
-## 6. SEO / Structured Data / OG
-
-- Metadata per pagină: title template, description, canonical `url`, `openGraph` (siteName „CasinOnline.ro", `type` website/article), Twitter.
-- JSON-LD: `Organization` + `WebSite` (în layout `(site)`), `FAQPage`, `Review` editorial pe cazinouri, `Article` (datePublished/dateModified) pe ghiduri, `ItemList` pe listinguri.
-- `sitemap.ts` dinamic (slug + lastModified din DB; respectă RLS → exclude cazinourile arhivate), `robots.txt` (dezalow `/go` și `/admin`).
-- `safeJsonLd`: escaping `</script>`, `<`, `>`, `&`, U+2028/U+2029.
-
----
-
-## 7. Security hardening
-
-- JSON-LD escaping complet (vezi §6).
-- `related_links` ghiduri: doar rute interne (`isSafeInternalPath` — un singur `/` la început, fără `//`/`\`/control chars); validat la scriere în admin **și** filtrat defensiv la citire.
-- `affiliate_links`: anon **nu** citește tabelul direct; rezolvarea URL-ului se face prin RPC `get_affiliate_url` (`SECURITY DEFINER`).
-- `service_role` **niciodată** în runtime public / client; doar cheia anon în aplicație.
-- `.env.local` necomis (vezi §14).
-
----
-
-## 8. RLS (Row Level Security)
-
-- Toate tabelele au RLS activ. `public SELECT` permisiv pe conținut, **cu excepția**:
-  - `affiliate_links`: anon fără acces direct (doar RPC).
-  - `casinos`: anon + authenticated văd doar `status='active'`; adminii (`is_admin()`) văd tot (vezi §11, 0012).
-- Scrieri admin-only prin funcția `SECURITY DEFINER` `is_admin()` (0006): policy-uri `insert/update` pe toate entitățile, `insert/delete` pe junction-uri. **Fără DELETE fizic** pe entități (niciun grant de delete; `affiliate_links` are `revoke delete` explicit — 0013).
-- `profiles`: self-read; `is_admin` nu e editabil din aplicație.
-
----
-
-## 9. Faze Admin — toate finalizate
-
-| Fază | Modul | Esență |
+| Modul | Status | Commit |
 |---|---|---|
-| 1 | Auth + Shell | Supabase Auth, `/admin/login`, guard `is_admin` server-side, `AdminShell`, dashboard; fără CRUD |
-| 2 | Cazinouri read-only | listing din DB |
-| 3 | Cazinouri write | create/edit, slug create-only, junction sync (tags/payments/games), affiliate `review_cta` |
-| 4 | Bonusuri | create/edit, `claim_url` derivat `/go/<casino-slug>` |
-| 5 | Jocuri | create/edit, multi-select cazinouri, trigger `game_count` |
-| 6 | Furnizori | create/edit, `game_count` read-only (owned de trigger) |
-| 7 | Metode de plată | create/edit, multi-select cazinouri |
-| 8 | Ghiduri | create/edit, editor `sections` „markdown-ish" (`##`/`###`, ids auto), `related_links` interne, published/updated |
-| — | Arhivare cazinouri | `status active/archived`, soft-delete, RLS, taburi Active/Arhivate |
-| — | Affiliate Links | listing+filtre, add/edit, toggle `is_active`, placement controlat, https-only, unicitate activ |
+| Auth + Shell | ✅ | `a3fd47a` |
+| Dashboard + Health | ✅ | `ed40b77` |
+| Casinos CRUD | ✅ | `977ceb5` |
+| Bonuses CRUD | ✅ | `f58c0e4` |
+| Games CRUD | ✅ | `8c0eaea` |
+| Providers CRUD | ✅ | `5183cfc` |
+| Payment Methods CRUD | ✅ | `715ab92` |
+| Guides CRUD | ✅ | `b087690` |
+| Casino Archive | ✅ | `5b5c673` |
+| Affiliate Links | ✅ | `92b5bba` |
+| Media Library | ✅ | `e7eb4d0` |
+| SEO Manager | ✅ | `b6b4bdd` |
+| Bulk Actions | ✅ | `1fe1cbe` |
+| Redirect Manager | ✅ | `37bba58` |
+| Activity Log | ✅ | `0ac75b6` |
+| Draft / Published | ✅ | `dd0aa17` |
+| Import / Export | ✅ | `fe7bf68` |
 
-**Reguli transversale:** slug editabil doar la CREATE (read-only la EDIT); fără DELETE fizic (dezactivare/arhivare prin status/`is_active`); `requireAdmin()` server-side lângă RLS; `updateTag` la nevoie; prevenire duplicate slug.
-
-Helperele admin: `src/lib/db/admin-{casinos,bonuses,games,providers,payments,guides,affiliates}.ts` (sesiune admin — văd și rândurile arhivate/inactive); `src/lib/guide-format.ts`, `src/lib/affiliate-placements.ts` (helpere pure, reutilizate).
+**Reguli transversale admin:** slug create-only · fără DELETE fizic · `requireAdmin()` + RLS · `updateTag` la mutație · activity log pe toate mutațiile · conținut nou = `draft`.
 
 ---
 
-## 10. Migrări 0001–0013
+## 5. Supabase — schema & relații
+
+**Entități de conținut** (toate au `status content_status`): `casinos`, `games`, `providers`, `payment_methods`, `bonuses`, `guides`.
+**Lookup-uri** (public, fără status): `tags`, `bonus_types`, `payment_types`, `game_categories`, `guide_categories`.
+**Afiliere:** `affiliate_links` (casino_id, placement, url, campaign, is_active) — CHECK placement + https + unique parțial activ (0013).
+**Junction M2M:** `casino_tags`, `casino_payment_methods`, `casino_games`.
+**Infrastructură:** `profiles` (is_admin), `seo_metadata` (polimorf entity_type+entity_id), `redirects`, `activity_log` (append-only).
+**ENUM:** `content_status = draft | published | archived`.
+**Storage:** bucket public `media` (foldere casinos/games/providers/guides/payments/general).
+
+Relații cheie: `games.provider_id/category_id`, `bonuses.casino_id/bonus_type_id`, `payment_methods.payment_type_id`, `guides.category_id`, `affiliate_links.casino_id` (cascade). `providers.game_count` menținut de trigger (0008). JSON în coloane: `faq`, `sections` (ghiduri), `related_links`, `pros/cons/bonus_features` (text[]).
+
+---
+
+## 6. Caching
+
+- Readere publice: `"use cache"` + `cacheLife("hours")` + `cacheTag("<entitate>")` (`casinos/games/providers/payments/bonuses/guides/seo`; sitemap tag-at după tabel).
+- Mutații: `updateTag("<tag>")` (Next 16). Mapări: casino→casinos+bonuses; bonus→bonuses+casinos; game→games+casinos+providers; provider→providers+games; payment→payments+casinos; guide→guides; SEO→seo+tag entitate.
+- **Fără updateTag**: Affiliate Links + Redirects (`/go` și proxy rezolvă live/TTL, nimic cache-uit nu depinde).
+- Proxy redirect: cache module-scope TTL 60s (best-effort per instanță/isolate — nu global garantat).
+
+---
+
+## 7. SEO / Structured Data / OG
+
+- **SEO Manager centralizat** (`seo_metadata`): override opțional meta_title/description/canonical(intern)/robots/OG per entitate, cu **fallback** la metadata curentă. `buildMetadata(defaults, seo)` = sursă unică; output identic până la prima valoare custom (robots omis când index+follow). `published_at` (ghiduri) stampilat doar la prima publicare.
+- JSON-LD: Organization + WebSite, FAQPage, Review (cazinouri), Article (ghiduri), ItemList. `safeJsonLd` escaping complet.
+- `sitemap.ts` dinamic (RLS-aware → doar published), `robots.txt` (dezalow `/go`, `/admin`).
+
+---
+
+## 8. Security hardening & RLS
+
+- Public SELECT doar `status='published'` pe cele 6 entități; lookup-urile `using(true)`; junction-urile public read.
+- `affiliate_links`: anon fără acces direct → RPC `get_affiliate_url` (SECURITY DEFINER, filtrează `is_active` + `status='published'`, preferă review_cta).
+- Scrieri **admin-only** (`is_admin()` SECURITY DEFINER) pe toate entitățile/junction/seo/redirects. `activity_log` append-only (grant doar select+insert).
+- `seo_metadata`/`redirects`: anon read (necesar tehnic), admin write. `redirects`: anon doar active.
+- Media Storage: bucket public read; write/list admin-only pe `storage.objects`.
+- JSON-LD escaping; related_links ghiduri doar interne; URL afiliat/redirect validat; fără `service_role` în runtime; `.env.local` necomis.
+
+---
+
+## 9. Migrări 0001–0018
 
 | # | Fișier | Descriere |
 |---|---|---|
-| 0001 | `initial_schema` | Schema completă: entități, lookup-uri, junction, `affiliate_links`, `profiles`, RLS inițial (`casinos read` using true), indexuri, trigger `updated_at`, view casino↔provider |
-| 0002 | `order_indexes` | Indexuri pentru coloanele de ORDER BY (rating, editor_score, game_count etc.) |
-| 0003 | `affiliate_links_rpc` | `get_affiliate_url(slug)` `SECURITY DEFINER` (preferă `review_cta`, doar `is_active`); drop policy read anon + revoke select anon |
-| 0004 | `affiliate_links_revoke_authenticated` | Revoke select direct pe `affiliate_links` pentru `authenticated` (acces doar prin RPC) |
-| 0005 | `profiles_admin` | Tabel `profiles` + `is_admin`, RLS self-read, trigger `handle_new_user`, RPC count affiliate |
-| 0006 | `casino_write_rls` | Helper `is_admin()`; grant/policy insert+update pe `casinos` (fără delete), insert/delete pe junction, all pe `affiliate_links` — toate gated `is_admin()` |
-| 0007 | `bonus_write_rls` | Grant/policy admin insert+update pe `bonuses` (idempotent) |
-| 0008 | `game_write_rls` | Grant/policy admin pe `games` + trigger `SECURITY DEFINER` care sincronizează `providers.game_count` din `count(*)` (recalc și provider vechi, și nou la edit) |
-| 0009 | `provider_write_rls` | Grant/policy admin insert+update pe `providers` |
-| 0010 | `payment_write_rls` | Grant/policy admin insert+update pe `payment_methods` (junction acoperit de 0006) |
-| 0011 | `guide_write_rls` | Grant/policy admin insert+update pe `guides` |
-| 0012 | `casino_archive` | Coloană `casinos.status` (`active`/`archived`, default active, CHECK) + index; înlocuiește `casinos read` cu policy „anon=active / admin=tot"; `get_affiliate_url` capătă `and c.status='active'` |
-| 0013 | `affiliate_links_constraints` | CHECK placement ∈ {review_cta,bonus_claim,listing_card}; CHECK `url ~ '^https://'`; unique parțial `(casino_id,placement,coalesce(campaign,'')) WHERE is_active`; `revoke delete` |
+| 0001 | initial_schema | Entități, lookup-uri, junction, affiliate_links, RLS inițial, indexuri, trigger updated_at, view casino↔provider |
+| 0002 | order_indexes | Indexuri pentru ORDER BY |
+| 0003 | affiliate_links_rpc | `get_affiliate_url` SECURITY DEFINER; revoke anon select |
+| 0004 | affiliate_links_revoke_authenticated | Revoke select direct (acces doar prin RPC) |
+| 0005 | profiles_admin | `profiles` + `is_admin`, trigger handle_new_user |
+| 0006 | casino_write_rls | `is_admin()`; grant/policy admin pe casinos + junction + affiliate |
+| 0007 | bonus_write_rls | Admin insert/update bonuses |
+| 0008 | game_write_rls | Admin pe games + trigger `game_count` |
+| 0009 | provider_write_rls | Admin pe providers |
+| 0010 | payment_write_rls | Admin pe payment_methods |
+| 0011 | guide_write_rls | Admin pe guides |
+| 0012 | casino_archive | `casinos.status` (active/archived) + RLS public=active / admin=tot; RPC status |
+| 0013 | affiliate_links_constraints | CHECK placement + https + unique parțial activ + revoke delete |
+| 0014 | media_storage | Bucket public `media` + RLS admin-only write/list |
+| 0015 | seo_metadata | Tabel SEO centralizat (public read, admin write) |
+| 0016 | redirects | Tabel redirects (CHECK intern, anon=active, admin write, no delete) |
+| 0017 | activity_log | Audit append-only (admin read, insert-as-self, fără update/delete) |
+| 0018 | publishing_model | **ENUM `content_status`**; casinos active→published; status+RLS pe toate 6 (public=published, admin=tot); RPC active→published |
 
-> Migrările se aplică **manual în Supabase SQL Editor** (DDL nu rulează prin clientul anon/REST). Toate 0007–0013 sunt idempotente (`drop … if exists` / `if not exists`).
+> **Import / Export nu necesită migrare** — operează pe schema + RLS + `activity_log` existente.
 
----
-
-## 11. Decizii tehnice importante
-
-- **Soft-404 + noindex** pentru `[slug]` invalide: sub `cacheComponents` nu se poate forța HTTP 404 „hard" universal fără a sacrifica caching-ul (config-urile `dynamic`/`dynamicParams`/`experimental_ppr` sunt respinse la build). Decizie: păstrăm soft-404 (shell 200) + `robots: noindex` pe `(site)/not-found.tsx`. Observație: unele rute de detail ajung totuși la 404 real când readerul întoarce `null`. Subiect închis.
-- **Arhivare prin RLS, nu filtre per-query:** o singură politică pe `casinos` (anon=active) exclude automat cazinourile arhivate din toate căile anon — listinguri, detail, related, embed-uri game/provider/payment, sidebar, sitemap. RPC-ul (SECURITY DEFINER, ocolește RLS) primește filtru explicit `status='active'`. Bonusurile cazinoului arhivat: embed-ul `casino` devine `null` → ascunse public (listing + 404 pe detail), dar rămân în DB și vizibile/editabile în admin.
-- **`game_count` menținut de trigger**, nu manual (evită valori stale; recalc automat la orice modificare de joc).
-- **Affiliate: unicitate pe link activ** `(casino, placement, campaign)`; campania `null` = slotul „default" (folosit de `/go`); mai multe campanii active per placement sunt permise. `get_affiliate_url` preferă `review_cta`, dar cade pe orice link activ; fallback on-site doar când nu există niciun link activ.
-- **`updateTag` vs `revalidateTag`:** Next 16 — se folosește `updateTag` (single-arg, mutation-time).
-- **`proxy.ts`** în loc de `middleware.ts` (redenumit în Next 16).
+Migrările se aplică manual în Supabase SQL Editor (Claude nu rulează DDL). 0007+ sunt idempotente.
 
 ---
 
-## 12. Commit-uri importante
+## 10. Decizii tehnice (Architecture Decisions)
 
-**Public → Supabase:** `68b23fd` schema+seed · `f99392e`/`9a996e2`/`b68785a`/`dfc02f8`/`ede78f9`/`6041216` conectare module · `5333a8a` homepage+sidebar · `1a4411d` caching · `325fbc4` `/go` redirect.
-**SEO/a11y/security:** `336044b` fix 404 links · `d950c08` structured data · `f6a6c2c` OpenGraph · `84be905` accessibility · `61e3dea` micro-optimizări Supabase · `d9ea174` + `1fac7ae` security/a11y hardening.
-**Admin:** `a3fd47a` Faza 1 · `2a98c3c` decizie soft-404 · `f796f77` Faza 2 · `977ceb5` Faza 3 · `f58c0e4` Faza 4 · `8c0eaea` Faza 5 · `5183cfc` Faza 6 · `715ab92` Faza 7 · `b087690` Faza 8 · `5b5c673` arhivare cazinouri · `92b5bba` Affiliate Links.
+- **`content_status` ENUM comun** (nu text+CHECK per tabelă, nu booleeni/timestamps) — reutilizabil, zero typo-uri, union TS identic.
+- **RLS = single source of truth** — o politică per tabelă filtrează automat tot publicul (listinguri, detail, embed-uri, sitemap, sidebar), fără query-uri modificate.
+- **slug create-only** (imuabil) — chei stabile pentru redirect/SEO/import.
+- **Soft delete prin `archived`** (+ `is_active` la affiliate) — fără pierdere de date, reversibil; `archived` distinct de `draft`.
+- **SEO centralizat (`seo_metadata`)** polimorf (entity_type+entity_id) — o singură logică/RLS/UI pentru 6 entități; override→fallback.
+- **Media prin Storage + Server Actions** — upload client-resize→WebP, fără client Supabase în browser, fără NEXT_PUBLIC.
+- **Redirect Manager în `proxy.ts`** — dinamic (nu `next.config`), cache TTL 60s, graf plat anti-loop/chain.
+- **Activity Log append-only, best-effort** — `logActivity` await-uit dar nu aruncă (eșecul nu anulează mutația); metadata `{from,to}`.
+- **Import create-only + forced draft** — nu suprascrie, nimic public accidental; FK/M2M prin slug.
+- **Dry-run + verificare SHA-256** — importul real respinge dacă conținutul diferă de cel validat.
+- **Bulk actions pe listă explicită de ID-uri** (fără paginare în v1 → „select all" = tot setul filtrat); parțial per-rând cu raport.
+- **Affiliate `/go` prin RPC SECURITY DEFINER** — anon nu citește tabelul; preferă review_cta; respectă status published.
+- **Soft-404 + noindex** pe `[slug]` invalide (cacheComponents blochează hard-404 universal; unele detail ajung totuși la 404 real când readerul e null).
+- **`proxy.ts`** (nu `middleware.ts`), **`updateTag`** (nu `revalidateTag`).
 
 ---
 
-## 13. Lăsate intenționat nefăcute
+## 11. Commit-uri importante
 
-- **Login user public** (cont de vizitator) — nu există; auth e doar pentru admin.
-- **Favorite / salvate** de utilizator.
-- **Reviews / rating de la utilizatori** (rating-urile sunt editoriale).
-- **DELETE fizic** oriunde — înlocuit cu arhivare (`casinos.status`) / dezactivare (`affiliate_links.is_active`).
-- **Automatizare rebuild/redeploy** la slug nou (nu e necesară cu varianta soft-404 curentă — slug-urile noi sunt accesibile on-demand imediat).
-- **Modul Furnizori/Metode „delete"**, management avansat de media/upload imagini (momentan URL-uri).
+**Public→Supabase**: `68b23fd` schema+seed · conectare module (`f99392e`…`6041216`) · `1a4411d` caching · `325fbc4` `/go`.
+**SEO/a11y/security**: `d950c08` structured data · `f6a6c2c` OpenGraph · `84be905` a11y · `d9ea174`+`1fac7ae` hardening.
+**Admin**: vezi tabelul din §4 (de la `a3fd47a` la `fe7bf68`).
+**Docs**: `5c24d6b` (v0) → acest fișier (v1.0).
+
+---
+
+## 12. Lăsate intenționat nefăcute (în afara scope-ului v1)
+
+Login user public · favorite · review-uri/comentarii de la utilizatori · DELETE fizic · automatizare rebuild la slug nou · import JSON · import affiliate links · update-on-import.
+
+---
+
+## 13. Roadmap v2 (evolutiv, nu critic)
+
+AI Content Assistant · AI SEO Suggestions · AI Internal Linking · AI Image Generator · AI FAQ Generator · Analytics Dashboard · Revenue Dashboard · Scheduled Publishing · Version History · Workflow / Approvals · Notifications · API public · Webhooks · Import JSON / affiliate · paginare + „select all matching" la bulk.
 
 ---
 
@@ -196,30 +202,25 @@ Helperele admin: `src/lib/db/admin-{casinos,bonuses,games,providers,payments,gui
 
 ```bash
 npm run dev      # Next dev (Turbopack) → http://localhost:3000
-npm run build    # build de producție
-npm run start    # server de producție (după build)
+npm run build    # build producție
+npm run start    # server producție
 npm run lint     # ESLint
 npx tsc --noEmit # typecheck
 ```
 
-**Ritm de lucru:** pentru fiecare modul — (1) propunere + SQL migrare, aprobare; (2) migrarea se pune pe clipboard (`pbcopy`) și o aplică utilizatorul manual în Supabase SQL Editor (Claude nu rulează DDL); (3) implementare; (4) `build`+`typecheck`+`lint`+runtime; (5) test end-to-end; (6) commit după validare. Verificarea datelor se face prin REST cu `service_role` în scripturi one-off (doar local, niciodată în runtime).
+**Ritm per modul**: propunere + SQL → aprobare → migrarea pe clipboard (`pbcopy`), aplicată manual de user în SQL Editor → implementare → `build`+`typecheck`+`lint`+runtime → test end-to-end → commit după validare. Verificarea datelor: REST cu `service_role` în scripturi one-off locale (niciodată în runtime).
 
 ---
 
 ## 15. `.env.local` & secrete
 
-- `.env.local` **NU se comite** (`.gitignore`: `.env*`).
+- `.env.local` **necomis** (`.gitignore`: `.env*`).
 - Chei: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.
-- `SUPABASE_SERVICE_ROLE_KEY` se folosește **exclusiv** în scripturi de verificare/mentenanță locale — **niciodată** importat în cod de aplicație (server components, actions, route handlers). Aplicația folosește doar cheia anon + sesiunea de auth.
+- `SUPABASE_SERVICE_ROLE_KEY`: **exclusiv** scripturi locale de verificare/mentenanță — niciodată importat în cod de app (server components / actions / route handlers / proxy). Aplicația = doar cheia anon + sesiunea admin.
 
 ---
 
-## 16. Status Lighthouse (audit final)
+## 16. Status Lighthouse (audit v1)
 
-Țintele au fost atinse la auditul final (pasul 8 remediere):
-- **SEO:** 95+
-- **Performance:** 95+
-- **Best Practices:** 100
-- **Accessibility:** 95+
-
-(a11y: contrast AA pe `ink-muted`, skip-link, `aria-pressed` pe FilterChips, `prefers-reduced-motion`, MobileNav ca dialog cu focus-trap, landmark-uri cu `aria-label`, ordine corectă a heading-urilor.)
+SEO **95+** · Performance **95+** · Best Practices **100** · Accessibility **95+**.
+(a11y: contrast AA, skip-link, aria-pressed, prefers-reduced-motion, MobileNav dialog+focus-trap, landmark-uri, ordine heading-uri.)
