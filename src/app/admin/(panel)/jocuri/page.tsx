@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
+import { ExportButtons } from "@/components/admin/ExportButtons";
 import { listAdminGames } from "@/lib/db/admin-games";
 import { StatusTabs, parseStatusFilter } from "@/components/admin/StatusTabs";
 import { StatusBadge, ContentStatusControl } from "@/components/admin/ContentStatusControl";
@@ -21,10 +22,13 @@ export default async function AdminGamesPage({ searchParams }: PageProps) {
           <h1 className="text-2xl font-bold text-ink">Jocuri</h1>
           <p className="mt-1 text-sm text-ink-secondary">{games.length} {games.length === 1 ? "joc" : "jocuri"}</p>
         </div>
-        <Link href="/admin/jocuri/nou" className="inline-flex h-10 items-center gap-2 rounded-sm bg-accent px-4 text-sm font-semibold text-[#06110a] transition-colors hover:bg-accent-hover">
+        <div className="flex items-center gap-2">
+          <ExportButtons entity="games" status={filter} />
+          <Link href="/admin/jocuri/nou" className="inline-flex h-10 items-center gap-2 rounded-sm bg-accent px-4 text-sm font-semibold text-[#06110a] transition-colors hover:bg-accent-hover">
           <Plus size={16} />
           Adaugă joc
         </Link>
+        </div>
       </div>
 
       <StatusTabs basePath="/admin/jocuri" current={filter} />

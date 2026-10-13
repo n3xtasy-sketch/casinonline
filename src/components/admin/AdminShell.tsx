@@ -15,6 +15,7 @@ import {
   Search,
   Milestone,
   History,
+  Upload,
   LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -34,6 +35,7 @@ const items = [
   { label: "SEO", href: "/admin/seo", icon: Search, ready: true },
   { label: "Redirects", href: "/admin/redirects", icon: Milestone, ready: true },
   { label: "Activity", href: "/admin/activity", icon: History, ready: true },
+  { label: "Import", href: "/admin/import", icon: Upload, ready: true },
 ];
 
 export function AdminShell({ children }: { children: React.ReactNode }) {

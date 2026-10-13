@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
+import { ExportButtons } from "@/components/admin/ExportButtons";
 import { listAdminGuides } from "@/lib/db/admin-guides";
 import { StatusTabs, parseStatusFilter } from "@/components/admin/StatusTabs";
 import { StatusBadge, ContentStatusControl } from "@/components/admin/ContentStatusControl";
@@ -21,10 +22,13 @@ export default async function AdminGuidesPage({ searchParams }: PageProps) {
           <h1 className="text-2xl font-bold text-ink">Ghiduri</h1>
           <p className="mt-1 text-sm text-ink-secondary">{guides.length} {guides.length === 1 ? "ghid" : "ghiduri"}</p>
         </div>
-        <Link href="/admin/ghiduri/nou" className="inline-flex h-10 items-center gap-2 rounded-sm bg-accent px-4 text-sm font-semibold text-[#06110a] transition-colors hover:bg-accent-hover">
+        <div className="flex items-center gap-2">
+          <ExportButtons entity="guides" status={filter} />
+          <Link href="/admin/ghiduri/nou" className="inline-flex h-10 items-center gap-2 rounded-sm bg-accent px-4 text-sm font-semibold text-[#06110a] transition-colors hover:bg-accent-hover">
           <Plus size={16} />
           Adaugă ghid
         </Link>
+        </div>
       </div>
 
       <StatusTabs basePath="/admin/ghiduri" current={filter} />

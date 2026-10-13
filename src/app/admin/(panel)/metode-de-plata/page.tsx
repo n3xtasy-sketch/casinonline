@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
+import { ExportButtons } from "@/components/admin/ExportButtons";
 import { listAdminPayments } from "@/lib/db/admin-payments";
 import { StatusTabs, parseStatusFilter } from "@/components/admin/StatusTabs";
 import { StatusBadge, ContentStatusControl } from "@/components/admin/ContentStatusControl";
@@ -21,10 +22,13 @@ export default async function AdminPaymentsPage({ searchParams }: PageProps) {
           <h1 className="text-2xl font-bold text-ink">Metode de plată</h1>
           <p className="mt-1 text-sm text-ink-secondary">{methods.length} {methods.length === 1 ? "metodă" : "metode"}</p>
         </div>
-        <Link href="/admin/metode-de-plata/nou" className="inline-flex h-10 items-center gap-2 rounded-sm bg-accent px-4 text-sm font-semibold text-[#06110a] transition-colors hover:bg-accent-hover">
+        <div className="flex items-center gap-2">
+          <ExportButtons entity="payment_methods" status={filter} />
+          <Link href="/admin/metode-de-plata/nou" className="inline-flex h-10 items-center gap-2 rounded-sm bg-accent px-4 text-sm font-semibold text-[#06110a] transition-colors hover:bg-accent-hover">
           <Plus size={16} />
           Adaugă metodă
         </Link>
+        </div>
       </div>
 
       <StatusTabs basePath="/admin/metode-de-plata" current={filter} />

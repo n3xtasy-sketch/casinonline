@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
+import { ExportButtons } from "@/components/admin/ExportButtons";
 import {
   listAffiliateLinks,
   listAllCasinos,
@@ -33,13 +34,16 @@ export default async function AdminAffiliateLinksPage({ searchParams }: PageProp
             {links.length} {links.length === 1 ? "link" : "linkuri"}
           </p>
         </div>
-        <Link
+        <div className="flex items-center gap-2">
+          <ExportButtons entity="affiliate_links" />
+          <Link
           href="/admin/affiliate-links/nou"
           className="inline-flex h-10 items-center gap-2 rounded-sm bg-accent px-4 text-sm font-semibold text-[#06110a] transition-colors hover:bg-accent-hover"
         >
           <Plus size={16} />
           Adaugă link
         </Link>
+        </div>
       </div>
 
       <form method="get" className="flex flex-wrap items-end gap-3">

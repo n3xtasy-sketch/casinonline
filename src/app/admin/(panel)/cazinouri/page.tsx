@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
+import { ExportButtons } from "@/components/admin/ExportButtons";
 import { listAdminCasinos, listTags } from "@/lib/db/admin-casinos";
 import { BulkCasinoTable } from "@/components/admin/BulkCasinoTable";
 import { cn } from "@/lib/cn";
@@ -32,13 +33,16 @@ export default async function AdminCasinosPage({ searchParams }: PageProps) {
             {casinos.length} {casinos.length === 1 ? "cazino" : "cazinouri"}
           </p>
         </div>
-        <Link
+        <div className="flex items-center gap-2">
+          <ExportButtons entity="casinos" status={filter} />
+          <Link
           href="/admin/cazinouri/nou"
           className="inline-flex h-10 items-center gap-2 rounded-sm bg-accent px-4 text-sm font-semibold text-[#06110a] transition-colors hover:bg-accent-hover"
         >
           <Plus size={16} />
           Adaugă cazino
         </Link>
+        </div>
       </div>
 
       <div className="flex gap-1">
