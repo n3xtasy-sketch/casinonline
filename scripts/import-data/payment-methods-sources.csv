@@ -1,0 +1,73 @@
+slug,field,value,source,verified_on,note
+visa,owner,Visa Inc.,https://en.wikipedia.org/wiki/Visa_Inc.,2026-10-19,"rețea de carduri (nu emite carduri, nu stabilește comisioane)"
+visa,payment_type,card,https://www.britannica.com/money/Visa-Inc,2026-10-19,brand de carduri debit/credit
+visa,deposits,Instant,https://cazino.ro/plati/card,2026-10-19,depuneri instant la cazinourile ONJN
+visa,withdrawals,"Visa Direct, operator-dependent",https://www.bonus.com/payments/visa/,2026-10-19,"push-to-card pe debit; creditul de regulă nu primește plăți"
+visa,ro_presence,yes,https://cazino.ro/plati/card,2026-10-19,"operatori ONJN (Betano, MrBit) acceptă Visa"
+visa,fees_limits,operator-dependent,https://cazino.ro/plati/card,2026-10-19,"stabilite de operator + banca emitentă; necompletat intenționat"
+visa,intro,original,manual,2026-10-19,redactat manual factual
+mastercard,owner,Mastercard Inc.,https://www.sec.gov/Archives/edgar/data/1141391/000114139125000011/ma-20241231.htm,2026-10-19,"rețea de plăți (NYSE: MA), nu emite carduri"
+mastercard,payment_type,card,https://www.sec.gov/Archives/edgar/data/1141391/000114139125000011/ma-20241231.htm,2026-10-19,brand de carduri debit/credit
+mastercard,deposits,Instant,https://www.bonus.com/payments/mastercard/,2026-10-19,depuneri de regulă instant
+mastercard,withdrawals,"Mastercard Send, operator-dependent",https://www.bonus.com/payments/mastercard/,2026-10-19,"retrageri la unii operatori; nu universal"
+mastercard,ro_presence,yes,https://legalbet.ro/cazinouri/sets/mastercard/,2026-10-19,"carduri Visa/Mastercard = cea mai comună metodă la ONJN"
+mastercard,fees_limits,operator-dependent,https://www.bonus.com/payments/mastercard/,2026-10-19,"stabilite de operator/PSP și bancă; necompletat intenționat"
+mastercard,intro,original,manual,2026-10-19,redactat manual factual
+okto,owner,OKTO (OKTO Payments),https://www.oktopayments.com/about-us/,2026-10-19,"fintech fondat 2019 la Atena; e-money emis de Sureswipe E.M.I. (Cipru); licență ONJN Class 2 (sursă secundară, de verificat în registrul ONJN)"
+okto,payment_type,mobile,https://cazino.ro/plati/oktocash,2026-10-19,"soluție app/mobile; OKTO.Cash = voucher cash (doar depuneri), OKTO.Wallet = e-wallet; jucător identificabil → conform ONJN"
+okto,products,OKTO.Cash + OKTO.Wallet,https://oktocash.com/,2026-10-19,"OKTO.Cash: depunere numerar la terminal pe bază de cod; OKTO.Wallet: aplicație portofel"
+okto,deposits,Instant,https://cazino.ro/plati/oktocash,2026-10-19,"credit în timp real la terminale (SelfPay/PayPoint)"
+okto,withdrawals,"OKTO.Cash: nu; OKTO.Wallet: posibil, per operator",https://cazino.ro/plati/oktocash,2026-10-19,"OKTO.Cash deposit-only; retrageri wallet neconfirmate per operator RO"
+okto,ro_presence,yes,https://cazino.ro/plati/oktocash,2026-10-19,"listat la ~28 operatori ONJN (NetBet, 888, Winner, Winmasters, AdmiralBet, Casa Pariurilor)"
+okto,ro_presence_operator,NetBet.ro,https://www.netbet.ro/blog/2022/04/07/nou-depune-cash-pe-netbet-de-la-terminalele-selfpay/,2026-10-19,"NetBet.ro (ONJN) promovează depuneri cash prin terminale SelfPay/OKTO"
+okto,fees_limits,operator-dependent,https://cazino.ro/plati/oktocash,2026-10-19,"min/max per operator; taxa CDA 2% RO se aplică tuturor metodelor, nu e specifică OKTO; necompletat intenționat"
+okto,intro,original,manual,2026-10-19,redactat manual factual
+skrill,owner,Paysafe (Paysafe Payment Solutions Ltd),https://en.wikipedia.org/wiki/Skrill,2026-10-19,"parte din grupul Paysafe (achiziție 2015)"
+skrill,payment_type,ewallet,https://www.skrill.com/en/,2026-10-19,portofel electronic
+skrill,deposits,Instant,https://www.skrill.com/en/how-to-pay/,2026-10-19,plăți către cazinouri de regulă instant
+skrill,withdrawals,"da, operator-dependent",https://www.skrill.com/en/pay-online/bet-online/,2026-10-19,"retrageri acceptate, depind de politica operatorului + KYC"
+skrill,ro_presence,yes,https://cazino.ro/plati/skrill,2026-10-19,"acceptat la operatori ONJN (listat ~24); set exact neconfirmat oficial"
+skrill,fees_limits,operator-dependent,https://cazino.ro/plati/skrill,2026-10-19,necompletat intenționat
+skrill,intro,original,manual,2026-10-19,"redactat manual factual; adesea exclus de la bonusul de bun venit"
+neteller,owner,Paysafe (Paysafe Payment Solutions Ltd),https://en.wikipedia.org/wiki/Neteller,2026-10-19,parte din grupul Paysafe
+neteller,payment_type,ewallet,https://www.neteller.com/en/,2026-10-19,portofel electronic
+neteller,deposits,Instant,https://cazino.ro/plati/neteller,2026-10-19,"procesare instant, bani imediat în cont"
+neteller,withdrawals,"da, operator-dependent",https://cazino.ro/plati/neteller,2026-10-19,"retrageri acceptate; durata variază per operator"
+neteller,ro_presence,yes,https://cazino.ro/plati/neteller,2026-10-19,"cazinouri ONJN acceptă depuneri/retrageri Neteller"
+neteller,fees_limits,operator-dependent,https://cazino.ro/plati/neteller,2026-10-19,necompletat intenționat
+neteller,intro,original,manual,2026-10-19,"redactat manual factual; adesea exclus de la bonusuri"
+paysafecard,owner,Paysafe Group,https://en.wikipedia.org/wiki/PaysafeCard,2026-10-19,"voucher emis de Paysafe Prepaid Services Ltd"
+paysafecard,payment_type,prepaid,https://en.wikipedia.org/wiki/PaysafeCard,2026-10-19,"voucher preplătit cu cod de 16 cifre"
+paysafecard,deposits,Instant,https://www.playusa.com/payments/paysafecard/,2026-10-19,"depuneri instant pe baza PIN-ului"
+paysafecard,withdrawals,"nu (doar depuneri)",https://www.gambling.com/uk/online-casinos/paysafecard,2026-10-19,"deposit-only; excepție parțială prin cont myPaysafe"
+paysafecard,ro_presence,yes,https://cazinouri-legale.ro/paysafecard-casino/,2026-10-19,"operatori ONJN acceptă depuneri; retail RO confirmat pe paysafecard.com"
+paysafecard,fees_limits,operator-dependent,https://cazinouri-legale.ro/paysafecard-casino/,2026-10-19,necompletat intenționat
+paysafecard,intro,original,manual,2026-10-19,"redactat manual factual; anonim, fără cont bancar"
+apple-pay,owner,Apple Inc.,https://support.apple.com/en-us/102775,2026-10-19,portofel digital Apple
+apple-pay,payment_type,mobile,https://support.apple.com/en-us/102775,2026-10-19,"portofel mobil (iPhone/iPad/Mac), autentificare biometrică"
+apple-pay,deposits,Instant,https://www.gambling.com/us/online-casinos/payments/apple-pay,2026-10-19,"depuneri instant după Face ID/Touch ID"
+apple-pay,withdrawals,"de regulă nu (doar depuneri)",https://tech-insider.org/apple-pay-casino-withdrawal/,2026-10-19,"retragerea merge pe cardul atașat, nu prin Apple Pay"
+apple-pay,ro_presence,yes,https://casinohex.ro/online-cazino/apple-pay/,2026-10-19,"disponibil în RO (BT, ING, Revolut etc.); listat la unii operatori ONJN (afiliat)"
+apple-pay,fees_limits,operator-dependent,https://casinohex.ro/online-cazino/apple-pay/,2026-10-19,necompletat intenționat
+apple-pay,intro,original,manual,2026-10-19,"redactat manual factual; necesită dispozitiv Apple"
+google-pay,owner,Google LLC,https://wizardofodds.com/banking/google-pay/,2026-10-19,portofel digital Google
+google-pay,payment_type,mobile,https://cazino.ro/plati/google-pay,2026-10-19,"portofel mobil Android cu card atașat"
+google-pay,deposits,Instant,https://wizardofodds.com/banking/google-pay/,2026-10-19,depuneri procesate instant
+google-pay,withdrawals,"de regulă nu (doar depuneri)",https://wizardofodds.com/banking/google-pay/,2026-10-19,"deposit-only; o sursă RO susține excepții — neconfirmat"
+google-pay,ro_presence,yes,https://cazino.ro/plati/google-pay,2026-10-19,"operatori ONJN (ex. NetBet) acceptă Google Pay; Android-only"
+google-pay,fees_limits,operator-dependent,https://cazino.ro/plati/google-pay,2026-10-19,"taxele statutare RO (CDA 2%) se aplică separat, nu sunt comision Google Pay"
+google-pay,intro,original,manual,2026-10-19,redactat manual factual
+revolut,owner,Revolut Ltd,https://www.globaldata.com/company-profile/revolut-limited/,2026-10-19,"fintech UK (2015)"
+revolut,payment_type,card,https://legalbet.ro/cazinouri/sets/revolut/,2026-10-19,"clasificat card (decizie owner) — la cazino se folosește cardul Visa/Mastercard emis de Revolut, NU Revolut Pay"
+revolut,deposits,Instant,https://legalbet.ro/cazinouri/sets/revolut/,2026-10-19,depuneri de regulă instant
+revolut,withdrawals,"parțial, operator-dependent",https://legalbet.ro/cazinouri/sets/revolut/,2026-10-19,"retrageri ca refund pe card, depind de operator"
+revolut,ro_presence,yes,https://legalbet.ro/cazinouri/sets/revolut/,2026-10-19,"una dintre cele mai utilizate metode în RO; mulți operatori ONJN"
+revolut,fees_limits,operator-dependent,https://legalbet.ro/cazinouri/sets/revolut/,2026-10-19,necompletat intenționat
+revolut,intro,original,manual,2026-10-19,redactat manual factual
+transfer-bancar,owner,"sistem bancar (SEPA), fără brand unic",https://www.instantpaycasinos.com/casino-payments/sepa-transfer-casinos/,2026-10-19,"mută bani direct între conturi bancare"
+transfer-bancar,payment_type,transfer-bancar,https://cazino.ro/plati/transfer-bancar,2026-10-19,transfer bancar
+transfer-bancar,deposits,"variabil (minute–1 zi lucrătoare)",https://cazino.ro/plati/transfer-bancar,2026-10-19,"depuneri acceptate de puțini operatori; SEPA D+1 / SEPA Instant unde există"
+transfer-bancar,withdrawals,"da (uz principal în RO)",https://cazino.ro/plati/transfer-bancar,2026-10-19,"16+ operatori ONJN acceptă retrageri prin transfer bancar"
+transfer-bancar,ro_presence,yes,https://legalbet.ro/cazinouri/sets/bank-transfer/,2026-10-19,"Betano, NetBet, MrBit, Unibet, Superbet, Fortuna etc."
+transfer-bancar,fees_limits,operator-dependent,https://cazino.ro/plati/transfer-bancar,2026-10-19,"comisioane bancă + limite per operator; necompletat intenționat"
+transfer-bancar,intro,original,manual,2026-10-19,redactat manual factual
