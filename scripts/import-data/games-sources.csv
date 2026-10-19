@@ -1,0 +1,81 @@
+slug,field,value,source,verified_on,note
+sweet-bonanza,provider,pragmatic-play,https://www.pragmaticplay.com/en/slots/sweet-bonanza/,2026-10-19,oficial
+sweet-bonanza,rtp,96.48,https://www.pragmaticplay.com/en/slots/sweet-bonanza/,2026-10-19,"OFICIAL (default). RTP configurabil de operator (există build-uri 95.45% etc.) — câmpul se rotunjește la o zecimală (vezi nota de schemă)"
+sweet-bonanza,volatility,Mare,https://www.olbg.com/slots/games/sweet-bonanza,2026-10-19,"secondary-consistent (high); nu e expus pe pagina oficială"
+sweet-bonanza,max_win,21.100x miza,https://galaxyofslots.com/sweet-bonanza,2026-10-19,"secundar; unele surse 21.175x; neoficial"
+sweet-bonanza,reels,6 role,https://www.olbg.com/slots/games/sweet-bonanza,2026-10-19,"grilă 6×5; secundar"
+sweet-bonanza,paylines,Scatter Pays,https://www.pragmaticplay.com/en/slots/sweet-bonanza/,2026-10-19,"oficial — câștig „anywhere”, fără linii fixe"
+sweet-bonanza,release_year,2019,https://www.olbg.com/slots/games/sweet-bonanza,2026-10-19,secondary-consistent
+sweet-bonanza,intro,original,manual,2026-10-19,redactat manual factual
+gates-of-olympus,provider,pragmatic-play,https://www.pragmaticplay.com/en/games/gates-of-olympus/,2026-10-19,oficial
+gates-of-olympus,rtp,96.50,https://www.pragmaticplay.com/en/games/gates-of-olympus/,2026-10-19,"OFICIAL (default); build-uri alternative 95.51%/94.50% la operatori"
+gates-of-olympus,volatility,Mare,https://www.askgamblers.com/casino-games/online-slots/reviews/gates-of-olympus-pragmatic-play,2026-10-19,"secondary-consistent (high/very high)"
+gates-of-olympus,max_win,5.000x miza,https://www.askgamblers.com/casino-games/online-slots/reviews/gates-of-olympus-pragmatic-play,2026-10-19,"secundar; oficial menționează doar orbe până la 500x"
+gates-of-olympus,reels,6 role,https://www.pragmaticplay.com/en/games/gates-of-olympus/,2026-10-19,"oficial „six reels”; grilă 6×5"
+gates-of-olympus,paylines,Scatter Pays,https://www.pragmaticplay.com/en/games/gates-of-olympus/,2026-10-19,"oficial — câștig „anywhere”"
+gates-of-olympus,release_year,2021,https://slotcatalog.com/en/slots/Gates-of-Olympus,2026-10-19,secondary-consistent
+gates-of-olympus,intro,original,manual,2026-10-19,redactat manual factual
+big-bass-bonanza,provider,pragmatic-play,https://www.pragmaticplay.com/en/games/big-bass-bonanza/,2026-10-19,"oficial — distribuit de Pragmatic Play, studio Reel Kingdom"
+big-bass-bonanza,rtp,96.71,https://www.pragmaticplay.com/en/games/big-bass-bonanza/,2026-10-19,"OFICIAL (default); variante 95.67%/94.5% la operatori"
+big-bass-bonanza,volatility,,https://www.aboutslots.com/casino-slots/big-bass-bonanza,2026-10-19,"NECOMPLETAT — surse în conflict (high vs mid-high); neoficial"
+big-bass-bonanza,max_win,2.100x miza,https://rtpspy.com/slots/big-bass-bonanza,2026-10-19,"secundar; oficial menționează doar simboluri-bani până la 2.000x"
+big-bass-bonanza,reels,5 role,https://www.aboutslots.com/casino-slots/big-bass-bonanza,2026-10-19,secundar
+big-bass-bonanza,paylines,10 linii,https://www.aboutslots.com/casino-slots/big-bass-bonanza,2026-10-19,secundar
+big-bass-bonanza,release_year,2020,https://www.aboutslots.com/casino-slots/big-bass-bonanza,2026-10-19,"secondary-consistent; originalul seriei (nu sequel)"
+big-bass-bonanza,intro,original,manual,2026-10-19,redactat manual factual
+book-of-ra-deluxe,provider,greentube,https://www.novomatic.com/en/products/gaming/games/book-of-ra-deluxe,2026-10-19,"oficial — Novomatic; Greentube e divizia online"
+book-of-ra-deluxe,rtp,,https://www.novomatic.com/en/products/gaming/games/book-of-ra-deluxe,2026-10-19,"NECOMPLETAT — niciun RTP oficial; secundar în conflict (95.1%/95.03% vs 94.26%), config-dependent"
+book-of-ra-deluxe,volatility,Mare,https://www.novomatic.com/en/products/gaming/games/book-of-ra-deluxe,2026-10-19,"OFICIAL — rating volatilitate „5” pe scala 1–5"
+book-of-ra-deluxe,max_win,,https://book-of.eu/book-of-ra-deluxe/,2026-10-19,"NECOMPLETAT — neoficial, surse în conflict (5.000x vs 8.242x)"
+book-of-ra-deluxe,reels,5 role,https://www.novomatic.com/en/products/gaming/games/book-of-ra-deluxe,2026-10-19,"oficial „5-reel”"
+book-of-ra-deluxe,paylines,10 linii,https://www.novomatic.com/en/products/gaming/games/book-of-ra-deluxe,2026-10-19,"oficial „10-line”"
+book-of-ra-deluxe,release_year,,https://www.pokernews.com/casino/slots/book-of-ra-deluxe-slot-review/,2026-10-19,"NECOMPLETAT — neoficial, surse în conflict (land ~2008/09, online 2015/2016)"
+book-of-ra-deluxe,intro,original,manual,2026-10-19,"redactat manual factual; versiunea standard 10 linii / 5 role"
+sizzling-hot-deluxe,provider,greentube,https://www.greentube.com/sizzling-summer-slots/,2026-10-19,"oficial (mențiune portofoliu) — Novomatic/Greentube"
+sizzling-hot-deluxe,rtp,,https://www.slotsmate.com/software/novomatic/sizzling-hot-deluxe,2026-10-19,"NECOMPLETAT — niciun RTP oficial; secundar ~95.66%, config-dependent"
+sizzling-hot-deluxe,volatility,,https://clashofslots.com/slots/novomatic/sizzling-hot-deluxe/,2026-10-19,"NECOMPLETAT — surse în conflict (medium vs high); neoficial"
+sizzling-hot-deluxe,max_win,,https://clashofslots.com/slots/novomatic/sizzling-hot-deluxe/,2026-10-19,"NECOMPLETAT — neoficial, conflict (5.000x stake vs 1.000x line)"
+sizzling-hot-deluxe,reels,5 role,https://casinorange.com/slot/sizzling-hot-deluxe,2026-10-19,"secundar; grilă 5×3"
+sizzling-hot-deluxe,paylines,5 linii,https://casinorange.com/slot/sizzling-hot-deluxe,2026-10-19,secundar
+sizzling-hot-deluxe,release_year,2007,https://clashofslots.com/slots/novomatic/sizzling-hot-deluxe/,2026-10-19,secondary-consistent
+sizzling-hot-deluxe,intro,original,manual,2026-10-19,redactat manual factual
+book-of-dead,provider,playn-go,https://www.playngo.com/games/book-of-dead,2026-10-19,oficial
+book-of-dead,rtp,,https://www.askgamblers.com/casino-games/online-slots/reviews/book-of-dead-play-n-go,2026-10-19,"NECOMPLETAT — pagina oficială nu publică RTP; secundar 96.21% (default), variante la operatori"
+book-of-dead,volatility,Mare,https://casinobeats.com/features/how-to-play-book-of-dead/,2026-10-19,"secundar (high); neoficial"
+book-of-dead,max_win,5.000x miza,https://casinobeats.com/features/how-to-play-book-of-dead/,2026-10-19,secundar
+book-of-dead,reels,5 role,https://casinobeats.com/features/how-to-play-book-of-dead/,2026-10-19,"secundar; grilă 5×3"
+book-of-dead,paylines,10 linii,https://casinobeats.com/features/how-to-play-book-of-dead/,2026-10-19,"secundar; 10 linii selectabile (1–10)"
+book-of-dead,release_year,2016,https://www.playngo.com/games/book-of-dead,2026-10-19,"OFICIAL — „14 Jan 2016”"
+book-of-dead,intro,original,manual,2026-10-19,redactat manual factual
+starburst,provider,netent,https://netent.com/games/starburst,2026-10-19,"oficial — NetEnt (acum deținut de Evolution)"
+starburst,rtp,96.09,https://games.evolution.com/slots/starburst/,2026-10-19,"OFICIAL — Evolution 96.09% / NetEnt 96.08%; variante istorice la operatori"
+starburst,volatility,Mică,https://games.evolution.com/slots/starburst/,2026-10-19,"oficial Evolution „Low/Mid” → Mică"
+starburst,max_win,800x miza,https://netent.com/games/starburst,2026-10-19,"OFICIAL NetEnt 800x (unele surse secundare 500x)"
+starburst,reels,5 role,https://netent.com/games/starburst,2026-10-19,"oficial; grilă 5×3"
+starburst,paylines,10 linii (ambele sensuri),https://games.evolution.com/slots/starburst/,2026-10-19,"oficial — „Win Both Ways”"
+starburst,release_year,2012,https://netent.com/games/starburst,2026-10-19,"OFICIAL — 23-01-2012; originalul (nu XXXtreme)"
+starburst,intro,original,manual,2026-10-19,redactat manual factual
+blood-suckers,provider,netent,https://netent.com/games/blood-suckers,2026-10-19,oficial — NetEnt
+blood-suckers,rtp,98.00,https://netent.com/games/blood-suckers,2026-10-19,"OFICIAL 98.00% (AskGamblers 97.99%); unii operatori rulează variante mai mici"
+blood-suckers,volatility,Mică,https://www.askgamblers.com/casino-games/online-slots/reviews/blood-suckers-netent,2026-10-19,"secundar (low); „45%” de pe pagina oficială e frecvența de câștig, nu volatilitatea"
+blood-suckers,max_win,900x miza,https://netent.com/games/blood-suckers,2026-10-19,"OFICIAL NetEnt 900x (secundar ~1014x)"
+blood-suckers,reels,5 role,https://netent.com/games/blood-suckers,2026-10-19,"oficial; grilă 5×3"
+blood-suckers,paylines,25 linii,https://netent.com/games/blood-suckers,2026-10-19,oficial — 25 fixe
+blood-suckers,release_year,2009,https://netent.com/games/blood-suckers,2026-10-19,"OFICIAL — 10-11-2009; originalul (nu Blood Suckers II)"
+blood-suckers,intro,original,manual,2026-10-19,redactat manual factual
+solar-queen,provider,playson,https://slotcatalog.com/en/slots/Solar-Queen,2026-10-19,"secundar (playson.com → 403); confirmat Playson"
+solar-queen,rtp,,https://slotcatalog.com/en/slots/Solar-Queen,2026-10-19,"NECOMPLETAT — niciun RTP oficial accesibil (403); secundar 95.78%"
+solar-queen,volatility,,https://slotcatalog.com/en/slots/Solar-Queen,2026-10-19,"NECOMPLETAT — secundar „medium-high”, ambiguu pentru enumul Mică/Medie/Mare"
+solar-queen,max_win,2.668x miza,https://www.askgamblers.com/casino-games/online-slots/reviews/solar-queen-playson,2026-10-19,"secundar (SlotCatalog + AskGamblers concordă)"
+solar-queen,reels,5 role,https://slotcatalog.com/en/slots/Solar-Queen,2026-10-19,"secundar; grilă 5×3"
+solar-queen,paylines,20 linii,https://slotcatalog.com/en/slots/Solar-Queen,2026-10-19,secundar
+solar-queen,release_year,2019,https://slotcatalog.com/en/slots/Solar-Queen,2026-10-19,"secondary-consistent; originalul (nu Megaways)"
+solar-queen,intro,original,manual,2026-10-19,redactat manual factual
+wanted-dead-or-a-wild,provider,hacksaw-gaming,https://www.hacksawgaming.com/games/wanted-dead-or-a-wild,2026-10-19,oficial
+wanted-dead-or-a-wild,rtp,96.38,https://www.hacksawgaming.com/games/wanted-dead-or-a-wild,2026-10-19,"OFICIAL (default); 4 configurații 96.38/94.55/92.33/88.42"
+wanted-dead-or-a-wild,volatility,Mare,https://www.hacksawgaming.com/games/wanted-dead-or-a-wild,2026-10-19,"OFICIAL — rating 4/5 (secundar „very high”)"
+wanted-dead-or-a-wild,max_win,12.500x miza,https://www.hacksawgaming.com/games/wanted-dead-or-a-wild,2026-10-19,oficial
+wanted-dead-or-a-wild,reels,5 role,https://www.hacksawgaming.com/games/wanted-dead-or-a-wild,2026-10-19,"oficial; grilă 5×5"
+wanted-dead-or-a-wild,paylines,15 linii,https://www.hacksawgaming.com/games/wanted-dead-or-a-wild,2026-10-19,oficial — 15 fixe
+wanted-dead-or-a-wild,release_year,2021,https://sigma.world/play/games/hacksaw-gaming/wanted-dead-or-a-wild/,2026-10-19,"secondary-consistent (pagina oficială nu publică data)"
+wanted-dead-or-a-wild,intro,original,manual,2026-10-19,redactat manual factual
