@@ -20,6 +20,7 @@ export interface GameEditData {
   intro: string;
   mechanics: string;
   bonusFeatures: string[];
+  demoUrl: string;
   faq: { question: string; answer: string }[];
   casinoIds: string[];
 }
@@ -58,12 +59,13 @@ interface EditRow {
   intro: string | null;
   mechanics: string | null;
   bonus_features: string[] | null;
+  demo_url: string | null;
   faq: { question: string; answer: string }[] | null;
   casino_games: { casino_id: string }[] | null;
 }
 
 const EDIT_SELECT =
-  "id, slug, name, provider_id, category_id, thumbnail_url, rtp, volatility, max_win, release_year, reels, paylines, bet_range, intro, mechanics, bonus_features, faq, casino_games(casino_id)";
+  "id, slug, name, provider_id, category_id, thumbnail_url, rtp, volatility, max_win, release_year, reels, paylines, bet_range, intro, mechanics, bonus_features, demo_url, faq, casino_games(casino_id)";
 
 export async function getGameEdit(slug: string): Promise<GameEditData | null> {
   const db = await getSupabaseAuthClient();
@@ -88,6 +90,7 @@ export async function getGameEdit(slug: string): Promise<GameEditData | null> {
     intro: r.intro ?? "",
     mechanics: r.mechanics ?? "",
     bonusFeatures: r.bonus_features ?? [],
+    demoUrl: r.demo_url ?? "",
     faq: r.faq ?? [],
     casinoIds: (r.casino_games ?? []).map((c) => c.casino_id),
   };

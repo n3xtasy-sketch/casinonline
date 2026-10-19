@@ -22,6 +22,7 @@ interface GameDetailRow extends GameRow {
   bet_range: string | null;
   mechanics: string | null;
   bonus_features: string[] | null;
+  demo_url: string | null;
   faq: { question: string; answer: string }[] | null;
 }
 
@@ -50,6 +51,7 @@ function toDetail(row: GameDetailRow): GameDetail {
     betRange: row.bet_range ?? undefined,
     mechanics: row.mechanics ?? "",
     bonusFeatures: row.bonus_features ?? [],
+    demoUrl: row.demo_url ?? undefined,
     faq: row.faq ?? [],
     // availableCasinos intentionally omitted: game → casinos stays on mock
     // until the Casinos module is connected.
@@ -59,7 +61,7 @@ function toDetail(row: GameDetailRow): GameDetail {
 const CARD_COLUMNS =
   "slug, name, thumbnail_url, rtp, volatility, provider:providers(slug, name), category:game_categories(slug)";
 
-const DETAIL_COLUMNS = `${CARD_COLUMNS}, intro, max_win, release_year, reels, paylines, bet_range, mechanics, bonus_features, faq`;
+const DETAIL_COLUMNS = `${CARD_COLUMNS}, intro, max_win, release_year, reels, paylines, bet_range, mechanics, bonus_features, demo_url, faq`;
 
 /** All games for the listing (the page applies filters/sorting on the result). */
 export async function getGames(limit?: number): Promise<GameCardData[]> {

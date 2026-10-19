@@ -5,6 +5,7 @@ import { updateTag } from "next/cache";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import { logActivity } from "@/lib/db/activity";
 import { applyStatusChange } from "@/lib/db/content-status";
+import { isAllowedDemoUrl } from "@/lib/demo";
 import type { ContentStatus } from "@/lib/content-status";
 import type { GameFormState } from "./types";
 
@@ -71,9 +72,14 @@ function parseFields(formData: FormData) {
     intro: strOrNull(formData.get("intro")),
     mechanics: strOrNull(formData.get("mechanics")),
     bonus_features: parseLines(formData.get("bonus_features")),
+    demo_url: strOrNull(formData.get("demo_url")),
     faq: parseFaq(formData.get("faq")),
   };
 }
+
+/** Demo URL (optional) must be https + on the approved host allowlist. */
+const DEMO_URL_ERROR =
+  "URL demo invalid — trebuie https și pe lista de domenii aprobate (src/lib/demo.ts). Lasă gol dacă demo-ul nu e verificat.";
 
 /** Sync casino_games from the game side: delete-all for this game, re-insert selection. */
 async function syncCasinos(db: DB, gameId: string, casinoIds: string[]): Promise<void> {
@@ -105,6 +111,7 @@ export async function createGame(
   if (!fields.name) return { error: "Numele este obligatoriu." };
   if (!fields.provider_id) return { error: "Selectează un furnizor." };
   if (!fields.category_id) return { error: "Selectează o categorie." };
+  if (fields.demo_url && !isAllowedDemoUrl(fields.demo_url)) return { error: DEMO_URL_ERROR };
 
   const { data: dup } = await db.from("games").select("id").eq("slug", slug).maybeSingle();
   if (dup) return { error: "Există deja un joc cu acest slug." };
@@ -136,6 +143,7 @@ export async function updateGame(
   if (!fields.name) return { error: "Numele este obligatoriu." };
   if (!fields.provider_id) return { error: "Selectează un furnizor." };
   if (!fields.category_id) return { error: "Selectează o categorie." };
+  if (fields.demo_url && !isAllowedDemoUrl(fields.demo_url)) return { error: DEMO_URL_ERROR };
 
   // slug is read-only at edit. provider change → trigger recalcs game_count for
   // both the old and the new provider automatically.

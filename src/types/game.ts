@@ -29,6 +29,8 @@ export interface GameDetailExtra {
   betRange?: string;
   mechanics: string;
   bonusFeatures?: string[];
+  /** Approved https demo (free-play) URL, framed on the detail page when present. */
+  demoUrl?: string;
   /** Casino slugs where the game is available. */
   availableCasinos?: string[];
   faq?: { question: string; answer: string }[];

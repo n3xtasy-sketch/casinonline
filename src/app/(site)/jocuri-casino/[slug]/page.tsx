@@ -9,11 +9,13 @@ import { FAQAccordion } from "@/components/ui/FAQAccordion";
 import { CasinoCard } from "@/components/casino/CasinoCard";
 import { GameCard } from "@/components/games/GameCard";
 import { GameDetailHeader } from "@/components/games/GameDetailHeader";
+import { GameDemoPlayer } from "@/components/games/GameDemoPlayer";
 import { GameSpecs } from "@/components/games/GameSpecs";
 import { getGameBySlug, getGames } from "@/lib/db/games";
 import { buildMetadata, entityDefaultMeta } from "@/lib/seo";
 import { getSeoForSlug } from "@/lib/db/seo";
 import { getCasinosForGame } from "@/lib/db/casinos";
+import { isAllowedDemoUrl } from "@/lib/demo";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -58,6 +60,13 @@ export default async function GameDetailPage({ params }: PageProps) {
       <Breadcrumbs items={crumbs} />
 
       <GameDetailHeader game={game} playUrl={playUrl} />
+
+      {isAllowedDemoUrl(game.demoUrl) ? (
+        <section>
+          <SectionHeader title={`Joacă ${game.name} în modul demo`} />
+          <GameDemoPlayer demoUrl={game.demoUrl} gameName={game.name} />
+        </section>
+      ) : null}
 
       <section>
         <SectionHeader title={`Despre ${game.name}`} />

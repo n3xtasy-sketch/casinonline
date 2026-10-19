@@ -128,6 +128,22 @@ export function GameForm({ mode, action, initial, providers, categories, casinos
 
       <MediaField label="Imagine / thumbnail" name="thumbnail_url" defaultValue={initial?.thumbnailUrl} folder="games" />
 
+      <label className="flex flex-col gap-1.5 text-sm">
+        <span className="font-medium text-ink-secondary">URL demo (joc gratuit)</span>
+        <input
+          name="demo_url"
+          type="url"
+          inputMode="url"
+          defaultValue={initial?.demoUrl}
+          placeholder="https://… (doar domenii aprobate)"
+          className={input}
+        />
+        <span className="text-xs text-ink-muted">
+          Opțional. Trebuie https și pe lista de domenii aprobate (src/lib/demo.ts). Lasă gol dacă
+          demo-ul nu este verificat că permite încadrarea în iframe.
+        </span>
+      </label>
+
       <div className="grid gap-5 sm:grid-cols-2">
         <Text label="RTP (%)" name="rtp" type="number" min="0" max="100" step="0.01" defaultValue={initial?.rtp} placeholder="96.5" />
         <label className="flex flex-col gap-1.5 text-sm">
