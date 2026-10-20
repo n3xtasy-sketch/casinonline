@@ -1,4 +1,5 @@
 import "server-only";
+import { selectedJunctionIds } from "@/lib/admin-relations";
 import type { ContentStatus } from "@/lib/content-status";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import type { Option } from "@/lib/db/admin-casinos";
@@ -92,7 +93,7 @@ export async function getGameEdit(slug: string): Promise<GameEditData | null> {
     bonusFeatures: r.bonus_features ?? [],
     demoUrl: r.demo_url ?? "",
     faq: r.faq ?? [],
-    casinoIds: (r.casino_games ?? []).map((c) => c.casino_id),
+    casinoIds: selectedJunctionIds(r.casino_games, "casino_id"),
   };
 }
 

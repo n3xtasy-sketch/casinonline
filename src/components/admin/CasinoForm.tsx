@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import type { CasinoFormState } from "@/app/admin/(panel)/cazinouri/types";
 import type { CasinoEditData, Option } from "@/lib/db/admin-casinos";
 import { MediaField } from "@/components/admin/MediaField";
+import { isOptionChecked } from "@/lib/admin-relations";
 
 interface Props {
   mode: "create" | "edit";
@@ -56,7 +57,7 @@ function CheckGroup({
       <div className="flex flex-wrap gap-x-4 gap-y-2">
         {options.map((o) => (
           <label key={o.id} className="flex items-center gap-2 text-sm text-ink">
-            <input type="checkbox" name={name} value={o.id} defaultChecked={selected.includes(o.id)} />
+            <input key={`${o.id}:${isOptionChecked(selected, o.id)}`} type="checkbox" name={name} value={o.id} defaultChecked={isOptionChecked(selected, o.id)} />
             {o.label}
           </label>
         ))}

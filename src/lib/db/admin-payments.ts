@@ -1,4 +1,5 @@
 import "server-only";
+import { selectedJunctionIds } from "@/lib/admin-relations";
 import type { ContentStatus } from "@/lib/content-status";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import type { Option } from "@/lib/db/admin-casinos";
@@ -80,7 +81,7 @@ export async function getPaymentMethodEdit(slug: string): Promise<PaymentMethodE
     pros: r.pros ?? [],
     cons: r.cons ?? [],
     faq: r.faq ?? [],
-    casinoIds: (r.casino_payment_methods ?? []).map((c) => c.casino_id),
+    casinoIds: selectedJunctionIds(r.casino_payment_methods, "casino_id"),
   };
 }
 

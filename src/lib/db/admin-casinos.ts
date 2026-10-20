@@ -1,4 +1,5 @@
 import "server-only";
+import { selectedJunctionIds } from "@/lib/admin-relations";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import type { ContentStatus } from "@/lib/content-status";
 
@@ -172,9 +173,9 @@ export async function getCasinoEdit(slug: string): Promise<CasinoEditData | null
     pros: r.pros ?? [],
     cons: r.cons ?? [],
     faq: r.faq ?? [],
-    tagIds: (r.casino_tags ?? []).map((t) => t.tag_id),
-    paymentMethodIds: (r.casino_payment_methods ?? []).map((p) => p.payment_method_id),
-    gameIds: (r.casino_games ?? []).map((g) => g.game_id),
+    tagIds: selectedJunctionIds(r.casino_tags, "tag_id"),
+    paymentMethodIds: selectedJunctionIds(r.casino_payment_methods, "payment_method_id"),
+    gameIds: selectedJunctionIds(r.casino_games, "game_id"),
     affiliateUrl: affiliate?.url ?? "",
   };
 }
