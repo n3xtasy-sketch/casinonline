@@ -8,6 +8,7 @@ import {
   isInternalRedirectPath,
   isReservedPath,
   looksLikeAsset,
+  detectChainConflict,
 } from "@/lib/redirects";
 import type { RedirectFormState } from "./types";
 
@@ -62,19 +63,21 @@ async function chainConflict(
   to: string,
   excludeId?: string,
 ): Promise<string | null> {
-  // destination is already an active source → would create from→to→…
-  let q1 = db.from("redirects").select("id").eq("is_active", true).eq("from_path", to);
-  if (excludeId) q1 = q1.neq("id", excludeId);
-  if ((await q1.maybeSingle()).data) {
-    return "Lanț: destinația este deja sursa unui redirect activ.";
-  }
-  // source is already an active destination → would create …→from→to
-  let q2 = db.from("redirects").select("id").eq("is_active", true).eq("to_path", from);
-  if (excludeId) q2 = q2.neq("id", excludeId);
-  if ((await q2.maybeSingle()).data) {
-    return "Lanț: sursa este deja destinația unui redirect activ.";
-  }
-  return null;
+  // Uses .limit(1) on an array result (NOT .maybeSingle) so a non-unique match
+  // on to_path can't throw; a query error is surfaced explicitly (never ignored).
+  const check = async (column: "from_path" | "to_path", value: string) => {
+    let q = db
+      .from("redirects")
+      .select("id")
+      .eq("is_active", true)
+      .eq(column, value)
+      .limit(1);
+    if (excludeId) q = q.neq("id", excludeId);
+    const { data, error } = await q;
+    if (error) return { exists: false, error: error.message };
+    return { exists: (data?.length ?? 0) > 0, error: null };
+  };
+  return detectChainConflict(check, from, to);
 }
 
 export async function createRedirect(
