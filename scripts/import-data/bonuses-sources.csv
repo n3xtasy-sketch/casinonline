@@ -1,0 +1,31 @@
+slug,field,value,source,verified_on,note
+demo-superbet,status,DEMONSTRATIV / FICTIV,intern,2026-10-20,"toate valorile sunt fictive, exclusiv pentru testarea platformei — NU ofertă reală; de înlocuit manual cu oferta reală"
+demo-superbet,offer,[DEMO] 100 rotiri gratuite fără depunere,intern,2026-10-20,casino=superbet; bonus_type=rotiri-gratuite
+demo-superbet,values,fs=100 rulaj=40x min_dep=0 RON valabilitate=7 zile cod=DEMO100FS,intern,2026-10-20,valori fictive realiste pentru testare
+demo-betano,status,DEMONSTRATIV / FICTIV,intern,2026-10-20,"toate valorile sunt fictive, exclusiv pentru testarea platformei — NU ofertă reală; de înlocuit manual cu oferta reală"
+demo-betano,offer,[DEMO] 50 rotiri gratuite fără depunere,intern,2026-10-20,casino=betano; bonus_type=fara-depunere
+demo-betano,values,fs=50 rulaj=35x min_dep=0 RON valabilitate=7 zile cod=-,intern,2026-10-20,valori fictive realiste pentru testare
+demo-netbet,status,DEMONSTRATIV / FICTIV,intern,2026-10-20,"toate valorile sunt fictive, exclusiv pentru testarea platformei — NU ofertă reală; de înlocuit manual cu oferta reală"
+demo-netbet,offer,[DEMO] 25 RON bonus cash fără depunere,intern,2026-10-20,casino=netbet; bonus_type=fara-depunere
+demo-netbet,values,fs=- rulaj=20x min_dep=0 RON valabilitate=3 zile cod=DEMO25,intern,2026-10-20,valori fictive realiste pentru testare
+demo-unibet,status,DEMONSTRATIV / FICTIV,intern,2026-10-20,"toate valorile sunt fictive, exclusiv pentru testarea platformei — NU ofertă reală; de înlocuit manual cu oferta reală"
+demo-unibet,offer,[DEMO] 200 rotiri gratuite la înregistrare,intern,2026-10-20,casino=unibet; bonus_type=rotiri-gratuite
+demo-unibet,values,fs=200 rulaj=40x min_dep=0 RON valabilitate=14 zile cod=-,intern,2026-10-20,valori fictive realiste pentru testare
+demo-winner,status,DEMONSTRATIV / FICTIV,intern,2026-10-20,"toate valorile sunt fictive, exclusiv pentru testarea platformei — NU ofertă reală; de înlocuit manual cu oferta reală"
+demo-winner,offer,[DEMO] 100% până la 1.000 RON + 100 rotiri,intern,2026-10-20,casino=winner; bonus_type=bonus-de-bun-venit
+demo-winner,values,fs=100 rulaj=35x min_dep=50 RON valabilitate=30 de zile cod=-,intern,2026-10-20,valori fictive realiste pentru testare
+demo-mr-bit,status,DEMONSTRATIV / FICTIV,intern,2026-10-20,"toate valorile sunt fictive, exclusiv pentru testarea platformei — NU ofertă reală; de înlocuit manual cu oferta reală"
+demo-mr-bit,offer,[DEMO] 50 rotiri gratuite fără rulaj,intern,2026-10-20,casino=mr-bit; bonus_type=fara-rulaj
+demo-mr-bit,values,fs=50 rulaj=0x (fără rulaj) min_dep=50 RON valabilitate=7 zile cod=DEMOFR,intern,2026-10-20,valori fictive realiste pentru testare
+demo-888casino,status,DEMONSTRATIV / FICTIV,intern,2026-10-20,"toate valorile sunt fictive, exclusiv pentru testarea platformei — NU ofertă reală; de înlocuit manual cu oferta reală"
+demo-888casino,offer,[DEMO] 20% cashback până la 500 RON,intern,2026-10-20,casino=888casino; bonus_type=cashback
+demo-888casino,values,fs=- rulaj=1x min_dep=50 RON valabilitate=7 zile cod=-,intern,2026-10-20,valori fictive realiste pentru testare
+demo-winmasters,status,DEMONSTRATIV / FICTIV,intern,2026-10-20,"toate valorile sunt fictive, exclusiv pentru testarea platformei — NU ofertă reală; de înlocuit manual cu oferta reală"
+demo-winmasters,offer,[DEMO] 150 rotiri gratuite la prima depunere,intern,2026-10-20,casino=winmasters; bonus_type=bonus-de-bun-venit
+demo-winmasters,values,fs=150 rulaj=40x min_dep=40 RON valabilitate=14 zile cod=-,intern,2026-10-20,valori fictive realiste pentru testare
+demo-vlad-cazino,status,DEMONSTRATIV / FICTIV,intern,2026-10-20,"toate valorile sunt fictive, exclusiv pentru testarea platformei — NU ofertă reală; de înlocuit manual cu oferta reală"
+demo-vlad-cazino,offer,[DEMO] 50 RON bonus cash,intern,2026-10-20,casino=vlad-cazino; bonus_type=bonus-de-bun-venit
+demo-vlad-cazino,values,fs=- rulaj=30x min_dep=50 RON valabilitate=7 zile cod=DEMO50,intern,2026-10-20,valori fictive realiste pentru testare
+demo-maxbet,status,DEMONSTRATIV / FICTIV,intern,2026-10-20,"toate valorile sunt fictive, exclusiv pentru testarea platformei — NU ofertă reală; de înlocuit manual cu oferta reală"
+demo-maxbet,offer,[DEMO] 200% până la 2.000 RON,intern,2026-10-20,casino=maxbet; bonus_type=bonus-de-bun-venit
+demo-maxbet,values,fs=- rulaj=40x min_dep=50 RON valabilitate=30 de zile cod=-,intern,2026-10-20,valori fictive realiste pentru testare
