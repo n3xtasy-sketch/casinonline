@@ -5,10 +5,18 @@ import { updateTag } from "next/cache";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import { logActivity } from "@/lib/db/activity";
 import { applyStatusChange } from "@/lib/db/content-status";
+import { syncJunctionAtomic, type RpcRunner } from "@/lib/junction-sync";
 import type { ContentStatus } from "@/lib/content-status";
 import type { PaymentFormState } from "./types";
 
 type DB = Awaited<ReturnType<typeof getSupabaseAuthClient>>;
+
+function rpcRunner(db: DB): RpcRunner {
+  return async (name, params) => {
+    const { error } = await db.rpc(name, params);
+    return { error: error ? { message: error.message } : null };
+  };
+}
 
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
@@ -68,15 +76,9 @@ function parseFields(formData: FormData) {
   };
 }
 
-/** Sync casino_payment_methods from the method side: delete-all for this method, re-insert. */
-async function syncCasinos(db: DB, methodId: string, casinoIds: string[]): Promise<void> {
-  await db.from("casino_payment_methods").delete().eq("payment_method_id", methodId);
-  const unique = [...new Set(casinoIds.filter(Boolean))];
-  if (unique.length) {
-    await db
-      .from("casino_payment_methods")
-      .insert(unique.map((casino_id) => ({ payment_method_id: methodId, casino_id })));
-  }
+/** Atomic sync of casino_payment_methods from the method side. Returns an error or null. */
+async function syncCasinos(db: DB, methodId: string, casinoIds: string[]): Promise<string | null> {
+  return syncJunctionAtomic(rpcRunner(db), "casino_payment_methods", "payment_method_id", methodId, "casino_id", casinoIds);
 }
 
 function refresh() {
@@ -116,7 +118,8 @@ export async function createPaymentMethod(
     return { error: `Eroare la salvare: ${error?.message ?? "necunoscută"}` };
   }
 
-  await syncCasinos(db, (inserted as { id: string }).id, formData.getAll("casinoIds").map(String));
+  const relErr = await syncCasinos(db, (inserted as { id: string }).id, formData.getAll("casinoIds").map(String));
+  if (relErr) return { error: relErr };
 
   await logActivity(db, { action: "payment.create", entityType: "payment_method", entityId: (inserted as { id: string }).id, label: fields.name });
   refresh();
@@ -137,7 +140,8 @@ export async function updatePaymentMethod(
   const { error } = await db.from("payment_methods").update(fields).eq("id", id);
   if (error) return { error: `Eroare la salvare: ${error.message}` };
 
-  await syncCasinos(db, id, formData.getAll("casinoIds").map(String));
+  const relErr = await syncCasinos(db, id, formData.getAll("casinoIds").map(String));
+  if (relErr) return { error: relErr };
 
   await logActivity(db, { action: "payment.update", entityType: "payment_method", entityId: id, label: fields.name });
   refresh();

@@ -5,10 +5,19 @@ import { updateTag } from "next/cache";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import { logActivity } from "@/lib/db/activity";
 import { applyStatusChange } from "@/lib/db/content-status";
+import { syncJunctionAtomic, type RpcRunner, type JunctionCol } from "@/lib/junction-sync";
 import type { ContentStatus } from "@/lib/content-status";
 import type { CasinoFormState } from "./types";
 
 type DB = Awaited<ReturnType<typeof getSupabaseAuthClient>>;
+
+/** Adapt the Supabase client's .rpc() to the injectable RpcRunner contract. */
+function rpcRunner(db: DB): RpcRunner {
+  return async (name, params) => {
+    const { error } = await db.rpc(name, params);
+    return { error: error ? { message: error.message } : null };
+  };
+}
 
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
@@ -78,36 +87,39 @@ function parseFields(formData: FormData) {
   };
 }
 
+/** Atomic sync of a casino-side junction. Returns an error message or null. */
 async function syncJunction(
   db: DB,
-  table: string,
-  column: string,
+  table: "casino_tags" | "casino_payment_methods" | "casino_games",
+  column: JunctionCol,
   casinoId: string,
   ids: string[],
-): Promise<void> {
-  await db.from(table).delete().eq("casino_id", casinoId);
-  const unique = [...new Set(ids.filter(Boolean))];
-  if (unique.length) {
-    await db.from(table).insert(unique.map((id) => ({ casino_id: casinoId, [column]: id })));
-  }
+): Promise<string | null> {
+  return syncJunctionAtomic(rpcRunner(db), table, "casino_id", casinoId, column, ids);
 }
 
-async function upsertAffiliate(db: DB, casinoId: string, url: string | null): Promise<void> {
-  if (!url) return;
-  const { data: existing } = await db
+/** Upsert the review_cta affiliate link. Update-or-insert (no destructive delete),
+ *  so no atomicity risk — but errors are surfaced, never swallowed. */
+async function upsertAffiliate(db: DB, casinoId: string, url: string | null): Promise<string | null> {
+  if (!url) return null;
+  const { data: existing, error: selErr } = await db
     .from("affiliate_links")
     .select("id")
     .eq("casino_id", casinoId)
     .eq("placement", "review_cta")
     .maybeSingle();
+  if (selErr) return `Eroare la verificarea linkului afiliat: ${selErr.message}`;
   const row = existing as { id: string } | null;
   if (row) {
-    await db.from("affiliate_links").update({ url, is_active: true }).eq("id", row.id);
+    const { error } = await db.from("affiliate_links").update({ url, is_active: true }).eq("id", row.id);
+    if (error) return `Eroare la actualizarea linkului afiliat: ${error.message}`;
   } else {
-    await db
+    const { error } = await db
       .from("affiliate_links")
       .insert({ casino_id: casinoId, placement: "review_cta", url, is_active: true });
+    if (error) return `Eroare la crearea linkului afiliat: ${error.message}`;
   }
+  return null;
 }
 
 export async function createCasino(
@@ -136,10 +148,12 @@ export async function createCasino(
   }
   const casinoId = (inserted as { id: string }).id;
 
-  await syncJunction(db, "casino_tags", "tag_id", casinoId, formData.getAll("tagIds").map(String));
-  await syncJunction(db, "casino_payment_methods", "payment_method_id", casinoId, formData.getAll("paymentMethodIds").map(String));
-  await syncJunction(db, "casino_games", "game_id", casinoId, formData.getAll("gameIds").map(String));
-  await upsertAffiliate(db, casinoId, strOrNull(formData.get("affiliateUrl")));
+  const relErr =
+    (await syncJunction(db, "casino_tags", "tag_id", casinoId, formData.getAll("tagIds").map(String))) ??
+    (await syncJunction(db, "casino_payment_methods", "payment_method_id", casinoId, formData.getAll("paymentMethodIds").map(String))) ??
+    (await syncJunction(db, "casino_games", "game_id", casinoId, formData.getAll("gameIds").map(String))) ??
+    (await upsertAffiliate(db, casinoId, strOrNull(formData.get("affiliateUrl"))));
+  if (relErr) return { error: relErr };
 
   await logActivity(db, { action: "casino.create", entityType: "casino", entityId: casinoId, label: fields.name });
   updateTag("casinos");
@@ -181,10 +195,12 @@ export async function updateCasino(
     .eq("id", id);
   if (error) return { error: `Eroare la salvare: ${error.message}` };
 
-  await syncJunction(db, "casino_tags", "tag_id", id, formData.getAll("tagIds").map(String));
-  await syncJunction(db, "casino_payment_methods", "payment_method_id", id, formData.getAll("paymentMethodIds").map(String));
-  await syncJunction(db, "casino_games", "game_id", id, formData.getAll("gameIds").map(String));
-  await upsertAffiliate(db, id, strOrNull(formData.get("affiliateUrl")));
+  const relErr =
+    (await syncJunction(db, "casino_tags", "tag_id", id, formData.getAll("tagIds").map(String))) ??
+    (await syncJunction(db, "casino_payment_methods", "payment_method_id", id, formData.getAll("paymentMethodIds").map(String))) ??
+    (await syncJunction(db, "casino_games", "game_id", id, formData.getAll("gameIds").map(String))) ??
+    (await upsertAffiliate(db, id, strOrNull(formData.get("affiliateUrl"))));
+  if (relErr) return { error: relErr };
 
   await logActivity(db, { action: "casino.update", entityType: "casino", entityId: id, label: fields.name });
   updateTag("casinos");

@@ -6,10 +6,18 @@ import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import { logActivity } from "@/lib/db/activity";
 import { applyStatusChange } from "@/lib/db/content-status";
 import { isAllowedDemoUrl } from "@/lib/demo";
+import { syncJunctionAtomic, type RpcRunner } from "@/lib/junction-sync";
 import type { ContentStatus } from "@/lib/content-status";
 import type { GameFormState } from "./types";
 
 type DB = Awaited<ReturnType<typeof getSupabaseAuthClient>>;
+
+function rpcRunner(db: DB): RpcRunner {
+  return async (name, params) => {
+    const { error } = await db.rpc(name, params);
+    return { error: error ? { message: error.message } : null };
+  };
+}
 
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
@@ -82,12 +90,9 @@ const DEMO_URL_ERROR =
   "URL demo invalid — trebuie https și pe lista de domenii aprobate (src/lib/demo.ts). Lasă gol dacă demo-ul nu e verificat.";
 
 /** Sync casino_games from the game side: delete-all for this game, re-insert selection. */
-async function syncCasinos(db: DB, gameId: string, casinoIds: string[]): Promise<void> {
-  await db.from("casino_games").delete().eq("game_id", gameId);
-  const unique = [...new Set(casinoIds.filter(Boolean))];
-  if (unique.length) {
-    await db.from("casino_games").insert(unique.map((casino_id) => ({ game_id: gameId, casino_id })));
-  }
+/** Atomic sync of casino_games from the game side. Returns an error message or null. */
+async function syncCasinos(db: DB, gameId: string, casinoIds: string[]): Promise<string | null> {
+  return syncJunctionAtomic(rpcRunner(db), "casino_games", "game_id", gameId, "casino_id", casinoIds);
 }
 
 function refresh() {
@@ -126,7 +131,8 @@ export async function createGame(
     return { error: `Eroare la salvare: ${error?.message ?? "necunoscută"}` };
   }
 
-  await syncCasinos(db, (inserted as { id: string }).id, formData.getAll("casinoIds").map(String));
+  const relErr = await syncCasinos(db, (inserted as { id: string }).id, formData.getAll("casinoIds").map(String));
+  if (relErr) return { error: relErr };
 
   await logActivity(db, { action: "game.create", entityType: "game", entityId: (inserted as { id: string }).id, label: fields.name });
   refresh();
@@ -150,7 +156,8 @@ export async function updateGame(
   const { error } = await db.from("games").update(fields).eq("id", id);
   if (error) return { error: `Eroare la salvare: ${error.message}` };
 
-  await syncCasinos(db, id, formData.getAll("casinoIds").map(String));
+  const relErr = await syncCasinos(db, id, formData.getAll("casinoIds").map(String));
+  if (relErr) return { error: relErr };
 
   await logActivity(db, { action: "game.update", entityType: "game", entityId: id, label: fields.name });
   refresh();
