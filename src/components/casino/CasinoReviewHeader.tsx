@@ -18,7 +18,11 @@ export function CasinoReviewHeader({ casino }: { casino: CasinoDetail }) {
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-bold text-ink md:text-3xl">{name}</h1>
           <div className="mt-2">
-            <RatingStars value={rating} showValue size={17} />
+            {rating > 0 ? (
+              <RatingStars value={rating} showValue size={17} />
+            ) : (
+              <span className="text-sm text-ink-muted">Încă neevaluat</span>
+            )}
           </div>
           <div className="mt-3 flex flex-wrap gap-1.5">
             {license ? (

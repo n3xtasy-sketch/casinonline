@@ -22,7 +22,11 @@ export function CasinoCard({ casino }: { casino: CasinoCardData }) {
           <div className="min-w-0">
             <h3 className="truncate text-base font-bold text-ink">{name}</h3>
             <div className="mt-1">
-              <RatingStars value={rating} showValue />
+              {rating > 0 ? (
+                <RatingStars value={rating} showValue />
+              ) : (
+                <span className="text-sm text-ink-muted">Încă neevaluat</span>
+              )}
             </div>
             {(license || badges?.length) ? (
               <div className="mt-2 flex flex-wrap gap-1.5">

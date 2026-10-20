@@ -71,6 +71,10 @@ export function faqPageSchema(items: { question: string; answer: string }[]) {
  * Editorial critic review of a casino operator, authored by CasinOnline.ro.
  * The rating is OUR editorial 0–5 star score (the one shown on the page) — not
  * aggregated user ratings, so no AggregateRating is emitted.
+ *
+ * Returns `null` when the editorial rating is missing or non-positive: an unrated
+ * casino has no valid Review (emitting `ratingValue: 0` under `worstRating: 1` is
+ * invalid structured data and we never fabricate a score).
  */
 export function casinoReviewSchema({
   name,
@@ -79,8 +83,9 @@ export function casinoReviewSchema({
 }: {
   name: string;
   path: string;
-  rating: number;
+  rating?: number | null;
 }) {
+  if (rating == null || rating <= 0) return null;
   return {
     "@context": "https://schema.org",
     "@type": "Review",

@@ -42,16 +42,17 @@ export default async function CasinoReviewPage({ params }: PageProps) {
     { label: casino.name },
   ];
 
+  // Editorial Review JSON-LD only when a real rating exists (null/0 → no Review).
+  const reviewSchema = casinoReviewSchema({
+    name: casino.name,
+    path: `/cazinouri-online/${slug}`,
+    rating: casino.rating,
+  });
+
   return (
     <div className="flex flex-col gap-8">
       <JsonLd data={breadcrumbSchema(crumbs)} />
-      <JsonLd
-        data={casinoReviewSchema({
-          name: casino.name,
-          path: `/cazinouri-online/${slug}`,
-          rating: casino.rating,
-        })}
-      />
+      {reviewSchema ? <JsonLd data={reviewSchema} /> : null}
       {casino.faq?.length ? <JsonLd data={faqPageSchema(casino.faq)} /> : null}
       <Breadcrumbs items={crumbs} />
 
