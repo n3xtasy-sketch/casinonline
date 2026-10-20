@@ -1,8 +1,74 @@
 /** Pure CSV-row validation + mapping for import (no server deps — unit-testable). */
 
-import { LIST_SEP, type EntityDesc, type LookupKey } from "@/lib/io/entities";
+import { LIST_SEP, type EntityDesc, type JsonFieldDef, type LookupKey } from "@/lib/io/entities";
+import { slugify, isSafeInternalPath } from "@/lib/guide-format";
 
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+const isText = (v: unknown): v is string => typeof v === "string" && v.trim() !== "";
+
+/**
+ * Validate a parsed JSON value against the shape expected for a jsonb column.
+ * Returns the normalized value, or an error message (null = ok). Strict: wrong
+ * shape / unsafe internal links / bad levels are rejected with a clear message.
+ */
+function validateJsonField(
+  kind: JsonFieldDef["kind"],
+  parsed: unknown,
+): { value: unknown; error: string | null } {
+  if (!Array.isArray(parsed)) return { value: null, error: "trebuie să fie o listă JSON ([...])" };
+  const items = parsed as Record<string, unknown>[];
+
+  if (kind === "faq") {
+    const out: { question: string; answer: string }[] = [];
+    for (let i = 0; i < items.length; i++) {
+      const o = items[i];
+      if (!o || typeof o !== "object" || !isText(o.question) || !isText(o.answer))
+        return { value: null, error: `elementul ${i + 1} are nevoie de "question" și "answer" (text)` };
+      out.push({ question: o.question.trim(), answer: o.answer.trim() });
+    }
+    return { value: out, error: null };
+  }
+
+  if (kind === "related_links") {
+    const out: { label: string; href: string }[] = [];
+    const bad: string[] = [];
+    for (let i = 0; i < items.length; i++) {
+      const o = items[i];
+      if (!o || typeof o !== "object" || !isText(o.label) || !isText(o.href))
+        return { value: null, error: `elementul ${i + 1} are nevoie de "label" și "href" (text)` };
+      if (!isSafeInternalPath(o.href)) { bad.push(o.href); continue; }
+      out.push({ label: o.label.trim(), href: o.href.trim() });
+    }
+    if (bad.length) return { value: null, error: `href-uri non-interne (doar căi "/..."): ${bad.join(", ")}` };
+    return { value: out, error: null };
+  }
+
+  // sections
+  const out: { id: string; heading: string; level: 2 | 3; body: string[] }[] = [];
+  const usedIds = new Set<string>();
+  for (let i = 0; i < items.length; i++) {
+    const o = items[i];
+    if (!o || typeof o !== "object" || !isText(o.heading))
+      return { value: null, error: `secțiunea ${i + 1}: lipsește "heading" (text)` };
+    if (o.level !== 2 && o.level !== 3)
+      return { value: null, error: `secțiunea ${i + 1}: "level" trebuie 2 sau 3` };
+    if (!Array.isArray(o.body) || !o.body.every((b) => typeof b === "string"))
+      return { value: null, error: `secțiunea ${i + 1}: "body" trebuie listă de paragrafe (text)` };
+    const base = slugify(o.heading) || "sectiune";
+    let id = isText(o.id) ? o.id.trim() : base;
+    let n = 2;
+    while (usedIds.has(id)) id = `${base}-${n++}`;
+    usedIds.add(id);
+    out.push({
+      id,
+      heading: o.heading.trim(),
+      level: o.level,
+      body: (o.body as string[]).map((b) => b.trim()).filter(Boolean),
+    });
+  }
+  return { value: out, error: null };
+}
 
 export type RowLevel = "valid" | "warning" | "error";
 
@@ -113,6 +179,25 @@ export function buildRows(
         else ids.push(id);
       }
       relations.push({ junction: m.junction, selfCol: m.selfCol, otherCol: m.otherCol, ids });
+    }
+
+    // jsonb columns supplied as JSON strings in the CSV (e.g. guide sections/faq).
+    for (const jf of desc.jsonFields ?? []) {
+      const raw = (row[jf.col] ?? "").trim();
+      if (!raw) {
+        dbRow[jf.col] = [];
+        continue;
+      }
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        err(`${jf.col}: JSON invalid`);
+        continue;
+      }
+      const res = validateJsonField(jf.kind, parsed);
+      if (res.error) err(`${jf.col}: ${res.error}`);
+      else dbRow[jf.col] = res.value;
     }
 
     if (desc.key === "casinos") dbRow.offer_url = `/go/${slug}`;

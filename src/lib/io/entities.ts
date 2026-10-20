@@ -39,6 +39,11 @@ export interface M2mDef {
   otherCol: string;
   lookup: LookupKey;
 }
+/** A jsonb column importable as a JSON string in the CSV (validated by shape). */
+export interface JsonFieldDef {
+  col: string; // CSV column == DB column (jsonb)
+  kind: "sections" | "faq" | "related_links";
+}
 
 export type LookupKey =
   | "providers"
@@ -60,6 +65,8 @@ export interface EntityDesc {
   fields: FieldDef[]; // scalar (excludes slug, which is always first/required)
   fks: FkDef[];
   m2m: M2mDef[];
+  /** jsonb columns importable as JSON strings in the CSV (shape-validated). */
+  jsonFields?: JsonFieldDef[];
   /** structured fields included only in JSON export (never CSV). */
   jsonExtra: string[];
 }
@@ -218,6 +225,11 @@ const guides: EntityDesc = {
   ],
   fks: [{ col: "category_slug", db: "category_id", lookup: "guide_categories", required: true }],
   m2m: [],
+  jsonFields: [
+    { col: "sections", kind: "sections" },
+    { col: "faq", kind: "faq" },
+    { col: "related_links", kind: "related_links" },
+  ],
   jsonExtra: ["faq", "sections", "related_links", "status"],
 };
 
@@ -230,13 +242,14 @@ export const ENTITY_DESCRIPTORS: Record<Exclude<IoEntity, "affiliate_links">, En
   guides,
 };
 
-/** Ordered CSV header for an entity (slug first, then fields, fks, m2m). */
+/** Ordered CSV header for an entity (slug first, then fields, fks, m2m, jsonFields). */
 export function csvColumns(d: EntityDesc): string[] {
   return [
     "slug",
     ...d.fields.map((f) => f.col),
     ...d.fks.map((f) => f.col),
     ...d.m2m.map((m) => m.col),
+    ...(d.jsonFields ?? []).map((j) => j.col),
   ];
 }
 

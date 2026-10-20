@@ -180,6 +180,7 @@ export async function exportEntity(
     ...desc.fields.map((f) => f.db ?? f.col),
     ...desc.fks.map((f) => f.db),
     ...desc.jsonExtra.filter((j) => j !== "status"),
+    ...(desc.jsonFields ?? []).map((j) => j.col),
   ];
   let q = db.from(desc.table).select([...new Set(scalarCols)].join(", ")).order("slug");
   if (filters.status === "draft" || filters.status === "published" || filters.status === "archived") {
@@ -219,6 +220,9 @@ export async function exportEntity(
     }
     for (const m of desc.m2m) {
       o[m.col] = (m2mMap.get(m.col)!.get(r.id as string) ?? []).join(LIST_SEP);
+    }
+    for (const jf of desc.jsonFields ?? []) {
+      o[jf.col] = JSON.stringify(r[jf.col] ?? []); // CSV round-trip as JSON string
     }
     if (format === "json") {
       o.status = r.status;
