@@ -1,0 +1,33 @@
+slug,field,value,source,verified_on,note
+superbet,license,L1203785W001253,listă owner + footer superbet.ro,2026-10-20,oficial (coincide cu lista owner); partajat cu Napoleon
+superbet,operator,Superbet Entertainment Limited,https://superbet.ro/wiki/ai-instructions,2026-10-20,pagină legală oficială
+superbet,intro,original,manual,2026-10-20,rating/review editoriale lăsate owner-ului
+betano,license,L1170664W000663,listă owner,2026-10-20,oficial (lista owner); confirmă codul pe care research-ul îl văzuse inconsistent
+betano,operator,Kaizen Gaming International Limited,https://onjn.gov.ro/licentiati-clasa-i/,2026-10-20,registru ONJN
+betano,intro,original,manual,2026-10-20,
+netbet,license,L1260651W001771,https://casino.netbet.ro/,2026-10-20,"REÎNNOIT 2026 — cod confirmat în footer oficial (raw HTML) netbet.ro + casino.netbet.ro, valabil 2026–2036; înlocuiește vechiul L1160651W000195 din lista owner"
+netbet,operator,NetBet Enterprises Ltd,https://casino.netbet.ro/,2026-10-20,footer oficial
+netbet,min_deposit,20 RON,https://casino.netbet.ro/,2026-10-20,footer casino oficial
+netbet,intro,original,manual,2026-10-20,
+unibet,license,L1260657W001792,https://www.unibet.ro/,2026-10-20,"REÎNNOIT 2026 — cod confirmat în footer oficial (raw HTML) unibet.ro, valabil 2026–2036; vechiul L1160657W000330 a expirat 31.08.2026"
+unibet,operator,Unibet (Germany) Limited,https://www.unibet.ro/general-info/terms,2026-10-20,T&C oficial; Kindred/FDJ
+unibet,intro,original,manual,2026-10-20,
+winner,license,L1234166W001528,listă owner,2026-10-20,"oficial (lista owner); licență PARTAJATĂ cu 888, Lady, Hot Spins, Mr Play etc. (New Gambling Solutions)"
+winner,operator,New Gambling Solutions S.R.L.,https://onjn.gov.ro/licentiati-clasa-i/,2026-10-20,registru ONJN
+winner,intro,original,manual,2026-10-20,
+mr-bit,license,L1213854W001295,listă owner,2026-10-20,"oficial (lista owner); partajat cu Frank, SlotV (Avento MT)"
+mr-bit,operator,Avento MT Limited,https://onjn.gov.ro/licentiati-clasa-i/,2026-10-20,registru ONJN
+mr-bit,intro,original,manual,2026-10-20,
+888casino,license,L1234166W001528,listă owner,2026-10-20,oficial (lista owner) — ACEEAȘI licență ca Winner (același operator); rezolvă semnalul „licență neconfirmată”
+888casino,operator,New Gambling Solutions SRL (brand Evoke),https://en.wikipedia.org/wiki/Evoke_plc,2026-10-20,atribuire operator din sept. 2025
+888casino,domain_relation,888casino.ro → 301 → www.888.ro,"observat direct azi (curl)",2026-10-20,"888casino.ro redirecționează la 888.ro; licența L1234166W001528 e partajată cu Winner (New Gambling Solutions); footer 888.ro JS-rendered, operator/cod reconfirmate din lista owner + registrul ONJN al Winner"
+888casino,intro,original,manual,2026-10-20,
+winmasters,license,L1160650W000194,listă owner,2026-10-20,"oficial (lista owner); partajat cu PariuriPlus, King Casino, 12xbet (Level Up Interactive)"
+winmasters,operator,Level Up Interactive Limited,https://onjn.gov.ro/licentiati-clasa-i/,2026-10-20,registru ONJN
+winmasters,intro,original,manual,2026-10-20,
+vlad-cazino,license,L1260657W001792,https://www.vladcazino.ro/,2026-10-20,"REÎNNOIT 2026 — cod confirmat în footer oficial (raw HTML) vladcazino.ro; aceeași licență ca Unibet (Unibet Germany Ltd)"
+vlad-cazino,operator,Unibet (Germany) Limited,https://www.vladcazino.ro/,2026-10-20,footer oficial
+vlad-cazino,intro,original,manual,2026-10-20,
+maxbet,license,L1160661W000651,listă owner,2026-10-20,oficial (lista owner); T&C maxbet.ro confirmă licențiere ONJN
+maxbet,operator,Maxbet Malta Limited,https://www.maxbet.ro/en/termsconditions/general,2026-10-20,T&C oficial
+maxbet,intro,original,manual,2026-10-20,
