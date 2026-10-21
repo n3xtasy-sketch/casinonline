@@ -4,6 +4,10 @@ import { LIST_SEP, type EntityDesc, type JsonFieldDef, type LookupKey } from "@/
 import { slugify, isSafeInternalPath } from "@/lib/guide-format";
 
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Sentinel: intentionally clear a value on update (only where allowed; never on required fields). */
+export const CLEAR_SENTINEL = "__CLEAR__";
 
 const isText = (v: unknown): v is string => typeof v === "string" && v.trim() !== "";
 
@@ -72,16 +76,43 @@ function validateJsonField(
 
 export type RowLevel = "valid" | "warning" | "error";
 
+/** CREATE = legacy create-only; UPSERT = identify existing by id→slug and update in place. */
+export type ImportMode = "create" | "upsert";
+
+export type RowOperation = "create" | "update" | "skip";
+
 export interface RowResult {
   line: number;
   slug: string;
   level: RowLevel;
   messages: string[];
+  operation?: RowOperation;
+}
+
+export interface Relation {
+  col: string; // m2m CSV column (for diff/change tracing)
+  junction: string;
+  selfCol: string;
+  otherCol: string;
+  ids: string[];
+  /** true (update): delete this record's existing junction rows before inserting the new set. */
+  replace: boolean;
 }
 
 export interface BuiltRow extends RowResult {
+  operation: RowOperation;
+  /** id of the existing record to update (null on create / skip). */
+  targetId: string | null;
+  /** create → full insert row; update → patch of only the provided columns. */
   dbRow: Record<string, unknown>;
-  relations: { junction: string; selfCol: string; otherCol: string; ids: string[] }[];
+  relations: Relation[];
+}
+
+/** Minimal projection of an existing DB record, used to identify upsert targets. */
+export interface ExistingRecord {
+  id: string;
+  slug: string;
+  status?: string | null;
 }
 
 export type SlugMaps = Map<LookupKey, Map<string, string>>;
@@ -104,9 +135,18 @@ export function buildRows(
   desc: EntityDesc,
   rows: Record<string, string>[],
   slugToId: SlugMaps,
-  existingSlugs: Set<string>,
+  existing: ExistingRecord[],
+  mode: ImportMode = "create",
 ): BuiltRow[] {
-  const seen = new Set<string>();
+  const byId = new Map<string, ExistingRecord>();
+  const bySlug = new Map<string, ExistingRecord>();
+  for (const e of existing) {
+    byId.set(e.id, e);
+    bySlug.set(e.slug, e);
+  }
+  const seenSlugs = new Set<string>();
+  const seenTargets = new Set<string>();
+
   return rows.map((row, i) => {
     const line = i + 2; // header is line 1
     const messages: string[] = [];
@@ -120,25 +160,104 @@ export function buildRows(
       if (level !== "error") level = "warning";
     };
 
+    const idRaw = (row.id ?? "").trim();
     const slug = (row.slug ?? "").trim().toLowerCase();
-    const dbRow: Record<string, unknown> = { status: "draft" };
 
-    if (!slug) err("slug lipsă");
-    else if (!SLUG_RE.test(slug)) err("slug invalid (doar litere mici, cifre, cratime)");
-    else if (seen.has(slug)) err("slug duplicat în fișier");
-    else if (existingSlugs.has(slug)) err("slug există deja (create-only)");
-    if (slug) seen.add(slug);
-    dbRow.slug = slug;
+    // ── Identify target ───────────────────────────────────────────────
+    // CREATE: legacy create-only (id ignored; existing slug is an error).
+    // UPSERT: match by stable id first, then slug; refuse ambiguous rows.
+    let operation: "create" | "update" = "create";
+    let target: ExistingRecord | null = null;
+
+    if (mode === "create") {
+      if (!slug) err("slug lipsă");
+      else if (!SLUG_RE.test(slug)) err("slug invalid (doar litere mici, cifre, cratime)");
+      else if (seenSlugs.has(slug)) err("slug duplicat în fișier");
+      else if (bySlug.has(slug)) err("slug există deja (create-only)");
+      if (slug) seenSlugs.add(slug);
+    } else {
+      let matchById: ExistingRecord | undefined;
+      let matchBySlug: ExistingRecord | undefined;
+      let hardStop = false;
+
+      if (idRaw) {
+        if (!UUID_RE.test(idRaw)) {
+          err("id invalid (nu e UUID)");
+          hardStop = true;
+        } else {
+          matchById = byId.get(idRaw);
+          if (!matchById) {
+            err(`id „${idRaw}" inexistent (nu creez/modific un id necunoscut)`);
+            hardStop = true;
+          }
+        }
+      }
+
+      if (!slug) {
+        if (!idRaw) err("slug lipsă");
+      } else if (!SLUG_RE.test(slug)) {
+        err("slug invalid (doar litere mici, cifre, cratime)");
+      } else if (seenSlugs.has(slug)) {
+        err("slug duplicat în fișier");
+      } else {
+        matchBySlug = bySlug.get(slug);
+      }
+      if (slug) seenSlugs.add(slug);
+
+      if (!hardStop) {
+        if (matchById && matchBySlug && matchById.id !== matchBySlug.id) {
+          err("id și slug indică înregistrări diferite (ambiguu) — rând oprit");
+          hardStop = true;
+        } else {
+          target = matchById ?? matchBySlug ?? null;
+          operation = target ? "update" : "create";
+          if (target) {
+            if (seenTargets.has(target.id)) {
+              err("aceeași înregistrare apare de două ori în fișier");
+              hardStop = true;
+            } else {
+              seenTargets.add(target.id);
+            }
+          }
+        }
+      }
+
+      if (hardStop) {
+        return { line, slug: slug || target?.slug || "", level, messages, operation: "skip", targetId: null, dbRow: {}, relations: [] };
+      }
+    }
+
+    const dbRow: Record<string, unknown> = {};
+    const create = operation === "create";
+    const sentinel = mode === "upsert"; // __CLEAR__ is only special in upsert mode
+    if (create) {
+      dbRow.status = "draft"; // new records always enter as draft
+      dbRow.slug = slug;
+    } else if (idRaw && slug && target && slug !== target.slug) {
+      // rename is allowed only via a stable id match, and only onto a free slug
+      const other = bySlug.get(slug);
+      if (other && other.id !== target.id) err(`slug nou „${slug}" aparține altei înregistrări`);
+      else {
+        dbRow.slug = slug;
+        warn(`redenumire slug: ${target.slug} → ${slug}`);
+      }
+    }
 
     for (const f of desc.fields) {
       const raw = (row[f.col] ?? "").trim();
       const dbc = f.db ?? f.col;
-      if (f.required && !raw) {
-        err(`${f.col} lipsă (obligatoriu)`);
+      if (sentinel && raw === CLEAR_SENTINEL) {
+        if (f.required) err(`${f.col}: nu poate fi golit (obligatoriu)`);
+        else if (create) err(`${f.col}: __CLEAR__ valid doar la actualizare`);
+        else dbRow[dbc] = f.type === "list" ? [] : null;
         continue;
       }
       if (!raw) {
-        dbRow[dbc] = f.type === "list" ? [] : null;
+        // create → set default; update → keep existing (omit from patch)
+        if (create) {
+          if (f.required) err(`${f.col} lipsă (obligatoriu)`);
+          else dbRow[dbc] = f.type === "list" ? [] : null;
+        }
         continue;
       }
       if (f.type === "int" || f.type === "float") {
@@ -156,10 +275,19 @@ export function buildRows(
     }
 
     for (const fk of desc.fks) {
-      const raw = (row[fk.col] ?? "").trim().toLowerCase();
-      if (!raw) {
-        if (fk.required) err(`${fk.col} lipsă (obligatoriu)`);
+      const rawOrig = (row[fk.col] ?? "").trim();
+      const raw = rawOrig.toLowerCase();
+      if (sentinel && rawOrig === CLEAR_SENTINEL) {
+        if (fk.required) err(`${fk.col}: nu poate fi golit (obligatoriu)`);
+        else if (create) err(`${fk.col}: __CLEAR__ valid doar la actualizare`);
         else dbRow[fk.db] = null;
+        continue;
+      }
+      if (!raw) {
+        if (create) {
+          if (fk.required) err(`${fk.col} lipsă (obligatoriu)`);
+          else dbRow[fk.db] = null;
+        }
         continue;
       }
       const id = slugToId.get(fk.lookup)?.get(raw);
@@ -167,10 +295,15 @@ export function buildRows(
       else dbRow[fk.db] = id;
     }
 
-    const relations: BuiltRow["relations"] = [];
+    const relations: Relation[] = [];
     for (const m of desc.m2m) {
       const raw = (row[m.col] ?? "").trim();
-      if (!raw) continue;
+      if (sentinel && raw === CLEAR_SENTINEL) {
+        if (create) err(`${m.col}: __CLEAR__ valid doar la actualizare`);
+        else relations.push({ col: m.col, junction: m.junction, selfCol: m.selfCol, otherCol: m.otherCol, ids: [], replace: true });
+        continue;
+      }
+      if (!raw) continue; // create → no relations; update → leave untouched
       const slugs = raw.split(LIST_SEP).map((x) => x.trim().toLowerCase()).filter(Boolean);
       const ids: string[] = [];
       for (const sg of slugs) {
@@ -178,14 +311,19 @@ export function buildRows(
         if (!id) warn(`${m.col}: „${sg}" inexistent (relație omisă)`);
         else ids.push(id);
       }
-      relations.push({ junction: m.junction, selfCol: m.selfCol, otherCol: m.otherCol, ids });
+      relations.push({ col: m.col, junction: m.junction, selfCol: m.selfCol, otherCol: m.otherCol, ids, replace: !create });
     }
 
     // jsonb columns supplied as JSON strings in the CSV (e.g. guide sections/faq).
     for (const jf of desc.jsonFields ?? []) {
       const raw = (row[jf.col] ?? "").trim();
+      if (sentinel && raw === CLEAR_SENTINEL) {
+        if (create) err(`${jf.col}: __CLEAR__ valid doar la actualizare`);
+        else dbRow[jf.col] = [];
+        continue;
+      }
       if (!raw) {
-        dbRow[jf.col] = [];
+        if (create) dbRow[jf.col] = [];
         continue;
       }
       let parsed: unknown;
@@ -200,12 +338,38 @@ export function buildRows(
       else dbRow[jf.col] = res.value;
     }
 
-    if (desc.key === "casinos") dbRow.offer_url = `/go/${slug}`;
-    if (desc.key === "bonuses") {
-      const cslug = (row.casino_slug ?? "").trim().toLowerCase();
-      dbRow.claim_url = cslug ? `/go/${cslug}` : null;
+    // Derived link columns: on create always; on update only when the source changed.
+    if (create) {
+      if (desc.key === "casinos") dbRow.offer_url = `/go/${slug}`;
+      if (desc.key === "bonuses") {
+        const cslug = (row.casino_slug ?? "").trim().toLowerCase();
+        dbRow.claim_url = cslug ? `/go/${cslug}` : null;
+      }
+    } else {
+      if (desc.key === "casinos" && typeof dbRow.slug === "string") dbRow.offer_url = `/go/${dbRow.slug}`;
+      if (desc.key === "bonuses") {
+        const craw = (row.casino_slug ?? "").trim();
+        if (craw && craw !== CLEAR_SENTINEL) dbRow.claim_url = `/go/${craw.toLowerCase()}`;
+      }
     }
 
-    return { line, slug, level, messages, dbRow, relations };
+    // Status changes are not applied via import (Phase 1): surface, don't mutate.
+    if (!create) {
+      const statusRaw = (row.status ?? "").trim();
+      if (statusRaw && target?.status && statusRaw !== target.status) {
+        warn(`status „${statusRaw}" ignorat (schimbarea statusului se face din Admin, nu la import)`);
+      }
+    }
+
+    return {
+      line,
+      slug: slug || target?.slug || "",
+      level,
+      messages,
+      operation,
+      targetId: target?.id ?? null,
+      dbRow,
+      relations,
+    };
   });
 }

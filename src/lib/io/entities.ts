@@ -242,14 +242,21 @@ export const ENTITY_DESCRIPTORS: Record<Exclude<IoEntity, "affiliate_links">, En
   guides,
 };
 
-/** Ordered CSV header for an entity (slug first, then fields, fks, m2m, jsonFields). */
+/**
+ * Ordered CSV header for an entity. `id` first (stable upsert key — blank on
+ * create, filled on export), then slug, fields, fks, m2m, jsonFields, and
+ * `status` last. `id` is used only in upsert mode; `status` is export + read
+ * (dry-run signal) but NEVER written by import — status changes stay in Admin.
+ */
 export function csvColumns(d: EntityDesc): string[] {
   return [
+    "id",
     "slug",
     ...d.fields.map((f) => f.col),
     ...d.fks.map((f) => f.col),
     ...d.m2m.map((m) => m.col),
     ...(d.jsonFields ?? []).map((j) => j.col),
+    "status",
   ];
 }
 
