@@ -174,3 +174,12 @@ CasinoCard & tabele comparative · CasinoReview (overview, facts, bonus detaliat
 
 ## Editare duală (CSV + Admin)
 Aceleași tabele, aceleași reguli (draft implicit, gate publicare, conversie rating, jurnalizare). CSV = bulk; `BonusForm`/formularele Admin = editare rapidă a unui singur rând. Câmpurile noi se adaugă în **ambele** (descriptor import + formular Admin), ideal cu validare comună.
+
+## Faza 2 — Bonusuri (implementat)
+Câmpuri noi `bonuses` (aditive, nullable, fără DEFAULT, fără backfill): `amount` text · `spin_value` numeric (RON, ≥0) · `max_win` numeric (RON, ≥0) · `eligible_slots` jsonb (listă; NULL≠[]) · `wagering_multiplier` numeric (≥0; **0=fără rulaj, NULL=necunoscut**) · `wagering_basis` text · `kyc_required` boolean (**false≠NULL**) · `terms_url` text(URL) · `verified_at` date · `expires_at` date · `reward_stages` jsonb (NULL≠[]). `wagering` și `validity` text rămân editoriale. Fără coloane SEO (centralizat în `seo_metadata`).
+
+**Monedă:** o singură monedă de site, explicită — `MONEY_CURRENCY="RON"` în `src/lib/money.ts` (`formatMoney`), fără coloană `currency`. `spin_value`/`max_win` = RON; `wagering_multiplier` = multiplicator, nu bani.
+
+**`reward_stages` (jsonb, opțional, editor vizual în Admin):** array de tranșe; per tranșă `label`(obligatoriu) + opțional `amount`(str) `free_spins`(int≥0) `spin_value`(num≥0) `wagering_multiplier`(num≥0) `wagering_basis`(str) `trigger`(str) `within`(str) `note`(str). Validat la import (CSV = JSON în celulă) și în Admin.
+
+Migrări: `0026` (coloane + CHECK ≥0 pe spin_value/max_win/wagering_multiplier; `free_spins` neatins) + `0027` (whitelist RPC `bonuses`). Semantică CSV păstrată: gol=păstrează, `__CLEAR__`=NULL, status read-only, nou=draft, atomic per rând.

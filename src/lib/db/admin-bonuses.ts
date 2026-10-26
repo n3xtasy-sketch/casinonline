@@ -3,17 +3,41 @@ import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import type { Option } from "@/lib/db/admin-casinos";
 import type { ContentStatus } from "@/lib/content-status";
 
+/** One reward tranche (reward_stages jsonb item). label required; rest optional. */
+export interface RewardStage {
+  label: string;
+  amount?: string;
+  free_spins?: number;
+  spin_value?: number;
+  wagering_multiplier?: number;
+  wagering_basis?: string;
+  trigger?: string;
+  within?: string;
+  note?: string;
+}
+
 export interface BonusEditData {
   id: string;
   slug: string;
   casinoId: string;
   bonusTypeId: string;
   offer: string;
+  amount: string;
   freeSpins: string;
+  spinValue: string;
+  maxWin: string;
+  eligibleSlots: string[];
   wagering: string;
+  wageringMultiplier: string;
+  wageringBasis: string;
   minDeposit: string;
   validity: string;
   code: string;
+  kycRequired: "" | "true" | "false";
+  termsUrl: string;
+  verifiedAt: string;
+  expiresAt: string;
+  rewardStages: RewardStage[];
   intro: string;
   terms: string[];
   pros: string[];
@@ -93,11 +117,22 @@ interface EditRow {
   casino_id: string;
   bonus_type_id: string | null;
   offer: string;
+  amount: string | null;
   free_spins: number | null;
+  spin_value: number | null;
+  max_win: number | null;
+  eligible_slots: string[] | null;
   wagering: string | null;
+  wagering_multiplier: number | null;
+  wagering_basis: string | null;
   min_deposit: string | null;
   validity: string | null;
   code: string | null;
+  kyc_required: boolean | null;
+  terms_url: string | null;
+  verified_at: string | null;
+  expires_at: string | null;
+  reward_stages: RewardStage[] | null;
   intro: string | null;
   terms: string[] | null;
   pros: string[] | null;
@@ -107,7 +142,7 @@ interface EditRow {
 }
 
 const EDIT_SELECT =
-  "id, slug, casino_id, bonus_type_id, offer, free_spins, wagering, min_deposit, validity, code, intro, terms, pros, cons, how_to_claim, faq";
+  "id, slug, casino_id, bonus_type_id, offer, amount, free_spins, spin_value, max_win, eligible_slots, wagering, wagering_multiplier, wagering_basis, min_deposit, validity, code, kyc_required, terms_url, verified_at, expires_at, reward_stages, intro, terms, pros, cons, how_to_claim, faq";
 
 export async function getBonusEdit(slug: string): Promise<BonusEditData | null> {
   const db = await getSupabaseAuthClient();
@@ -121,11 +156,22 @@ export async function getBonusEdit(slug: string): Promise<BonusEditData | null> 
     casinoId: r.casino_id,
     bonusTypeId: r.bonus_type_id ?? "",
     offer: r.offer ?? "",
+    amount: r.amount ?? "",
     freeSpins: r.free_spins != null ? String(r.free_spins) : "",
+    spinValue: r.spin_value != null ? String(r.spin_value) : "",
+    maxWin: r.max_win != null ? String(r.max_win) : "",
+    eligibleSlots: r.eligible_slots ?? [],
     wagering: r.wagering ?? "",
+    wageringMultiplier: r.wagering_multiplier != null ? String(r.wagering_multiplier) : "",
+    wageringBasis: r.wagering_basis ?? "",
     minDeposit: r.min_deposit ?? "",
     validity: r.validity ?? "",
     code: r.code ?? "",
+    kycRequired: r.kyc_required == null ? "" : r.kyc_required ? "true" : "false",
+    termsUrl: r.terms_url ?? "",
+    verifiedAt: r.verified_at ?? "",
+    expiresAt: r.expires_at ?? "",
+    rewardStages: r.reward_stages ?? [],
     intro: r.intro ?? "",
     terms: r.terms ?? [],
     pros: r.pros ?? [],
