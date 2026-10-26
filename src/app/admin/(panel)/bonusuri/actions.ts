@@ -6,6 +6,7 @@ import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import { logActivity } from "@/lib/db/activity";
 import { applyStatusChange } from "@/lib/db/content-status";
 import { validateJsonField } from "@/lib/io/validate";
+import { PLACEMENT_VALUES } from "@/lib/affiliate-placements";
 import type { ContentStatus } from "@/lib/content-status";
 import type { BonusFormState } from "./types";
 
@@ -133,6 +134,84 @@ async function deriveClaimUrl(db: DB, casinoId: string, bonusSlug: string): Prom
   return cslug && bonusSlug ? `/go/${cslug}/${bonusSlug}` : null;
 }
 
+/* ── affiliate link assignment (Etapa 2) ───────────────────────────────────────
+ * The CTA link is chosen in the form via link_mode:
+ *   "main"     → affiliate_link_id = NULL (fall back to the casino's main link)
+ *   "existing" → affiliate_link_id = a chosen ACTIVE link of the SAME casino
+ *   "new"      → create a link inline + assign atomically via the 0031 RPC
+ * Same-casino is enforced at the DB (composite FK 0028) + re-checked server-side. */
+type Assignment =
+  | { mode: "main" }
+  | { mode: "existing"; id: string }
+  | { mode: "new"; url: string; placement: string; campaign: string | null };
+
+function parseAssignment(formData: FormData): { value: Assignment | null; error: string | null } {
+  const mode = String(formData.get("link_mode") ?? "main");
+  if (mode === "main") return { value: { mode: "main" }, error: null };
+  if (mode === "existing") {
+    const id = String(formData.get("affiliate_link_id") ?? "").trim();
+    if (!id) return { value: null, error: "Selectează un link existent sau alege linkul principal." };
+    return { value: { mode: "existing", id }, error: null };
+  }
+  if (mode === "new") {
+    const url = String(formData.get("new_link_url") ?? "").trim();
+    if (!/^https:\/\/\S+$/.test(url)) {
+      return { value: null, error: "URL link nou invalid — trebuie să înceapă cu https://" };
+    }
+    const placement = String(formData.get("new_link_placement") ?? "bonus_claim").trim();
+    if (!PLACEMENT_VALUES.includes(placement)) {
+      return { value: null, error: "Placement invalid pentru linkul nou." };
+    }
+    const campaign = String(formData.get("new_link_campaign") ?? "").trim() || null;
+    return { value: { mode: "new", url, placement, campaign }, error: null };
+  }
+  return { value: null, error: "Mod link invalid." };
+}
+
+/** Validate a chosen existing link: must exist, be the same casino, and be active. */
+async function validateExistingLink(db: DB, casinoId: string, id: string): Promise<string | null> {
+  const { data } = await db
+    .from("affiliate_links")
+    .select("casino_id, is_active")
+    .eq("id", id)
+    .maybeSingle();
+  const r = data as { casino_id: string; is_active: boolean } | null;
+  if (!r) return "Linkul selectat nu există.";
+  if (r.casino_id !== casinoId) return "Linkul selectat aparține altui cazino.";
+  if (!r.is_active) return "Linkul selectat este inactiv. Activează-l sau alege altul.";
+  return null;
+}
+
+/** Atomic inline create + assign via the 0031 RPC. Returns an error message or null. */
+async function assignNewLink(
+  db: DB,
+  bonusId: string,
+  casinoId: string,
+  link: { url: string; placement: string; campaign: string | null },
+): Promise<string | null> {
+  const { error } = await db.rpc("create_bonus_affiliate_link", {
+    p_bonus_id: bonusId,
+    p_casino_id: casinoId,
+    p_url: link.url,
+    p_placement: link.placement,
+    p_campaign: link.campaign,
+  });
+  return error ? error.message : null;
+}
+
+/** Live CTA preview: the resolver reflects the SAVED DB state (migration 0029). */
+export async function previewBonusCta(
+  casinoSlug: string,
+  bonusSlug: string,
+): Promise<{ url: string | null }> {
+  const db = await requireAdmin();
+  const { data } = await db.rpc("get_bonus_affiliate_url", {
+    p_casino_slug: casinoSlug,
+    p_bonus_slug: bonusSlug,
+  });
+  return { url: typeof data === "string" ? data : null };
+}
+
 function refresh() {
   // Bonus data drives /bonusuri-casino + homepage/sidebar (tag 'bonuses'),
   // and the casino cards embed the bonus offer/free_spins (tag 'casinos').
@@ -156,19 +235,45 @@ export async function createBonus(
   if (fieldErr) return { error: fieldErr };
   const stages = parseRewardStages(formData.get("reward_stages"));
   if (stages.error) return { error: stages.error };
+  const assign = parseAssignment(formData);
+  if (assign.error || !assign.value) return { error: assign.error ?? "Date link invalide." };
+  const a = assign.value;
+  if (a.mode === "existing") {
+    const linkErr = await validateExistingLink(db, fields.casino_id, a.id);
+    if (linkErr) return { error: linkErr };
+  }
 
   const { data: dup } = await db.from("bonuses").select("id").eq("slug", slug).maybeSingle();
   if (dup) return { error: "Există deja un bonus cu acest slug." };
 
   const claim_url = await deriveClaimUrl(db, fields.casino_id, slug);
+  // #8 save the bonus FIRST; mode "new" starts NULL and gets its link via the atomic RPC.
+  const affiliate_link_id = a.mode === "existing" ? a.id : null;
 
-  const { error } = await db.from("bonuses").insert({ slug, claim_url, ...fields, reward_stages: stages.value });
-  if (error) {
-    if (error.code === "23505") return { error: "Există deja un bonus cu acest slug." };
-    return { error: `Eroare la salvare: ${error.message}` };
+  const { data: inserted, error } = await db
+    .from("bonuses")
+    .insert({ slug, claim_url, affiliate_link_id, ...fields, reward_stages: stages.value })
+    .select("id")
+    .single();
+  if (error || !inserted) {
+    if (error?.code === "23505") return { error: "Există deja un bonus cu acest slug." };
+    return { error: `Eroare la salvare: ${error?.message ?? "necunoscută"}` };
+  }
+  const bonusId = (inserted as { id: string }).id;
+
+  await logActivity(db, { action: "bonus.create", entityType: "bonus", entityId: bonusId, label: fields.offer });
+
+  // #9 if the atomic link assignment fails, the bonus is already saved → say so explicitly.
+  if (a.mode === "new") {
+    const linkErr = await assignNewLink(db, bonusId, fields.casino_id, a);
+    if (linkErr) {
+      refresh();
+      return {
+        error: `Bonusul a fost salvat, dar asocierea linkului nou a eșuat: ${linkErr}. Bonusul folosește deocamdată linkul principal al cazinoului — editează-l pentru a reîncerca.`,
+      };
+    }
   }
 
-  await logActivity(db, { action: "bonus.create", entityType: "bonus", label: fields.offer });
   refresh();
   redirect("/admin/bonusuri");
 }
@@ -186,16 +291,40 @@ export async function updateBonus(
   if (fieldErr) return { error: fieldErr };
   const stages = parseRewardStages(formData.get("reward_stages"));
   if (stages.error) return { error: stages.error };
+  const assign = parseAssignment(formData);
+  if (assign.error || !assign.value) return { error: assign.error ?? "Date link invalide." };
+  const a = assign.value;
+  if (a.mode === "existing") {
+    const linkErr = await validateExistingLink(db, fields.casino_id, a.id);
+    if (linkErr) return { error: linkErr };
+  }
 
   // slug is read-only at edit → fetch it to build the per-bonus /go/<casino>/<bonus> link.
   const { data: cur } = await db.from("bonuses").select("slug").eq("id", id).maybeSingle();
   const bonusSlug = (cur as { slug: string } | null)?.slug ?? "";
   const claim_url = await deriveClaimUrl(db, fields.casino_id, bonusSlug);
 
-  const { error } = await db.from("bonuses").update({ claim_url, ...fields, reward_stages: stages.value }).eq("id", id);
+  // modes "main"/"existing" set affiliate_link_id directly; "new" is assigned via the RPC after.
+  const base = { claim_url, ...fields, reward_stages: stages.value };
+  const patch =
+    a.mode === "new" ? base : { ...base, affiliate_link_id: a.mode === "existing" ? a.id : null };
+
+  const { error } = await db.from("bonuses").update(patch).eq("id", id);
   if (error) return { error: `Eroare la salvare: ${error.message}` };
 
   await logActivity(db, { action: "bonus.update", entityType: "bonus", entityId: id, label: fields.offer });
+
+  // #9 bonus already updated; if the atomic link assignment fails, say so explicitly.
+  if (a.mode === "new") {
+    const linkErr = await assignNewLink(db, id, fields.casino_id, a);
+    if (linkErr) {
+      refresh();
+      return {
+        error: `Bonusul a fost salvat, dar asocierea linkului nou a eșuat: ${linkErr}. Asocierea anterioară a rămas neschimbată — reîncearcă.`,
+      };
+    }
+  }
+
   refresh();
   redirect("/admin/bonusuri");
 }
