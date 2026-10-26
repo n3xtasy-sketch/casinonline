@@ -2,8 +2,9 @@
 
 import { useActionState, useState } from "react";
 import type { BonusFormState } from "@/app/admin/(panel)/bonusuri/types";
-import type { BonusEditData, RewardStage } from "@/lib/db/admin-bonuses";
+import type { BonusEditData, RewardStage, AffiliateLinkChoice } from "@/lib/db/admin-bonuses";
 import type { Option } from "@/lib/db/admin-casinos";
+import { AffiliateLinkField } from "@/components/admin/AffiliateLinkField";
 
 interface Props {
   mode: "create" | "edit";
@@ -11,6 +12,9 @@ interface Props {
   initial?: BonusEditData | null;
   casinos: Option[];
   bonusTypes: Option[];
+  affiliateLinks: AffiliateLinkChoice[];
+  casinoSlugs: Record<string, string>;
+  previewAction: (casinoSlug: string, bonusSlug: string) => Promise<{ url: string | null }>;
 }
 
 const input =
@@ -130,8 +134,12 @@ function RewardStagesEditor({ initial }: { initial: RewardStage[] }) {
   );
 }
 
-export function BonusForm({ mode, action, initial, casinos, bonusTypes }: Props) {
+export function BonusForm({
+  mode, action, initial, casinos, bonusTypes, affiliateLinks, casinoSlugs, previewAction,
+}: Props) {
   const [state, formAction, pending] = useActionState<BonusFormState, FormData>(action, { error: null });
+  const [casinoId, setCasinoId] = useState(initial?.casinoId ?? "");
+  const [slug, setSlug] = useState(initial?.slug ?? "");
 
   return (
     <form action={formAction} className="flex max-w-3xl flex-col gap-5">
@@ -141,7 +149,9 @@ export function BonusForm({ mode, action, initial, casinos, bonusTypes }: Props)
         {mode === "edit" ? (
           <input readOnly defaultValue={initial?.slug} className={`${input} cursor-not-allowed text-ink-muted`} />
         ) : (
-          <input name="slug" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="ex. superbet-bonus-bun-venit" className={input} />
+          <input name="slug" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" value={slug}
+            onChange={(e) => setSlug(e.target.value.toLowerCase())}
+            placeholder="ex. superbet-bonus-bun-venit" className={input} />
         )}
       </label>
 
@@ -150,7 +160,8 @@ export function BonusForm({ mode, action, initial, casinos, bonusTypes }: Props)
         <div className="grid gap-5 sm:grid-cols-2">
           <label className="flex flex-col gap-1.5 text-sm">
             <span className="font-medium text-ink-secondary">Cazino *</span>
-            <select name="casino_id" required defaultValue={initial?.casinoId ?? ""} className={input}>
+            <select name="casino_id" required value={casinoId}
+              onChange={(e) => setCasinoId(e.target.value)} className={input}>
               <option value="" disabled>— alege cazino —</option>
               {casinos.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
             </select>
@@ -227,8 +238,22 @@ export function BonusForm({ mode, action, initial, casinos, bonusTypes }: Props)
         <Area label="FAQ (o linie: Întrebare | Răspuns)" name="faq" defaultValue={initial?.faq.map((f) => `${f.question} | ${f.answer}`).join("\n")} />
       </Section>
 
+      {/* G. Link de afiliere (CTA) */}
+      <Section title="G. Link de afiliere (CTA)">
+        <AffiliateLinkField
+          casinoId={casinoId}
+          casinoSlug={casinoSlugs[casinoId]}
+          bonusSlug={mode === "edit" ? initial?.slug ?? "" : slug}
+          links={affiliateLinks}
+          initialLinkId={initial?.affiliateLinkId ?? ""}
+          mode={mode}
+          previewAction={previewAction}
+        />
+      </Section>
+
       <p className="text-xs text-ink-muted">
-        Link-ul de revendicare se derivă automat din cazino: <code>/go/&lt;casino-slug&gt;</code>. SEO (meta/OG) se gestionează centralizat în <code>/admin/seo</code>.
+        CTA-ul public rezolvă prin <code>/go/&lt;casino-slug&gt;/&lt;bonus-slug&gt;</code>: link specific →
+        link principal → recenzie on-site. SEO (meta/OG) se gestionează în <code>/admin/seo</code>.
       </p>
 
       {state.error ? <p role="alert" className="text-sm font-medium text-danger">{state.error}</p> : null}

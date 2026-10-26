@@ -21,6 +21,7 @@ const CSV_COLUMNS = [
   { key: "url", label: "URL" },
   { key: "campaign", label: "Campanie" },
   { key: "isActive", label: "Activ" },
+  { key: "bonusesUsing", label: "Bonusuri care folosesc" },
 ];
 
 export function BulkAffiliateTable({ rows }: { rows: AffiliateLinkRow[] }) {
@@ -31,7 +32,11 @@ export function BulkAffiliateTable({ rows }: { rows: AffiliateLinkRow[] }) {
 
   const ids = [...selected];
   const allChecked = rows.length > 0 && selected.size === rows.length;
-  const csvRows = rows.map((r) => ({ ...r, placementLabel: placementLabel(r.placement) }));
+  const csvRows = rows.map((r) => ({
+    ...r,
+    placementLabel: placementLabel(r.placement),
+    bonusesUsing: r.bonuses.map((b) => b.slug).join(" | "),
+  }));
 
   function toggle(id: string) {
     setSelected((s) => {
@@ -87,7 +92,7 @@ export function BulkAffiliateTable({ rows }: { rows: AffiliateLinkRow[] }) {
       {result ? <BulkResultBanner result={result} onClose={() => setResult(null)} /> : null}
 
       <div className="overflow-x-auto rounded-md border border-border bg-surface">
-        <table className="w-full min-w-[860px] text-sm">
+        <table className="w-full min-w-[1000px] text-sm">
           <thead>
             <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-ink-muted">
               <th className="px-4 py-3">
@@ -97,6 +102,7 @@ export function BulkAffiliateTable({ rows }: { rows: AffiliateLinkRow[] }) {
               <th className="px-4 py-3 font-semibold">Placement</th>
               <th className="px-4 py-3 font-semibold">URL</th>
               <th className="px-4 py-3 font-semibold">Campanie</th>
+              <th className="px-4 py-3 font-semibold">Bonusuri</th>
               <th className="px-4 py-3 font-semibold">Status</th>
               <th className="px-4 py-3 font-semibold">Acțiuni</th>
             </tr>
@@ -116,6 +122,24 @@ export function BulkAffiliateTable({ rows }: { rows: AffiliateLinkRow[] }) {
                 <td className="px-4 py-3 text-ink-secondary">{placementLabel(l.placement)}</td>
                 <td className="max-w-[220px] truncate px-4 py-3 font-mono text-xs text-ink-muted" title={l.url}>{l.url}</td>
                 <td className="px-4 py-3 text-ink-secondary">{l.campaign || "—"}</td>
+                <td className="px-4 py-3">
+                  {l.bonuses.length === 0 ? (
+                    <span className="text-ink-muted">—</span>
+                  ) : (
+                    <div className="flex flex-wrap gap-1">
+                      {l.bonuses.map((b) => (
+                        <Link
+                          key={b.slug}
+                          href={`/admin/bonusuri/${b.slug}/edit`}
+                          title={b.offer}
+                          className="inline-flex max-w-[160px] items-center truncate rounded-full bg-elevated px-2 py-0.5 text-xs text-ink-secondary hover:text-ink"
+                        >
+                          {b.slug}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </td>
                 <td className="px-4 py-3">
                   <span className={l.isActive ? "inline-flex items-center rounded-full bg-accent/12 px-2 py-0.5 text-xs font-medium text-accent" : "inline-flex items-center rounded-full bg-ink-muted/15 px-2 py-0.5 text-xs font-medium text-ink-muted"}>
                     {l.isActive ? "Activ" : "Inactiv"}

@@ -44,6 +44,56 @@ export interface BonusEditData {
   cons: string[];
   howToClaim: string[];
   faq: { question: string; answer: string }[];
+  /** "" = use the casino's main link (NULL); otherwise the specific affiliate_links.id. */
+  affiliateLinkId: string;
+}
+
+/** One affiliate link, client-safe, for the bonus form picker. Includes inactive so the
+ *  form can warn when a bonus still points at a deactivated link. */
+export interface AffiliateLinkChoice {
+  id: string;
+  casinoId: string;
+  placement: string;
+  campaign: string | null;
+  url: string;
+  isActive: boolean;
+}
+
+/** All affiliate links (active + inactive) for the bonus picker — admin session (RLS = is_admin). */
+export async function listAffiliateLinkChoices(): Promise<AffiliateLinkChoice[]> {
+  const db = await getSupabaseAuthClient();
+  const { data, error } = await db
+    .from("affiliate_links")
+    .select("id, casino_id, placement, url, campaign, is_active")
+    .order("placement");
+  if (error) throw new Error(`listAffiliateLinkChoices: ${error.message}`);
+  return (
+    (data as unknown as {
+      id: string;
+      casino_id: string;
+      placement: string;
+      url: string;
+      campaign: string | null;
+      is_active: boolean;
+    }[]) ?? []
+  ).map((r) => ({
+    id: r.id,
+    casinoId: r.casino_id,
+    placement: r.placement,
+    campaign: r.campaign,
+    url: r.url,
+    isActive: r.is_active,
+  }));
+}
+
+/** id → slug for every casino (admin), for building /go/<casino>/<bonus> + preview. */
+export async function listCasinoSlugs(): Promise<Record<string, string>> {
+  const db = await getSupabaseAuthClient();
+  const { data, error } = await db.from("casinos").select("id, slug");
+  if (error) throw new Error(`listCasinoSlugs: ${error.message}`);
+  const out: Record<string, string> = {};
+  for (const r of (data as unknown as { id: string; slug: string }[]) ?? []) out[r.id] = r.slug;
+  return out;
 }
 
 export interface AdminBonusRow {
@@ -139,10 +189,11 @@ interface EditRow {
   cons: string[] | null;
   how_to_claim: string[] | null;
   faq: { question: string; answer: string }[] | null;
+  affiliate_link_id: string | null;
 }
 
 const EDIT_SELECT =
-  "id, slug, casino_id, bonus_type_id, offer, amount, free_spins, spin_value, max_win, eligible_slots, wagering, wagering_multiplier, wagering_basis, min_deposit, validity, code, kyc_required, terms_url, verified_at, expires_at, reward_stages, intro, terms, pros, cons, how_to_claim, faq";
+  "id, slug, casino_id, bonus_type_id, offer, amount, free_spins, spin_value, max_win, eligible_slots, wagering, wagering_multiplier, wagering_basis, min_deposit, validity, code, kyc_required, terms_url, verified_at, expires_at, reward_stages, intro, terms, pros, cons, how_to_claim, faq, affiliate_link_id";
 
 export async function getBonusEdit(slug: string): Promise<BonusEditData | null> {
   const db = await getSupabaseAuthClient();
@@ -178,5 +229,6 @@ export async function getBonusEdit(slug: string): Promise<BonusEditData | null> 
     cons: r.cons ?? [],
     howToClaim: r.how_to_claim ?? [],
     faq: r.faq ?? [],
+    affiliateLinkId: r.affiliate_link_id ?? "",
   };
 }
