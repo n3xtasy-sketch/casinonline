@@ -11,6 +11,11 @@ import {
   type ImportOutcome,
 } from "@/lib/db/io";
 import { ENTITY_DESCRIPTORS, IO_IMPORT_ENTITIES, type IoEntity } from "@/lib/io/entities";
+import type { ImportMode } from "@/lib/io/validate";
+
+function validMode(m: string): m is ImportMode {
+  return m === "create" || m === "upsert";
+}
 
 type DB = Awaited<ReturnType<typeof getSupabaseAuthClient>>;
 
@@ -32,23 +37,28 @@ function validEntity(e: string): e is Exclude<IoEntity, "affiliate_links"> {
 export async function dryRunAction(
   entity: string,
   csvText: string,
+  mode: string = "create",
 ): Promise<ImportReport | { error: string }> {
   await requireAdmin();
   if (!validEntity(entity)) return { error: "Entitate neimportabilă." };
+  if (!validMode(mode)) return { error: "Mod de import invalid." };
   if (csvText.length > MAX_IMPORT_BYTES) return { error: "Fișier prea mare (max 2 MB)." };
-  return dryRunImport(entity, csvText);
+  return dryRunImport(entity, csvText, mode);
 }
 
 export async function runImportAction(
   entity: string,
   csvText: string,
   hash: string,
+  mode: string = "create",
+  confirmPublished = false,
 ): Promise<ImportOutcome | { error: string }> {
   const db = await requireAdmin();
   if (!validEntity(entity)) return { error: "Entitate neimportabilă." };
+  if (!validMode(mode)) return { error: "Mod de import invalid." };
   if (csvText.length > MAX_IMPORT_BYTES) return { error: "Fișier prea mare (max 2 MB)." };
 
-  const res = await applyImport(entity, csvText, hash);
+  const res = await applyImport(entity, csvText, hash, mode, confirmPublished);
   if ("error" in res) return res;
 
   const desc = ENTITY_DESCRIPTORS[entity];
@@ -56,7 +66,14 @@ export async function runImportAction(
   await logActivity(db, {
     action: `import.${entity}`,
     entityType: entity,
-    metadata: { created: res.created, skipped: res.skipped, failed: res.failed },
+    metadata: {
+      mode,
+      created: res.created,
+      updated: res.updated,
+      unchanged: res.unchanged,
+      skipped: res.skipped,
+      failed: res.failed,
+    },
   });
   return res;
 }

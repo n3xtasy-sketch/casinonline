@@ -21,12 +21,19 @@ language plpgsql
 set search_path = pg_catalog, public
 as $$
 begin
-  if p_table not in ('casino_tags', 'casino_games', 'casino_payment_methods') then
-    raise exception 'sync_junction: table % not allowed', p_table using errcode = '42501';
-  end if;
-  if p_self_col not in ('casino_id', 'game_id', 'payment_method_id')
-     or p_other_col not in ('tag_id', 'game_id', 'payment_method_id', 'casino_id') then
-    raise exception 'sync_junction: column not allowed' using errcode = '42501';
+  -- Whitelist the FULL (table, self_col, other_col) combination — not each name
+  -- independently — so a valid-but-mismatched pair (e.g. casino_tags/game_id)
+  -- can never reach the dynamic SQL. These 5 triples are exactly what the Admin
+  -- forms and the CSV importer use.
+  if (p_table, p_self_col, p_other_col) not in (
+    ('casino_tags', 'casino_id', 'tag_id'),
+    ('casino_games', 'casino_id', 'game_id'),
+    ('casino_games', 'game_id', 'casino_id'),
+    ('casino_payment_methods', 'casino_id', 'payment_method_id'),
+    ('casino_payment_methods', 'payment_method_id', 'casino_id')
+  ) then
+    raise exception 'sync_junction: combination (%, %, %) not allowed', p_table, p_self_col, p_other_col
+      using errcode = '42501';
   end if;
 
   -- One transaction (function body): if the insert below raises, this delete is
