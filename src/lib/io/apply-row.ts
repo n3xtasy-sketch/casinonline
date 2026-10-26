@@ -11,8 +11,9 @@ import type { RowDiff } from "@/lib/io/diff";
  * whitelist in supabase/migrations/0022_import_apply_row_rpc.sql. `status` is
  * intentionally absent everywhere — status is never written by import. */
 export const WRITABLE_COLUMNS: Record<string, string[]> = {
-  casinos: ["slug", "offer_url", "name", "logo_url", "rating", "editor_score", "license",
-    "payout_speed", "withdrawal_time", "verified_at", "min_deposit", "kyc", "support", "mobile",
+  casinos: ["slug", "offer_url", "name", "year_launched", "logo_url", "rating", "editor_score", "license",
+    "license_verified_at", "license_source", "payout_speed", "withdrawal_time", "verified_at",
+    "verification_source", "min_deposit", "kyc", "support", "mobile",
     "intro", "editor_review", "pros", "cons"],
   bonuses: ["slug", "claim_url", "casino_id", "bonus_type_id", "offer", "free_spins", "wagering",
     "code", "min_deposit", "validity", "intro", "terms", "pros", "cons", "how_to_claim"],

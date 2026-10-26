@@ -28,13 +28,17 @@ export interface CasinoEditData {
   slug: string;
   name: string;
   status: CasinoStatus;
+  yearLaunched: string;
   logoUrl: string;
   rating: string;
   editorScore: string;
   license: string;
+  licenseVerifiedAt: string;
+  licenseSource: string;
   payoutSpeed: string;
   withdrawalTime: string;
   verifiedAt: string;
+  verificationSource: string;
   minDeposit: string;
   kyc: string;
   support: string;
@@ -117,13 +121,17 @@ interface EditRow {
   slug: string;
   name: string;
   status: CasinoStatus;
+  year_launched: number | null;
   logo_url: string | null;
   rating: number | null;
   editor_score: number | null;
   license: string | null;
+  license_verified_at: string | null;
+  license_source: string | null;
   payout_speed: string | null;
   withdrawal_time: string | null;
   verified_at: string | null;
+  verification_source: string | null;
   min_deposit: string | null;
   kyc: string | null;
   support: string | null;
@@ -140,7 +148,7 @@ interface EditRow {
 }
 
 const EDIT_SELECT =
-  "id, slug, name, status, logo_url, rating, editor_score, license, payout_speed, withdrawal_time, verified_at, min_deposit, kyc, support, mobile, intro, editor_review, pros, cons, faq, casino_tags(tag_id), casino_payment_methods(payment_method_id), casino_games(game_id), affiliate_links(url, placement)";
+  "id, slug, name, status, year_launched, logo_url, rating, editor_score, license, license_verified_at, license_source, payout_speed, withdrawal_time, verified_at, verification_source, min_deposit, kyc, support, mobile, intro, editor_review, pros, cons, faq, casino_tags(tag_id), casino_payment_methods(payment_method_id), casino_games(game_id), affiliate_links(url, placement)";
 
 /** Full editable casino (admin only) by slug, or null. */
 export async function getCasinoEdit(slug: string): Promise<CasinoEditData | null> {
@@ -157,13 +165,17 @@ export async function getCasinoEdit(slug: string): Promise<CasinoEditData | null
     slug: r.slug,
     name: r.name,
     status: r.status ?? "active",
+    yearLaunched: r.year_launched != null ? String(r.year_launched) : "",
     logoUrl: r.logo_url ?? "",
     rating: r.rating != null ? String(r.rating) : "",
     editorScore: r.editor_score != null ? String(r.editor_score) : "",
     license: r.license ?? "",
+    licenseVerifiedAt: r.license_verified_at ?? "",
+    licenseSource: r.license_source ?? "",
     payoutSpeed: r.payout_speed ?? "",
     withdrawalTime: r.withdrawal_time ?? "",
     verifiedAt: r.verified_at ?? "",
+    verificationSource: r.verification_source ?? "",
     minDeposit: r.min_deposit ?? "",
     kyc: r.kyc ?? "",
     support: r.support ?? "",

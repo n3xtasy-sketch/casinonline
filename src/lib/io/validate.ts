@@ -267,6 +267,9 @@ export function buildRows(
       } else if (f.type === "url") {
         if (!/^https?:\/\/\S+$/.test(raw)) err(`${f.col} nu e URL valid (http(s)://)`);
         else dbRow[dbc] = raw;
+      } else if (f.type === "date") {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) err(`${f.col} nu e dată validă (YYYY-MM-DD)`);
+        else dbRow[dbc] = raw;
       } else if (f.type === "list") {
         dbRow[dbc] = raw.split(LIST_SEP).map((x) => x.trim()).filter(Boolean);
       } else {

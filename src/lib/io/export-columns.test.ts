@@ -27,8 +27,10 @@ test("unknownColumns: a full export header has no unknown columns", () => {
 
 test("unknownColumns: flags columns the importer does not read", () => {
   const d = ENTITY_DESCRIPTORS.casinos;
-  const headers = [...csvColumns(d), "year_launched", "og_image", "Slug"];
-  assert.deepEqual(unknownColumns(d, headers), ["year_launched", "og_image", "Slug"]);
+  // og_image is SEO-centralized (seo_metadata), reward_stages is a bonuses field,
+  // "Slug" is a casing mistake — none are casinos import columns.
+  const headers = [...csvColumns(d), "og_image", "reward_stages", "Slug"];
+  assert.deepEqual(unknownColumns(d, headers), ["og_image", "reward_stages", "Slug"]);
 });
 
 test("unknownColumns: a trailing empty header is flagged", () => {

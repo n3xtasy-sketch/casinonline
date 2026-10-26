@@ -18,7 +18,7 @@ export const IO_IMPORT_ENTITIES: IoEntity[] = [
   "guides",
 ];
 
-export type FieldType = "string" | "int" | "float" | "url" | "list";
+export type FieldType = "string" | "int" | "float" | "url" | "list" | "date";
 
 export interface FieldDef {
   col: string; // CSV column name
@@ -79,13 +79,17 @@ const casinos: EntityDesc = {
   label: "Cazinouri",
   fields: [
     { col: "name", type: "string", required: true },
+    { col: "year_launched", type: "int" },
     { col: "logo_url", type: "url" },
     { col: "rating", type: "float" },
     { col: "editor_score", type: "float" },
     { col: "license", type: "string" },
+    { col: "license_verified_at", type: "date" },
+    { col: "license_source", type: "url" },
     { col: "payout_speed", type: "string" },
     { col: "withdrawal_time", type: "string" },
     { col: "verified_at", type: "string" },
+    { col: "verification_source", type: "url" },
     { col: "min_deposit", type: "string" },
     { col: "kyc", type: "string" },
     { col: "support", type: "string" },

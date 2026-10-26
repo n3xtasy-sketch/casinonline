@@ -1,1 +1,1 @@
-id,slug,name,year_launched,license,license_verified_at,license_source,logo_url,og_image,rating,editor_score,min_deposit,payout_speed,withdrawal_time,payment_method_slugs,kyc,support,mobile,verified_at,verification_source,intro,editor_review,pros,cons,tag_slugs,game_slugs,status
+id,slug,name,year_launched,license,license_verified_at,license_source,logo_url,rating,editor_score,min_deposit,payout_speed,withdrawal_time,payment_method_slugs,kyc,support,mobile,verified_at,verification_source,intro,editor_review,pros,cons,tag_slugs,game_slugs,status
