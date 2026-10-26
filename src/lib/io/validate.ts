@@ -16,12 +16,48 @@ const isText = (v: unknown): v is string => typeof v === "string" && v.trim() !=
  * Returns the normalized value, or an error message (null = ok). Strict: wrong
  * shape / unsafe internal links / bad levels are rejected with a clear message.
  */
-function validateJsonField(
+export function validateJsonField(
   kind: JsonFieldDef["kind"],
   parsed: unknown,
 ): { value: unknown; error: string | null } {
   if (!Array.isArray(parsed)) return { value: null, error: "trebuie să fie o listă JSON ([...])" };
   const items = parsed as Record<string, unknown>[];
+
+  if (kind === "reward_stages") {
+    const isNonNegNum = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v) && v >= 0;
+    const out: Record<string, unknown>[] = [];
+    for (let i = 0; i < items.length; i++) {
+      const o = items[i];
+      if (!o || typeof o !== "object" || !isText(o.label))
+        return { value: null, error: `tranșa ${i + 1}: lipsește "label" (text)` };
+      const s: Record<string, unknown> = { label: o.label.trim() };
+      if (o.amount != null && o.amount !== "") {
+        if (!isText(o.amount)) return { value: null, error: `tranșa ${i + 1}: "amount" trebuie text` };
+        s.amount = o.amount.trim();
+      }
+      if (o.free_spins != null && o.free_spins !== "") {
+        if (!Number.isInteger(o.free_spins) || (o.free_spins as number) < 0)
+          return { value: null, error: `tranșa ${i + 1}: "free_spins" trebuie întreg ≥ 0` };
+        s.free_spins = o.free_spins;
+      }
+      if (o.spin_value != null && o.spin_value !== "") {
+        if (!isNonNegNum(o.spin_value)) return { value: null, error: `tranșa ${i + 1}: "spin_value" trebuie număr ≥ 0` };
+        s.spin_value = o.spin_value;
+      }
+      if (o.wagering_multiplier != null && o.wagering_multiplier !== "") {
+        if (!isNonNegNum(o.wagering_multiplier)) return { value: null, error: `tranșa ${i + 1}: "wagering_multiplier" trebuie număr ≥ 0` };
+        s.wagering_multiplier = o.wagering_multiplier;
+      }
+      for (const k of ["wagering_basis", "trigger", "within", "note"] as const) {
+        if (o[k] != null && o[k] !== "") {
+          if (!isText(o[k])) return { value: null, error: `tranșa ${i + 1}: "${k}" trebuie text` };
+          s[k] = (o[k] as string).trim();
+        }
+      }
+      out.push(s);
+    }
+    return { value: out, error: null };
+  }
 
   if (kind === "faq") {
     const out: { question: string; answer: string }[] = [];
@@ -246,23 +282,26 @@ export function buildRows(
     for (const f of desc.fields) {
       const raw = (row[f.col] ?? "").trim();
       const dbc = f.db ?? f.col;
+      // empty default: non-nullable list → [], everything else (incl. nullable list) → null
+      const emptyVal = f.type === "list" && !f.nullable ? [] : null;
       if (sentinel && raw === CLEAR_SENTINEL) {
         if (f.required) err(`${f.col}: nu poate fi golit (obligatoriu)`);
         else if (create) err(`${f.col}: __CLEAR__ valid doar la actualizare`);
-        else dbRow[dbc] = f.type === "list" ? [] : null;
+        else dbRow[dbc] = emptyVal;
         continue;
       }
       if (!raw) {
         // create → set default; update → keep existing (omit from patch)
         if (create) {
           if (f.required) err(`${f.col} lipsă (obligatoriu)`);
-          else dbRow[dbc] = f.type === "list" ? [] : null;
+          else dbRow[dbc] = emptyVal;
         }
         continue;
       }
       if (f.type === "int" || f.type === "float") {
         const n = num(raw, f.type === "int");
         if (n === "err") err(`${f.col} nu e număr valid`);
+        else if (f.min != null && n != null && n < f.min) err(`${f.col} trebuie ≥ ${f.min}`);
         else dbRow[dbc] = n;
       } else if (f.type === "url") {
         if (!/^https?:\/\/\S+$/.test(raw)) err(`${f.col} nu e URL valid (http(s)://)`);
@@ -270,6 +309,11 @@ export function buildRows(
       } else if (f.type === "date") {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) err(`${f.col} nu e dată validă (YYYY-MM-DD)`);
         else dbRow[dbc] = raw;
+      } else if (f.type === "bool") {
+        const b = raw.toLowerCase();
+        if (b === "true") dbRow[dbc] = true;
+        else if (b === "false") dbRow[dbc] = false;
+        else err(`${f.col} trebuie „true" sau „false"`);
       } else if (f.type === "list") {
         dbRow[dbc] = raw.split(LIST_SEP).map((x) => x.trim()).filter(Boolean);
       } else {
@@ -320,13 +364,14 @@ export function buildRows(
     // jsonb columns supplied as JSON strings in the CSV (e.g. guide sections/faq).
     for (const jf of desc.jsonFields ?? []) {
       const raw = (row[jf.col] ?? "").trim();
+      const jsonEmpty = jf.nullable ? null : [];
       if (sentinel && raw === CLEAR_SENTINEL) {
         if (create) err(`${jf.col}: __CLEAR__ valid doar la actualizare`);
-        else dbRow[jf.col] = [];
+        else dbRow[jf.col] = jsonEmpty;
         continue;
       }
       if (!raw) {
-        if (create) dbRow[jf.col] = [];
+        if (create) dbRow[jf.col] = jsonEmpty;
         continue;
       }
       let parsed: unknown;

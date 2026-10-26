@@ -18,13 +18,15 @@ export const IO_IMPORT_ENTITIES: IoEntity[] = [
   "guides",
 ];
 
-export type FieldType = "string" | "int" | "float" | "url" | "list" | "date";
+export type FieldType = "string" | "int" | "float" | "url" | "list" | "date" | "bool";
 
 export interface FieldDef {
   col: string; // CSV column name
   db?: string; // DB column (defaults to col)
   type: FieldType;
   required?: boolean;
+  min?: number; // int/float: reject values below this (e.g. 0 for non-negative)
+  nullable?: boolean; // list: blank/__CLEAR__ → NULL instead of [] (NULL ≠ [])
 }
 export interface FkDef {
   col: string; // CSV column (slug)
@@ -42,7 +44,8 @@ export interface M2mDef {
 /** A jsonb column importable as a JSON string in the CSV (validated by shape). */
 export interface JsonFieldDef {
   col: string; // CSV column == DB column (jsonb)
-  kind: "sections" | "faq" | "related_links";
+  kind: "sections" | "faq" | "related_links" | "reward_stages";
+  nullable?: boolean; // blank/__CLEAR__ → NULL instead of [] (NULL ≠ [])
 }
 
 export type LookupKey =
@@ -116,11 +119,21 @@ const bonuses: EntityDesc = {
   label: "Bonusuri",
   fields: [
     { col: "offer", type: "string", required: true },
-    { col: "free_spins", type: "int" },
+    { col: "amount", type: "string" },
+    { col: "free_spins", type: "int", min: 0 },
+    { col: "spin_value", type: "float", min: 0 },
+    { col: "max_win", type: "float", min: 0 },
+    { col: "eligible_slots", type: "list", nullable: true },
     { col: "wagering", type: "string" },
+    { col: "wagering_multiplier", type: "float", min: 0 },
+    { col: "wagering_basis", type: "string" },
     { col: "code", type: "string" },
     { col: "min_deposit", type: "string" },
     { col: "validity", type: "string" },
+    { col: "kyc_required", type: "bool" },
+    { col: "terms_url", type: "url" },
+    { col: "verified_at", type: "date" },
+    { col: "expires_at", type: "date" },
     { col: "intro", type: "string" },
     { col: "terms", type: "list" },
     { col: "pros", type: "list" },
@@ -132,6 +145,7 @@ const bonuses: EntityDesc = {
     { col: "bonus_type_slug", db: "bonus_type_id", lookup: "bonus_types" },
   ],
   m2m: [],
+  jsonFields: [{ col: "reward_stages", kind: "reward_stages", nullable: true }],
   jsonExtra: ["faq", "status"],
 };
 
