@@ -102,7 +102,9 @@ export function CasinoForm({ mode, action, initial, tags, paymentMethods, games 
       <div className="grid gap-5 sm:grid-cols-2">
         <Field label="Rating (0–5)" name="rating" type="number" min="0" max="5" step="0.1" defaultValue={initial?.rating} />
         <Field label="Scor editorial (0–10)" name="editor_score" type="number" min="0" max="10" step="0.1" defaultValue={initial?.editorScore} />
+        <Field label="An lansare" name="year_launched" type="number" min="1990" max="2100" step="1" defaultValue={initial?.yearLaunched} />
         <Field label="Licență" name="license" defaultValue={initial?.license} />
+        <Field label="Licență verificată la" name="license_verified_at" type="date" defaultValue={initial?.licenseVerifiedAt} />
         <Field label="Viteză retrageri" name="payout_speed" defaultValue={initial?.payoutSpeed} />
         <Field label="Timp retragere" name="withdrawal_time" defaultValue={initial?.withdrawalTime} />
         <Field label="Verificat la" name="verified_at" type="date" defaultValue={initial?.verifiedAt} />
@@ -110,6 +112,11 @@ export function CasinoForm({ mode, action, initial, tags, paymentMethods, games 
         <Field label="KYC" name="kyc" defaultValue={initial?.kyc} />
         <Field label="Suport" name="support" defaultValue={initial?.support} />
         <Field label="Mobil" name="mobile" defaultValue={initial?.mobile} />
+      </div>
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <Field label="Sursă licență (URL)" name="license_source" type="url" placeholder="https://…" defaultValue={initial?.licenseSource} />
+        <Field label="Sursă verificare (URL)" name="verification_source" type="url" placeholder="https://…" defaultValue={initial?.verificationSource} />
       </div>
 
       <Field label="URL operator (afiliat)" name="affiliateUrl" type="url" defaultValue={initial?.affiliateUrl} />

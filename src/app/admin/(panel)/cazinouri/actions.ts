@@ -68,13 +68,17 @@ function parseFaq(v: FormDataEntryValue | null): { question: string; answer: str
 function parseFields(formData: FormData) {
   return {
     name: String(formData.get("name") ?? "").trim(),
+    year_launched: numOrNull(formData.get("year_launched")),
     logo_url: strOrNull(formData.get("logo_url")),
     rating: numOrNull(formData.get("rating")),
     editor_score: numOrNull(formData.get("editor_score")),
     license: strOrNull(formData.get("license")),
+    license_verified_at: strOrNull(formData.get("license_verified_at")),
+    license_source: strOrNull(formData.get("license_source")),
     payout_speed: strOrNull(formData.get("payout_speed")),
     withdrawal_time: strOrNull(formData.get("withdrawal_time")),
     verified_at: strOrNull(formData.get("verified_at")),
+    verification_source: strOrNull(formData.get("verification_source")),
     min_deposit: strOrNull(formData.get("min_deposit")),
     kyc: strOrNull(formData.get("kyc")),
     support: strOrNull(formData.get("support")),
