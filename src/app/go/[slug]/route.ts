@@ -11,10 +11,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
   const { slug } = await params;
   const db = getSupabaseServerClient();
 
+  const headers = { "X-Robots-Tag": "noindex" };
   const { data } = await db.rpc("get_affiliate_url", { p_slug: slug });
   if (typeof data === "string" && /^https?:\/\//.test(data)) {
-    return NextResponse.redirect(data, 302);
+    return NextResponse.redirect(data, { status: 302, headers });
   }
 
-  return NextResponse.redirect(new URL(`/cazinouri-online/${slug}`, req.url), 302);
+  return NextResponse.redirect(new URL(`/cazinouri-online/${slug}`, req.url), { status: 302, headers });
 }

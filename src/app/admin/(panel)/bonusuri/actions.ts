@@ -126,11 +126,11 @@ function validateNewFields(f: ReturnType<typeof parseFields>): string | null {
   return null;
 }
 
-/** claim_url is derived from the selected casino's slug → /go/<casino-slug>. */
-async function deriveClaimUrl(db: DB, casinoId: string): Promise<string | null> {
+/** claim_url is the per-bonus deep link: /go/<casino-slug>/<bonus-slug>. */
+async function deriveClaimUrl(db: DB, casinoId: string, bonusSlug: string): Promise<string | null> {
   const { data } = await db.from("casinos").select("slug").eq("id", casinoId).maybeSingle();
-  const slug = (data as { slug: string } | null)?.slug;
-  return slug ? `/go/${slug}` : null;
+  const cslug = (data as { slug: string } | null)?.slug;
+  return cslug && bonusSlug ? `/go/${cslug}/${bonusSlug}` : null;
 }
 
 function refresh() {
@@ -160,7 +160,7 @@ export async function createBonus(
   const { data: dup } = await db.from("bonuses").select("id").eq("slug", slug).maybeSingle();
   if (dup) return { error: "Există deja un bonus cu acest slug." };
 
-  const claim_url = await deriveClaimUrl(db, fields.casino_id);
+  const claim_url = await deriveClaimUrl(db, fields.casino_id, slug);
 
   const { error } = await db.from("bonuses").insert({ slug, claim_url, ...fields, reward_stages: stages.value });
   if (error) {
@@ -187,7 +187,10 @@ export async function updateBonus(
   const stages = parseRewardStages(formData.get("reward_stages"));
   if (stages.error) return { error: stages.error };
 
-  const claim_url = await deriveClaimUrl(db, fields.casino_id);
+  // slug is read-only at edit → fetch it to build the per-bonus /go/<casino>/<bonus> link.
+  const { data: cur } = await db.from("bonuses").select("slug").eq("id", id).maybeSingle();
+  const bonusSlug = (cur as { slug: string } | null)?.slug ?? "";
+  const claim_url = await deriveClaimUrl(db, fields.casino_id, bonusSlug);
 
   const { error } = await db.from("bonuses").update({ claim_url, ...fields, reward_stages: stages.value }).eq("id", id);
   if (error) return { error: `Eroare la salvare: ${error.message}` };

@@ -236,7 +236,7 @@ test("bonuses create: resolves casino_slug FK and derives claim_url", () => {
   const r = one(BON, { slug: "bonus-1", offer: "100%", casino_slug: "casino-x" }, bonMaps, [], "upsert");
   assert.equal(r.operation, "create");
   assert.equal(r.dbRow.casino_id, UID);
-  assert.equal(r.dbRow.claim_url, "/go/casino-x");
+  assert.equal(r.dbRow.claim_url, "/go/casino-x/bonus-1"); // per-bonus deep link
   assert.equal(r.dbRow.status, "draft");
 });
 
@@ -254,5 +254,6 @@ test("bonuses update: changing casino_slug re-derives claim_url", () => {
   const existingBon: ExistingRecord[] = [{ id: BID, slug: "bonus-1", status: "draft" }];
   const r = one(BON, { id: BID, casino_slug: "casino-x" }, bonMaps, existingBon, "upsert");
   assert.equal(r.dbRow.casino_id, UID);
-  assert.equal(r.dbRow.claim_url, "/go/casino-x");
+  // bonus slug comes from the matched record (id match, slug blank in row)
+  assert.equal(r.dbRow.claim_url, "/go/casino-x/bonus-1");
 });

@@ -391,13 +391,16 @@ export function buildRows(
       if (desc.key === "casinos") dbRow.offer_url = `/go/${slug}`;
       if (desc.key === "bonuses") {
         const cslug = (row.casino_slug ?? "").trim().toLowerCase();
-        dbRow.claim_url = cslug ? `/go/${cslug}` : null;
+        // per-bonus deep link: /go/<casino-slug>/<bonus-slug>
+        dbRow.claim_url = cslug ? `/go/${cslug}/${slug}` : null;
       }
     } else {
       if (desc.key === "casinos" && typeof dbRow.slug === "string") dbRow.offer_url = `/go/${dbRow.slug}`;
       if (desc.key === "bonuses") {
         const craw = (row.casino_slug ?? "").trim();
-        if (craw && craw !== CLEAR_SENTINEL) dbRow.claim_url = `/go/${craw.toLowerCase()}`;
+        const bslug = slug || target?.slug || "";
+        // only rebuild when the casino is provided (changed) AND we know the bonus slug
+        if (craw && craw !== CLEAR_SENTINEL && bslug) dbRow.claim_url = `/go/${craw.toLowerCase()}/${bslug}`;
       }
     }
 
