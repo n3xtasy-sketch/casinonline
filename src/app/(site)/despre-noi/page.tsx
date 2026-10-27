@@ -45,7 +45,7 @@ const sections: GuideSection[] = [
     heading: "Echipa editoriala",
     level: 2,
     body: [
-      "Continutul este redactat de un autor si verificat de un editor inainte de publicare. Fiecare material are o persoana responsabila de redactare si una de verificare.",
+      "Aplicam un proces editorial in care continutul este redactat de un autor si trece printr-o verificare inainte de publicare. Poti afla cine scrie si cine verifica pe pagina dedicata echipei.",
     ],
   },
   {
