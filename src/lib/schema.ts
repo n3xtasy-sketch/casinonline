@@ -28,6 +28,26 @@ export function websiteSchema() {
   };
 }
 
+/**
+ * Minimal page schema for institutional/EEAT pages. Only the honest basics
+ * (type, name, url, language, isPartOf WebSite). No ratings/authors fabricated;
+ * editorial pages that have a real author+date use articleSchema instead.
+ */
+export function pageSchema(
+  kind: "AboutPage" | "ContactPage" | "WebPage",
+  args: { name: string; description?: string; path: string },
+) {
+  return {
+    "@context": "https://schema.org",
+    "@type": kind,
+    name: args.name,
+    ...(args.description ? { description: args.description } : {}),
+    url: absoluteUrl(args.path),
+    inLanguage: "ro-RO",
+    isPartOf: { "@type": "WebSite", url: siteConfig.url },
+  };
+}
+
 export function breadcrumbSchema(items: Crumb[]) {
   return {
     "@context": "https://schema.org",
