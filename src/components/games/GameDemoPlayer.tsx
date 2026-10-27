@@ -52,6 +52,13 @@ export function GameDemoPlayer({ demoUrl, gameName }: { demoUrl?: string; gameNa
           )}
         </div>
 
+        {!launched ? (
+          <p className="text-xs leading-relaxed text-ink-muted">
+            La pornirea demoului se incarca continut de la un furnizor extern, care poate folosi propriile
+            tehnologii, inclusiv cookie-uri, in cadrul jocului. Porneste demoul doar daca esti de acord.
+          </p>
+        ) : null}
+
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-ink-muted">
           <span>Mod demo — fără bani reali · 18+ / Joacă responsabil</span>
           {launched ? (

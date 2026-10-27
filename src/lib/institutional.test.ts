@@ -19,24 +19,35 @@ const EXPECTED_SLUGS = [
   "autori",
   "joc-responsabil",
   "licente-si-reglementare",
+  "disclaimer-afiliere",
+  "termeni-si-conditii",
+  "politica-de-confidentialitate",
+  "politica-de-cookies",
 ];
 
-test("registry lists exactly the 7 institutional slugs, unique", () => {
+test("registry lists exactly the 11 institutional slugs, unique", () => {
   const slugs = INSTITUTIONAL_PAGES.map((p) => p.slug);
   assert.deepEqual(slugs, EXPECTED_SLUGS);
   assert.equal(new Set(slugs).size, slugs.length);
 });
 
-// Content has shipped (FAZA 4.1B): all 7 pages are ready → Footer + sitemap list them.
-test("all 7 institutional pages are ready (content shipped)", () => {
-  assert.equal(INSTITUTIONAL_PAGES.every((p) => p.ready === true), true);
-  assert.equal(readyInstitutionalPages().length, 7);
+// FAZA 4.2B: 7 info pages + disclaimer-afiliere are ready; Terms/Privacy/Cookies are
+// held ready:false pending legal review + Vercel non-essential-tech confirmation.
+test("ready-state matches the shipped plan (8 ready, 3 held)", () => {
+  const ready = new Set(readyInstitutionalPages().map((p) => p.slug));
+  assert.equal(ready.size, 8);
+  assert.ok(ready.has("disclaimer-afiliere"));
+  for (const held of ["termeni-si-conditii", "politica-de-confidentialitate", "politica-de-cookies"]) {
+    assert.ok(!ready.has(held), `${held} must stay ready:false`);
+  }
 });
 
-test("sitemap lists all ready institutional pages", () => {
+test("sitemap lists exactly the ready institutional pages", () => {
   const entries = institutionalSitemapEntries("https://casinonline.ro");
-  assert.equal(entries.length, 7);
+  assert.equal(entries.length, readyInstitutionalPages().length);
   assert.ok(entries.every((e) => e.url.startsWith("https://casinonline.ro/") && e.priority === 0.4));
+  // held legal pages are absent from the sitemap
+  assert.ok(!entries.some((e) => e.url.endsWith("/termeni-si-conditii")));
 });
 
 test("institutionalPage: lookup by slug", () => {

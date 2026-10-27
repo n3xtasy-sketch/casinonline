@@ -37,3 +37,26 @@ export const company = {
     source: "conform informatiilor furnizate de proprietarul platformei",
   },
 } as const;
+
+/**
+ * Infrastructure / processors — ONLY facts confirmed from the codebase. No retention
+ * periods, legal bases, or hosting regions are stated here (unconfirmed → must be set
+ * after owner/legal confirmation before the Privacy page goes live).
+ */
+export const infrastructure = {
+  supabase: {
+    name: "Supabase",
+    role: "Baza de date, autentificare administrativa si gazduire imagini (CDN).",
+    note: "Imaginile publice se incarca din CDN-ul Supabase; IP-ul si user-agent-ul vizitatorului ajung la CDN la incarcarea imaginilor.",
+  },
+  vercel: {
+    name: "Vercel",
+    role: "Gazduire si livrare a site-ului.",
+    note: "Ca orice furnizor de gazduire, poate pastra loguri tehnice de acces (ex. IP, user-agent).",
+  },
+  fonts: {
+    name: "Google Fonts (self-hosted)",
+    role: "Fonturile sunt servite din domeniul propriu (self-hosted la build).",
+    note: "Nu se trimit date catre Google la incarcarea paginii.",
+  },
+} as const;

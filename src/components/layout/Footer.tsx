@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
-import { institutionalFooterLinks } from "@/lib/institutional";
+import { readyInstitutionalByGroup } from "@/lib/institutional";
 import { company } from "@/lib/company";
 
 const baseColumns = [
@@ -30,14 +30,27 @@ const baseColumns = [
   },
 ];
 
+const toLinks = (pages: { navLabel: string; slug: string }[]) =>
+  pages.map((p) => ({ label: p.navLabel, href: `/${p.slug}` }));
+
+// Tailwind needs literal class names — map column count to a static class.
+const GRID_COLS: Record<number, string> = {
+  3: "lg:grid-cols-3",
+  4: "lg:grid-cols-4",
+  5: "lg:grid-cols-5",
+};
+
 export function Footer() {
-  // "Informații" column is built ONLY from institutional pages that are live
-  // (ready). Until a page's real content ships, it is not linked here.
-  const infoLinks = institutionalFooterLinks();
-  const columns = infoLinks.length
-    ? [...baseColumns, { title: "Informații", links: infoLinks }]
-    : baseColumns;
-  const gridCols = columns.length >= 4 ? "lg:grid-cols-4" : "lg:grid-cols-3";
+  // "Informații" and "Legal" columns are built ONLY from ready pages in each group.
+  // A not-ready page (e.g. Terms/Privacy pending legal review) is never linked here.
+  const infoLinks = toLinks(readyInstitutionalByGroup("info"));
+  const legalLinks = toLinks(readyInstitutionalByGroup("legal"));
+  const columns = [
+    ...baseColumns,
+    ...(infoLinks.length ? [{ title: "Informații", links: infoLinks }] : []),
+    ...(legalLinks.length ? [{ title: "Legal", links: legalLinks }] : []),
+  ];
+  const gridCols = GRID_COLS[columns.length] ?? "lg:grid-cols-4";
 
   return (
     <footer className="border-t border-border bg-footer">

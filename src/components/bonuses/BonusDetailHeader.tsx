@@ -37,6 +37,7 @@ export function BonusDetailHeader({ bonus }: { bonus: BonusDetail }) {
             </span>
           ) : null}
         </div>
+        <p className="mt-2 text-[11px] leading-snug text-ink-muted">Link afiliat · 18+ · Joacă responsabil</p>
       </div>
     </Card>
   );
