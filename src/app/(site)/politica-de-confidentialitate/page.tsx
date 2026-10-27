@@ -30,41 +30,105 @@ const sections: GuideSection[] = [
   },
   {
     id: "ce-date",
-    heading: "Ce date prelucram",
+    heading: "Ce date prelucram, pe scurt",
     level: 2,
     body: [
       "Aplicatia CasinOnline.ro nu stocheaza date personale ale vizitatorilor publici: nu exista conturi de utilizator public (inregistrarile publice sunt dezactivate), formulare de inregistrare, newsletter sau instrumente proprii de analiza a traficului.",
-      "Acest lucru nu inseamna ca nu se prelucreaza deloc date. Ca la orice site, anumite date tehnice (de exemplu adresa IP si tipul de browser) pot fi procesate de furnizorii de infrastructura pentru functionarea si securitatea serviciului, asa cum este descris mai jos.",
-      "Pentru utilizatorii administrativi (echipa care gestioneaza continutul) prelucram adresa de email si datele de autentificare, precum si un jurnal al actiunilor administrative. Nu exista inregistrare publica de conturi.",
-      "Daca ne scrii pe email, prelucram datele din mesaj (adresa de email si continutul) pentru a-ti raspunde.",
+      "Acest lucru nu inseamna ca nu se prelucreaza deloc date. Anumite date tehnice (de exemplu adresa IP si tipul de browser) pot fi procesate de furnizorii de infrastructura pentru functionarea si securitatea serviciului. Mai jos detaliem fiecare activitate de prelucrare.",
     ],
   },
   {
-    id: "furnizori",
-    heading: "Furnizori si date tehnice procesate",
+    id: "activitati",
+    heading: "Activitatile de prelucrare",
     level: 2,
     body: [
-      `${infrastructure.vercel.name}: ${infrastructure.vercel.role} ${infrastructure.vercel.note}`,
-      `${infrastructure.supabase.name}: ${infrastructure.supabase.role} Proiectul de productie este gazduit in regiunea ${infrastructure.supabase.region}. ${infrastructure.supabase.note}`,
-      `${infrastructure.fonts.name}: ${infrastructure.fonts.role} ${infrastructure.fonts.note}`,
-      infrastructure.euCaveat,
+      "Pentru fiecare activitate indicam ce date sunt implicate, scopul, cine le poate procesa si cat timp sunt pastrate. Perioadele exacte si temeiurile juridice detaliate sunt in curs de definitivare si vor fi completate dupa finalizarea verificarilor; nu publicam aici informatii neconfirmate.",
     ],
   },
   {
-    id: "linkuri-externe",
-    heading: "Linkuri catre operatori si continut incorporat",
-    level: 2,
+    id: "autentificare",
+    heading: "Autentificarea administratorilor",
+    level: 3,
     body: [
-      "Cand accesezi un link catre un operator, parasesti CasinOnline.ro si intri pe site-ul operatorului, care isi prelucreaza datele conform propriilor politici. Noi nu transmitem date personale catre operatori prin redirectionare.",
-      "Unele pagini pot incorpora continut de la furnizori externi (de exemplu versiuni demo de jocuri), care se incarca doar dupa o actiune explicita a ta si pot folosi propriile tehnologii.",
+      "Date: adresa de email si datele de autentificare ale membrilor echipei, token de sesiune.",
+      "Scop: acces securizat la administrarea continutului. Nu exista inregistrare publica de conturi.",
+      "Destinatari: Supabase, ca furnizor de autentificare. Pastrare: pe durata relatiei cu administratorul si conform obligatiilor legale aplicabile.",
+    ],
+  },
+  {
+    id: "jurnal",
+    heading: "Jurnalul de activitate administrativa",
+    level: 3,
+    body: [
+      "Date: identificatorul si adresa de email ale administratorului, actiunea efectuata si data.",
+      "Scop: securitate, audit intern si responsabilitate editoriala. Pastrare: pe durata necesara acestor scopuri de securitate si audit.",
+      "Destinatari: Supabase, ca furnizor al bazei de date.",
+    ],
+  },
+  {
+    id: "email",
+    heading: "Emailuri de contact",
+    level: 3,
+    body: [
+      "Date: adresa ta de email si continutul mesajului trimis.",
+      "Scop: a raspunde solicitarilor tale. Pastrare: pe durata necesara solutionarii solicitarii si conform obligatiilor legale aplicabile.",
+      "Destinatari: furnizorul serviciului de email folosit pentru adresa de contact.",
+    ],
+  },
+  {
+    id: "hosting",
+    heading: "Gazduire (Vercel)",
+    level: 3,
+    body: [
+      "Date tehnice: adresa IP, user-agent, loguri de acces generate la livrarea site-ului.",
+      "Scop: livrarea, functionarea si securitatea site-ului. Destinatar: Vercel, in calitate de furnizor de gazduire.",
+      "Pastrare: conform politicilor Vercel. Transfer: anumite operatiuni pot avea loc in afara UE, conform politicilor furnizorului.",
+    ],
+  },
+  {
+    id: "supabase",
+    heading: "Baza de date, autentificare si imagini (Supabase)",
+    level: 3,
+    body: [
+      "Date: datele administrative de mai sus, precum si adresa IP si user-agent trimise la incarcarea imaginilor din CDN.",
+      `Scop: baza de date, autentificare si livrarea imaginilor. Localizare: proiectul de productie este gazduit in regiunea ${infrastructure.supabase.region}.`,
+      "Destinatar: Supabase, in calitate de furnizor. Transfer: vezi sectiunea despre localizare si transferuri.",
+    ],
+  },
+  {
+    id: "demo",
+    heading: "Continut extern pentru jocuri demo",
+    level: 3,
+    body: [
+      "In prezent nu este activat niciun furnizor de continut demo extern, asa ca nu se incarca astfel de continut.",
+      "Daca un furnizor va fi activat in viitor, continutul demo se va incarca doar dupa o actiune explicita a ta (apasarea butonului de redare), iar furnizorul respectiv va actiona ca operator separat, cu propriile tehnologii.",
+    ],
+  },
+  {
+    id: "afiliere",
+    heading: "Redirecturi de afiliere",
+    level: 3,
+    body: [
+      "Cand accesezi un link catre un operator, folosim o ruta interna de redirectionare. Nu transmitem date personale si nici identificatori catre operator prin aceasta redirectionare.",
+      "Dupa redirectionare, ajungi pe site-ul operatorului, care devine operator de date separat si isi prelucreaza datele conform propriilor politici.",
     ],
   },
   {
     id: "temeiuri",
-    heading: "Scopuri si temeiuri",
+    heading: "Scopuri, temeiuri si decizii automate",
     level: 2,
     body: [
-      "Prelucram date in scopul functionarii si securitatii site-ului, al administrarii continutului si al raspunderii la solicitarile primite prin email. Prelucrarea se realizeaza in limitele cadrului legal aplicabil privind protectia datelor.",
+      "Prelucram datele in scopul functionarii si securitatii site-ului, al administrarii continutului si al raspunderii la solicitari. Temeiurile juridice detaliate sunt in curs de finalizare; prelucrarea se realizeaza in limitele cadrului legal aplicabil privind protectia datelor.",
+      "Nu luam decizii automate cu efect semnificativ asupra ta si nu realizam profilare.",
+    ],
+  },
+  {
+    id: "furnizori",
+    heading: "Furnizori si relatia de prelucrare",
+    level: 2,
+    body: [
+      `${infrastructure.vercel.name} si ${infrastructure.supabase.name} actioneaza ca furnizori care proceseaza date in numele nostru, conform termenilor de prelucrare a datelor publicati de fiecare dintre ei. Pot exista subimputerniciti ai acestor furnizori.`,
+      `${infrastructure.fonts.name}: ${infrastructure.fonts.role} ${infrastructure.fonts.note}`,
     ],
   },
   {

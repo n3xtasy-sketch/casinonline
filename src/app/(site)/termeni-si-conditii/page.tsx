@@ -66,6 +66,7 @@ const sections: GuideSection[] = [
     level: 2,
     body: [
       "Oferim informatiile ca atare, fara garantii privind caracterul complet sau neintrerupt al serviciului. In limitele permise de lege, nu raspundem pentru pierderi rezultate din participarea la jocuri de noroc sau din utilizarea informatiilor de pe site.",
+      "Nimic din acesti termeni nu limiteaza si nu exclude drepturile pe care le ai in calitate de consumator si care nu pot fi limitate sau excluse potrivit legii.",
     ],
   },
   {
@@ -85,7 +86,19 @@ const sections: GuideSection[] = [
     ],
   },
   {
-    // NECESITA CONFIRMARE JURIDICA: legea aplicabila + mecanismul de solutionare a litigiilor.
+    // NECESITA AVIZ JURIDIC: formularea finala a solutionarii reclamatiilor.
+    // NOTA: platforma europeana de solutionare online a litigiilor a fost desfiintata
+    // in 2025 (Regulamentul (UE) 2024/3228) → NU o referim. Mentionam doar ANPC + SAL.
+    id: "reclamatii",
+    heading: "Reclamatii si solutionarea litigiilor",
+    level: 2,
+    body: [
+      `Daca ai o nemultumire legata de site, scrie-ne mai intai la ${company.email} si vom incerca sa gasim o solutie.`,
+      "Te poti adresa si Autoritatii Nationale pentru Protectia Consumatorilor (ANPC, anpc.ro), precum si entitatilor de solutionare alternativa a litigiilor (SAL) competente, in conditiile legii.",
+    ],
+  },
+  {
+    // NECESITA AVIZ JURIDIC: legea aplicabila + instanta competenta.
     id: "modificari-lege",
     heading: "Modificari si lege aplicabila",
     level: 2,

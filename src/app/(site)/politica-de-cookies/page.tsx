@@ -56,7 +56,8 @@ const sections: GuideSection[] = [
     heading: "Continut incorporat de la terti",
     level: 2,
     body: [
-      "Unele pagini pot incorpora continut de la furnizori externi, de exemplu versiuni demo de jocuri. Acest continut se incarca doar dupa ce apesi explicit butonul de redare, iar furnizorul respectiv poate folosi propriile tehnologii, inclusiv cookie-uri, in cadrul acelui continut.",
+      "In prezent nu este activat niciun furnizor de continut demo extern, deci nu se incarca astfel de continut si nu se seteaza cookie-uri de la terti pe aceasta cale.",
+      "Daca un furnizor de demo va fi activat in viitor, continutul se va incarca doar dupa ce apesi explicit butonul de redare, iar furnizorul respectiv poate folosi propriile tehnologii, inclusiv cookie-uri, in cadrul acelui continut. Apasarea butonului de redare nu reprezinta un consimtamant pentru toate cookie-urile neesentiale ale furnizorului.",
     ],
   },
   {
