@@ -3,7 +3,10 @@ import Link from "next/link";
 import { InstitutionalPage } from "@/components/layout/InstitutionalPage";
 import { institutionalMetadata } from "@/lib/institutional";
 import { pageSchema } from "@/lib/schema";
+import { company } from "@/lib/company";
 import type { GuideSection } from "@/types/guide";
+
+const lic = company.onjnAffiliateLicense;
 
 export const metadata: Metadata = institutionalMetadata({
   slug: "licente-si-reglementare",
@@ -22,6 +25,16 @@ const sections: GuideSection[] = [
     ],
   },
   {
+    id: "licenta-afiliat-companie",
+    heading: "Licenta ONJN de afiliat a companiei",
+    level: 2,
+    body: [
+      `CasinOnline.ro este operat de ${company.legalName}. Compania detine licenta ONJN de afiliat ${lic.label}, ${lic.source}.`,
+      "O licenta de afiliat este o autorizatie pentru activitatea de promovare si informare legata de operatori de jocuri de noroc licentiati. Nu este o licenta de organizare a jocurilor de noroc.",
+      "Sub aceasta licenta de afiliat, compania opereaza proiectele sale de informare, inclusiv CasinOnline.ro. Este o licenta la nivel de companie, nu o autorizare individuala separata a domeniului.",
+    ],
+  },
+  {
     id: "verificarea-licentelor",
     heading: "Cum pot fi verificate licentele operatorilor",
     level: 2,
@@ -31,11 +44,11 @@ const sections: GuideSection[] = [
   },
   {
     id: "operator-vs-afiliat",
-    heading: "Diferenta dintre operator si site afiliat",
+    heading: "Doua tipuri diferite de licenta ONJN",
     level: 2,
     body: [
-      "Un operator de jocuri de noroc organizeaza efectiv jocurile si detine licenta ONJN pentru aceasta activitate. Un site afiliat, cum este CasinOnline.ro, este o platforma de informare care prezinta operatori si poate primi comisioane din linkuri de afiliere.",
-      "CasinOnline.ro nu este operator de jocuri de noroc si nu organizeaza jocuri sau pariuri.",
+      "Este important sa nu confunzi cele doua tipuri de licenta ONJN. Licenta de afiliat (precum cea a companiei noastre) acopera activitatea de promovare si informare despre operatori. Licenta de operator (pe care o detin cazinourile) acopera organizarea efectiva a jocurilor de noroc.",
+      "Un operator de jocuri de noroc organizeaza jocurile si detine licenta ONJN de operare. Un site afiliat, cum este CasinOnline.ro, prezinta operatori si poate primi comisioane din linkuri de afiliere, pe baza licentei de afiliat.",
     ],
   },
   {
@@ -59,8 +72,8 @@ const sections: GuideSection[] = [
     heading: "Statutul CasinOnline.ro",
     level: 2,
     body: [
-      "CasinOnline.ro este o platforma de informare despre cazinouri online, nu un operator de jocuri de noroc. Nu detinem si nu revendicam o licenta de organizare a jocurilor de noroc.",
-      "Nu transferam catre acest domeniu documente de autorizare emise pentru alte proiecte. Orice aspect legat de autorizarea proprie va fi comunicat doar dupa confirmarea aplicabilitatii pentru domeniul CasinOnline.ro.",
+      `CasinOnline.ro este o platforma de informare si afiliere, operata de ${company.legalName} sub licenta ONJN de afiliat ${lic.label}. Nu suntem operator de jocuri de noroc si nu organizam jocuri sau pariuri.`,
+      "Rolul nostru este sa informam jucatorii si sa ii directionam catre operatori licentiati ONJN, nu sa gazduim jocuri de noroc. Deciziile de joc apartin fiecarui utilizator.",
     ],
   },
   {

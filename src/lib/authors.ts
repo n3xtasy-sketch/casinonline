@@ -66,12 +66,11 @@ export const AUTHORS: AuthorRecord[] = [
       "Are experienta in marketing digital si in relatii cu operatori din industria iGaming, cu activitate la Green Tree Marketing, unde coordoneaza proiecte si parteneriate. Provine dintr-un background de comunicare si relatii publice si a lucrat pe proiecte internationale.",
     ],
     experience: [
-      "Peste 8 ani de experienta in marketing digital",
+      "Experienta in marketing digital",
       "Activitate la Green Tree Marketing (coordonare proiecte si parteneriate)",
       "Experienta pe proiecte internationale",
       "Rol de editor si verificator de continut",
     ],
-    languages: ["Romana", "Engleza"],
     specializations: [
       "Marketing digital",
       "Afiliere iGaming",

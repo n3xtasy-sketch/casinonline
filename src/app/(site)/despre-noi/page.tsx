@@ -74,6 +74,7 @@ const sections: GuideSection[] = [
       `Cod unic de inregistrare (CUI): ${company.cui}.`,
       `Numar Registrul Comertului: ${company.regCom}.`,
       `Sediul social: ${company.address}.`,
+      `Compania detine licenta ONJN de afiliat ${company.onjnAffiliateLicense.label}, ${company.onjnAffiliateLicense.source}. Detalii pe pagina Licente si reglementare.`,
       `Ne poti contacta la adresa ${company.email}.`,
     ],
   },
