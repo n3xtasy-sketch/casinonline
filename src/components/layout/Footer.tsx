@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
 import { institutionalFooterLinks } from "@/lib/institutional";
+import { company } from "@/lib/company";
 
 const baseColumns = [
   {
@@ -70,6 +71,9 @@ export function Footer() {
             CasinOnline.ro este o platformă informativă. Unele linkuri sunt afiliate — putem
             primi un comision fără costuri suplimentare pentru tine. Promovăm doar operatori
             licențiați ONJN.
+          </p>
+          <p className="max-w-[80ch] leading-relaxed">
+            Operat de {company.legalName} · Licenta ONJN de afiliat {company.onjnAffiliateLicense.label}.
           </p>
           <p>© 2026 CasinOnline.ro. Toate drepturile rezervate.</p>
         </div>

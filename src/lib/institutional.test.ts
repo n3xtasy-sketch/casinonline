@@ -27,15 +27,16 @@ test("registry lists exactly the 7 institutional slugs, unique", () => {
   assert.equal(new Set(slugs).size, slugs.length);
 });
 
-// GUARD: this infra PR must NOT publish any page. All must start not-ready, so the
-// Footer gains no links and the sitemap gains no entries.
-test("no institutional page is ready yet (nothing published by the infra PR)", () => {
-  assert.equal(INSTITUTIONAL_PAGES.every((p) => p.ready === false), true);
-  assert.deepEqual(readyInstitutionalPages(), []);
+// Content has shipped (FAZA 4.1B): all 7 pages are ready → Footer + sitemap list them.
+test("all 7 institutional pages are ready (content shipped)", () => {
+  assert.equal(INSTITUTIONAL_PAGES.every((p) => p.ready === true), true);
+  assert.equal(readyInstitutionalPages().length, 7);
 });
 
-test("Footer/sitemap gates are empty while nothing is ready", () => {
-  assert.deepEqual(institutionalSitemapEntries("https://casinonline.ro"), []);
+test("sitemap lists all ready institutional pages", () => {
+  const entries = institutionalSitemapEntries("https://casinonline.ro");
+  assert.equal(entries.length, 7);
+  assert.ok(entries.every((e) => e.url.startsWith("https://casinonline.ro/") && e.priority === 0.4));
 });
 
 test("institutionalPage: lookup by slug", () => {

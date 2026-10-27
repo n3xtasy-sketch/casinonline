@@ -48,6 +48,33 @@ export function pageSchema(
   };
 }
 
+/**
+ * Person schema for an author profile page. Only honest, documented fields; callers
+ * pass alumniOf only when education is publicly documented. No fabricated awards.
+ */
+export function personSchema(args: {
+  name: string;
+  jobTitle: string;
+  description: string;
+  path: string;
+  knowsAbout?: string[];
+  alumniOf?: string[];
+}) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: args.name,
+    jobTitle: args.jobTitle,
+    description: args.description,
+    url: absoluteUrl(args.path),
+    worksFor: { "@type": "Organization", name: siteConfig.name, url: siteConfig.url },
+    ...(args.knowsAbout?.length ? { knowsAbout: args.knowsAbout } : {}),
+    ...(args.alumniOf?.length
+      ? { alumniOf: args.alumniOf.map((n) => ({ "@type": "Organization", name: n })) }
+      : {}),
+  };
+}
+
 export function breadcrumbSchema(items: Crumb[]) {
   return {
     "@context": "https://schema.org",

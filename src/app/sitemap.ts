@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { absoluteUrl, siteConfig } from "@/lib/site";
 import { getSlugs, type SlugRow } from "@/lib/db/slugs";
 import { institutionalSitemapEntries } from "@/lib/institutional";
+import { readyAuthors } from "@/lib/authors";
 
 /** Dynamic sitemap covering every hub and detail route (slugs + lastModified from DB). */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -61,5 +62,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     (e) => ({ url: e.url, changeFrequency: e.changeFrequency, priority: e.priority }),
   );
 
-  return [...hubEntries, ...detailEntries, ...institutionalEntries];
+  // Individual author profiles — only READY authors (hub /autori is already included above).
+  const authorEntries: MetadataRoute.Sitemap = readyAuthors().map((a) => ({
+    url: absoluteUrl(`/autori/${a.slug}`),
+    changeFrequency: "yearly" as const,
+    priority: 0.4,
+  }));
+
+  return [...hubEntries, ...detailEntries, ...institutionalEntries, ...authorEntries];
 }
