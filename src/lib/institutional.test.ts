@@ -20,9 +20,9 @@ const EXPECTED_SLUGS = [
   "joc-responsabil",
   "licente-si-reglementare",
   "disclaimer-afiliere",
-  "termeni-si-conditii",
   "politica-de-confidentialitate",
   "politica-de-cookies",
+  "termeni-si-conditii",
 ];
 
 test("registry lists exactly the 11 institutional slugs, unique", () => {
@@ -31,15 +31,15 @@ test("registry lists exactly the 11 institutional slugs, unique", () => {
   assert.equal(new Set(slugs).size, slugs.length);
 });
 
-// FAZA 4.2B: 7 info pages + disclaimer-afiliere are ready; Terms/Privacy/Cookies are
-// held ready:false pending legal review + Vercel non-essential-tech confirmation.
-test("ready-state matches the shipped plan (8 ready, 3 held)", () => {
+// FAZA 4.2C: disclaimer + privacy + cookies are now live (owner-confirmed facts).
+// Only Terms stays ready:false pending legal review of its liability/dispute clauses.
+test("ready-state matches the shipped plan (10 ready, Terms held)", () => {
   const ready = new Set(readyInstitutionalPages().map((p) => p.slug));
-  assert.equal(ready.size, 8);
-  assert.ok(ready.has("disclaimer-afiliere"));
-  for (const held of ["termeni-si-conditii", "politica-de-confidentialitate", "politica-de-cookies"]) {
-    assert.ok(!ready.has(held), `${held} must stay ready:false`);
+  assert.equal(ready.size, 10);
+  for (const live of ["disclaimer-afiliere", "politica-de-confidentialitate", "politica-de-cookies"]) {
+    assert.ok(ready.has(live), `${live} must be ready:true`);
   }
+  assert.ok(!ready.has("termeni-si-conditii"), "termeni-si-conditii must stay ready:false (legal review)");
 });
 
 test("sitemap lists exactly the ready institutional pages", () => {

@@ -23,18 +23,12 @@ test("info group = the 7 editorial/EEAT pages, all ready", () => {
   ]);
 });
 
-test("legal group shows only ready legal pages (disclaimer), not the held ones", () => {
-  const legal = readyInstitutionalByGroup("legal").map((p) => p.slug);
-  assert.deepEqual(legal, ["disclaimer-afiliere"]);
-  // Held legal pages exist in the registry but are not ready → not in the Footer.
-  const heldInRegistry = INSTITUTIONAL_PAGES.filter(
-    (p) => p.group === "legal" && !p.ready,
-  ).map((p) => p.slug);
-  assert.deepEqual(heldInRegistry.sort(), [
-    "politica-de-confidentialitate",
-    "politica-de-cookies",
-    "termeni-si-conditii",
-  ]);
+test("legal group shows the ready legal pages; Terms stays held", () => {
+  const legal = readyInstitutionalByGroup("legal").map((p) => p.slug).sort();
+  assert.deepEqual(legal, ["disclaimer-afiliere", "politica-de-confidentialitate", "politica-de-cookies"]);
+  // Terms exists in the registry but is not ready → not in the Footer.
+  const heldInRegistry = INSTITUTIONAL_PAGES.filter((p) => p.group === "legal" && !p.ready).map((p) => p.slug);
+  assert.deepEqual(heldInRegistry, ["termeni-si-conditii"]);
 });
 
 test("Footer links never include a not-ready page", () => {
