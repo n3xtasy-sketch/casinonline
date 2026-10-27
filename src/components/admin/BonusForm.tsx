@@ -5,6 +5,7 @@ import type { BonusFormState } from "@/app/admin/(panel)/bonusuri/types";
 import type { BonusEditData, RewardStage, AffiliateLinkChoice } from "@/lib/db/admin-bonuses";
 import type { Option } from "@/lib/db/admin-casinos";
 import { AffiliateLinkField } from "@/components/admin/AffiliateLinkField";
+import { AuthorshipFields } from "@/components/admin/AuthorshipFields";
 
 interface Props {
   mode: "create" | "edit";
@@ -238,8 +239,17 @@ export function BonusForm({
         <Area label="FAQ (o linie: Întrebare | Răspuns)" name="faq" defaultValue={initial?.faq.map((f) => `${f.question} | ${f.answer}`).join("\n")} />
       </Section>
 
-      {/* G. Link de afiliere (CTA) */}
-      <Section title="G. Link de afiliere (CTA)">
+      {/* G. Autor si verificare editoriala */}
+      <AuthorshipFields
+        initial={{
+          authorSlug: initial?.authorSlug,
+          verifierSlug: initial?.verifierSlug,
+          verifiedAt: initial?.editorialVerifiedAt,
+        }}
+      />
+
+      {/* H. Link de afiliere (CTA) */}
+      <Section title="H. Link de afiliere (CTA)">
         <AffiliateLinkField
           casinoId={casinoId}
           casinoSlug={casinoSlugs[casinoId]}

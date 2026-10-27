@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import type { CasinoFormState } from "@/app/admin/(panel)/cazinouri/types";
 import type { CasinoEditData, Option } from "@/lib/db/admin-casinos";
 import { MediaField } from "@/components/admin/MediaField";
+import { AuthorshipFields } from "@/components/admin/AuthorshipFields";
 import { isOptionChecked } from "@/lib/admin-relations";
 
 interface Props {
@@ -124,6 +125,14 @@ export function CasinoForm({ mode, action, initial, tags, paymentMethods, games 
         Link-ul public rămâne <code>/go/{mode === "edit" ? initial?.slug : "&lt;slug&gt;"}</code> →
         redirect 302 către acest URL.
       </p>
+
+      <AuthorshipFields
+        initial={{
+          authorSlug: initial?.authorSlug,
+          verifierSlug: initial?.verifierSlug,
+          verifiedAt: initial?.editorialVerifiedAt,
+        }}
+      />
 
       <label className="flex flex-col gap-1.5 text-sm">
         <span className="font-medium text-ink-secondary">Intro</span>

@@ -5,6 +5,7 @@ import type { GuideFormState } from "@/app/admin/(panel)/ghiduri/types";
 import type { GuideEditData } from "@/lib/db/admin-guides";
 import type { Option } from "@/lib/db/admin-casinos";
 import { MediaField } from "@/components/admin/MediaField";
+import { AuthorshipFields } from "@/components/admin/AuthorshipFields";
 
 interface Props {
   mode: "create" | "edit";
@@ -82,6 +83,14 @@ export function GuideForm({ mode, action, initial, categories }: Props) {
       </div>
 
       <MediaField label="Imagine" name="image_url" defaultValue={initial?.imageUrl} folder="guides" />
+
+      <AuthorshipFields
+        initial={{
+          authorSlug: initial?.authorSlug,
+          verifierSlug: initial?.verifierSlug,
+          verifiedAt: initial?.editorialVerifiedAt,
+        }}
+      />
 
       <label className="flex flex-col gap-1.5 text-sm">
         <span className="font-medium text-ink-secondary">Excerpt</span>

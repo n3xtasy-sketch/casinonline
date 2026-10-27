@@ -9,6 +9,7 @@ import { CasinoCard } from "@/components/casino/CasinoCard";
 import { ProsCons } from "@/components/casino/ProsCons";
 import { BonusCard } from "@/components/bonuses/BonusCard";
 import { BonusDetailHeader } from "@/components/bonuses/BonusDetailHeader";
+import { EditorialByline } from "@/components/layout/EditorialByline";
 import { BonusFacts } from "@/components/bonuses/BonusFacts";
 import { getBonusBySlug, getSimilarBonuses } from "@/lib/db/bonuses";
 import { buildMetadata, entityDefaultMeta } from "@/lib/seo";
@@ -51,6 +52,15 @@ export default async function BonusDetailPage({ params }: PageProps) {
       <Breadcrumbs items={crumbs} />
 
       <BonusDetailHeader bonus={bonus} />
+
+      {bonus.editorial ? (
+        <EditorialByline
+          authorSlug={bonus.editorial.authorSlug}
+          verifierSlug={bonus.editorial.verifierSlug}
+          verifiedAt={bonus.editorial.editorialVerifiedAt}
+          updatedAt={bonus.editorial.updatedAt}
+        />
+      ) : null}
 
       <section>
         <SectionHeader title="Despre acest bonus" />

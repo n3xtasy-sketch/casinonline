@@ -89,3 +89,19 @@ export function authorBySlug(slug: string): AuthorRecord | undefined {
 export function readyAuthors(): AuthorRecord[] {
   return AUTHORS.filter((a) => a.ready);
 }
+
+/** Is this a known author slug? (editorial assignment validation lives in the server actions.) */
+export function isKnownAuthor(slug: string): boolean {
+  return AUTHORS.some((a) => a.slug === slug);
+}
+
+/** Options for the CMS author/verifier selects — every registered author (slug + name). */
+export function authorOptions(): { slug: string; name: string }[] {
+  return AUTHORS.map((a) => ({ slug: a.slug, name: a.name }));
+}
+
+/** Display name for a slug, or null if unknown (byline hides unknown authors). */
+export function authorName(slug: string | null | undefined): string | null {
+  if (!slug) return null;
+  return AUTHORS.find((a) => a.slug === slug)?.name ?? null;
+}

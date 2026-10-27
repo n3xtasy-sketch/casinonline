@@ -46,6 +46,10 @@ export interface BonusEditData {
   faq: { question: string; answer: string }[];
   /** "" = use the casino's main link (NULL); otherwise the specific affiliate_links.id. */
   affiliateLinkId: string;
+  authorSlug: string;
+  verifierSlug: string;
+  /** YYYY-MM-DD for the date input ("" when none). */
+  editorialVerifiedAt: string;
 }
 
 /** One affiliate link, client-safe, for the bonus form picker. Includes inactive so the
@@ -190,10 +194,13 @@ interface EditRow {
   how_to_claim: string[] | null;
   faq: { question: string; answer: string }[] | null;
   affiliate_link_id: string | null;
+  author_slug: string | null;
+  verifier_slug: string | null;
+  editorial_verified_at: string | null;
 }
 
 const EDIT_SELECT =
-  "id, slug, casino_id, bonus_type_id, offer, amount, free_spins, spin_value, max_win, eligible_slots, wagering, wagering_multiplier, wagering_basis, min_deposit, validity, code, kyc_required, terms_url, verified_at, expires_at, reward_stages, intro, terms, pros, cons, how_to_claim, faq, affiliate_link_id";
+  "id, slug, casino_id, bonus_type_id, offer, amount, free_spins, spin_value, max_win, eligible_slots, wagering, wagering_multiplier, wagering_basis, min_deposit, validity, code, kyc_required, terms_url, verified_at, expires_at, reward_stages, intro, terms, pros, cons, how_to_claim, faq, affiliate_link_id, author_slug, verifier_slug, editorial_verified_at";
 
 export async function getBonusEdit(slug: string): Promise<BonusEditData | null> {
   const db = await getSupabaseAuthClient();
@@ -230,5 +237,8 @@ export async function getBonusEdit(slug: string): Promise<BonusEditData | null> 
     howToClaim: r.how_to_claim ?? [],
     faq: r.faq ?? [],
     affiliateLinkId: r.affiliate_link_id ?? "",
+    authorSlug: r.author_slug ?? "",
+    verifierSlug: r.verifier_slug ?? "",
+    editorialVerifiedAt: r.editorial_verified_at ? r.editorial_verified_at.slice(0, 10) : "",
   };
 }

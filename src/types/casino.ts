@@ -49,6 +49,7 @@ export interface CasinoDetailExtra {
   mobile?: string;
   paymentMethods?: string[];
   faq?: { question: string; answer: string }[];
+  editorial?: import("@/lib/editorial").EditorialMeta;
 }
 
 export type CasinoDetail = CasinoCardData & CasinoDetailExtra;

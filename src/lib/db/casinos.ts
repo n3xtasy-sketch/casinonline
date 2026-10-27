@@ -45,6 +45,10 @@ interface CasinoDetailRow extends CasinoCardRow {
   support: string | null;
   mobile: string | null;
   payment_methods: { name: string }[] | null;
+  author_slug: string | null;
+  verifier_slug: string | null;
+  editorial_verified_at: string | null;
+  updated_at: string | null;
 }
 
 function pickBonus(bonuses: BonusMiniRow[] | null) {
@@ -87,13 +91,19 @@ function toDetail(row: CasinoDetailRow): CasinoDetail {
     mobile: row.mobile ?? undefined,
     paymentMethods: (row.payment_methods ?? []).map((p) => p.name),
     faq: row.faq ?? [],
+    editorial: {
+      authorSlug: row.author_slug ?? null,
+      verifierSlug: row.verifier_slug ?? null,
+      editorialVerifiedAt: row.editorial_verified_at ?? null,
+      updatedAt: row.updated_at ?? null,
+    },
   };
 }
 
 const CARD_SELECT =
   "slug, name, logo_url, rating, license, payout_speed, verified_at, offer_url, tags(slug, label), bonuses(offer, free_spins, bonus_type:bonus_types(slug))";
 
-const DETAIL_SELECT = `${CARD_SELECT}, editor_score, intro, editor_review, pros, cons, faq, min_deposit, withdrawal_time, kyc, support, mobile, payment_methods(name)`;
+const DETAIL_SELECT = `${CARD_SELECT}, editor_score, intro, editor_review, pros, cons, faq, min_deposit, withdrawal_time, kyc, support, mobile, payment_methods(name), author_slug, verifier_slug, editorial_verified_at, updated_at`;
 
 /** All casinos for the listing (default order: highest rating first). */
 export async function getCasinos(limit?: number): Promise<CasinoCardData[]> {

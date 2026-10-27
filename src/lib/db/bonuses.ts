@@ -22,6 +22,10 @@ interface BonusDetailRow extends BonusRow {
   cons: string[] | null;
   how_to_claim: string[] | null;
   faq: { question: string; answer: string }[] | null;
+  author_slug: string | null;
+  verifier_slug: string | null;
+  editorial_verified_at: string | null;
+  updated_at: string | null;
 }
 
 function toCard(row: BonusRow): BonusCardData {
@@ -51,13 +55,19 @@ function toDetail(row: BonusDetailRow): BonusDetail {
     cons: row.cons ?? [],
     howToClaim: row.how_to_claim ?? [],
     faq: row.faq ?? [],
+    editorial: {
+      authorSlug: row.author_slug ?? null,
+      verifierSlug: row.verifier_slug ?? null,
+      editorialVerifiedAt: row.editorial_verified_at ?? null,
+      updatedAt: row.updated_at ?? null,
+    },
   };
 }
 
 const CARD_SELECT =
   "slug, offer, free_spins, wagering, code, claim_url, bonus_type:bonus_types(slug, label), casino:casinos(slug, name)";
 
-const DETAIL_SELECT = `${CARD_SELECT}, intro, min_deposit, validity, terms, pros, cons, how_to_claim, faq`;
+const DETAIL_SELECT = `${CARD_SELECT}, intro, min_deposit, validity, terms, pros, cons, how_to_claim, faq, author_slug, verifier_slug, editorial_verified_at, updated_at`;
 
 /** All bonuses for the listing (the page applies filter/sort). */
 export async function getBonuses(): Promise<BonusCardData[]> {

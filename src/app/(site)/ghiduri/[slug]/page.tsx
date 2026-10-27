@@ -9,6 +9,8 @@ import { TableOfContents } from "@/components/ui/TableOfContents";
 import { RelatedLinks } from "@/components/ui/RelatedLinks";
 import { GuideCard } from "@/components/guides/GuideCard";
 import { GuideArticleHeader } from "@/components/guides/GuideArticleHeader";
+import { EditorialByline } from "@/components/layout/EditorialByline";
+import { resolveByline } from "@/lib/editorial";
 import { GuideBody } from "@/components/guides/GuideBody";
 import { getGuideBySlug, getSimilarGuides } from "@/lib/db/guides";
 import { buildMetadata, entityDefaultMeta } from "@/lib/seo";
@@ -45,6 +47,13 @@ export default async function GuideArticlePage({ params }: PageProps) {
     { label: guide.title },
   ];
 
+  const byline = resolveByline({
+    authorSlug: guide.editorial?.authorSlug ?? null,
+    verifierSlug: guide.editorial?.verifierSlug ?? null,
+    verifiedAt: guide.editorial?.editorialVerifiedAt ?? null,
+    updatedAt: guide.editorial?.updatedAt ?? null,
+  });
+
   return (
     <article className="flex flex-col gap-8">
       <JsonLd data={breadcrumbSchema(crumbs)} />
@@ -53,6 +62,8 @@ export default async function GuideArticlePage({ params }: PageProps) {
           title: guide.title,
           description: guide.excerpt,
           author: guide.author,
+          authorPerson: byline.author ? { name: byline.author.name, url: byline.author.href } : null,
+          reviewedBy: byline.verifier ? { name: byline.verifier.name, url: byline.verifier.href } : null,
           path: `/ghiduri/${slug}`,
           datePublished: guide.publishedAt,
           dateModified: guide.modifiedAt,
@@ -63,6 +74,15 @@ export default async function GuideArticlePage({ params }: PageProps) {
       <Breadcrumbs items={crumbs} />
 
       <GuideArticleHeader guide={guide} />
+
+      {guide.editorial ? (
+        <EditorialByline
+          authorSlug={guide.editorial.authorSlug}
+          verifierSlug={guide.editorial.verifierSlug}
+          verifiedAt={guide.editorial.editorialVerifiedAt}
+          updatedAt={guide.editorial.updatedAt}
+        />
+      ) : null}
 
       <p className="max-w-[72ch] text-lg leading-relaxed text-ink-secondary">{guide.intro}</p>
 

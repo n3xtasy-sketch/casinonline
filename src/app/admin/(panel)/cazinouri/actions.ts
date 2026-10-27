@@ -6,6 +6,7 @@ import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import { logActivity } from "@/lib/db/activity";
 import { applyStatusChange } from "@/lib/db/content-status";
 import { syncJunctionAtomic, type RpcRunner, type JunctionCol } from "@/lib/junction-sync";
+import { parseAuthorship, validateAuthorship } from "@/lib/editorial";
 import type { ContentStatus } from "@/lib/content-status";
 import type { CasinoFormState } from "./types";
 
@@ -137,13 +138,16 @@ export async function createCasino(
   }
   const fields = parseFields(formData);
   if (!fields.name) return { error: "Numele este obligatoriu." };
+  const authorship = parseAuthorship(formData);
+  const authorErr = validateAuthorship(authorship.input);
+  if (authorErr) return { error: authorErr };
 
   const { data: dup } = await db.from("casinos").select("id").eq("slug", slug).maybeSingle();
   if (dup) return { error: "Există deja un cazino cu acest slug." };
 
   const { data: inserted, error } = await db
     .from("casinos")
-    .insert({ slug, offer_url: `/go/${slug}`, ...fields })
+    .insert({ slug, offer_url: `/go/${slug}`, ...authorship.dbRow, ...fields })
     .select("id")
     .single();
   if (error || !inserted) {
@@ -191,11 +195,14 @@ export async function updateCasino(
   const db = await requireAdmin();
   const fields = parseFields(formData);
   if (!fields.name) return { error: "Numele este obligatoriu." };
+  const authorship = parseAuthorship(formData);
+  const authorErr = validateAuthorship(authorship.input);
+  if (authorErr) return { error: authorErr };
 
   // slug is read-only at edit → reuse the existing slug (offer_url stays /go/<slug>).
   const { error } = await db
     .from("casinos")
-    .update({ offer_url: `/go/${slug}`, ...fields })
+    .update({ offer_url: `/go/${slug}`, ...authorship.dbRow, ...fields })
     .eq("id", id);
   if (error) return { error: `Eroare la salvare: ${error.message}` };
 

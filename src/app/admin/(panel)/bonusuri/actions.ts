@@ -6,6 +6,7 @@ import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import { logActivity } from "@/lib/db/activity";
 import { applyStatusChange } from "@/lib/db/content-status";
 import { validateJsonField } from "@/lib/io/validate";
+import { parseAuthorship, validateAuthorship } from "@/lib/editorial";
 import { PLACEMENT_VALUES } from "@/lib/affiliate-placements";
 import type { ContentStatus } from "@/lib/content-status";
 import type { BonusFormState } from "./types";
@@ -242,6 +243,9 @@ export async function createBonus(
     const linkErr = await validateExistingLink(db, fields.casino_id, a.id);
     if (linkErr) return { error: linkErr };
   }
+  const authorship = parseAuthorship(formData);
+  const authorErr = validateAuthorship(authorship.input);
+  if (authorErr) return { error: authorErr };
 
   const { data: dup } = await db.from("bonuses").select("id").eq("slug", slug).maybeSingle();
   if (dup) return { error: "Există deja un bonus cu acest slug." };
@@ -252,7 +256,7 @@ export async function createBonus(
 
   const { data: inserted, error } = await db
     .from("bonuses")
-    .insert({ slug, claim_url, affiliate_link_id, ...fields, reward_stages: stages.value })
+    .insert({ slug, claim_url, affiliate_link_id, ...authorship.dbRow, ...fields, reward_stages: stages.value })
     .select("id")
     .single();
   if (error || !inserted) {
@@ -298,6 +302,9 @@ export async function updateBonus(
     const linkErr = await validateExistingLink(db, fields.casino_id, a.id);
     if (linkErr) return { error: linkErr };
   }
+  const authorship = parseAuthorship(formData);
+  const authorErr = validateAuthorship(authorship.input);
+  if (authorErr) return { error: authorErr };
 
   // slug is read-only at edit → fetch it to build the per-bonus /go/<casino>/<bonus> link.
   const { data: cur } = await db.from("bonuses").select("slug").eq("id", id).maybeSingle();
@@ -305,7 +312,7 @@ export async function updateBonus(
   const claim_url = await deriveClaimUrl(db, fields.casino_id, bonusSlug);
 
   // modes "main"/"existing" set affiliate_link_id directly; "new" is assigned via the RPC after.
-  const base = { claim_url, ...fields, reward_stages: stages.value };
+  const base = { claim_url, ...authorship.dbRow, ...fields, reward_stages: stages.value };
   const patch =
     a.mode === "new" ? base : { ...base, affiliate_link_id: a.mode === "existing" ? a.id : null };
 
