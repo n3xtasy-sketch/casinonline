@@ -21,6 +21,10 @@ const ROUTES = [
   "licente-si-reglementare/page.tsx",
   "autori/radu-bogdan-gabriel/page.tsx",
   "autori/radu-teodora-bianca/page.tsx",
+  "disclaimer-afiliere/page.tsx",
+  "termeni-si-conditii/page.tsx",
+  "politica-de-confidentialitate/page.tsx",
+  "politica-de-cookies/page.tsx",
 ];
 
 function titleOf(src: string): string | null {

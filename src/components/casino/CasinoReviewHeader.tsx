@@ -67,6 +67,7 @@ export function CasinoReviewHeader({ casino }: { casino: CasinoDetail }) {
           <Button href={offerUrl} className="w-full">
             Vezi oferta
           </Button>
+          <p className="text-[11px] leading-snug text-ink-muted">Link afiliat · 18+ · Joacă responsabil</p>
         </div>
       </div>
     </Card>

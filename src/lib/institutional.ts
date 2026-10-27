@@ -16,6 +16,9 @@ import type { Crumb } from "@/components/ui/Breadcrumbs";
 
 export type InstitutionalSchemaKind = "AboutPage" | "ContactPage" | "WebPage" | "Article";
 
+/** Footer grouping: editorial/EEAT ("info") vs legal/compliance ("legal"). */
+export type InstitutionalGroup = "info" | "legal";
+
 export interface InstitutionalPageMeta {
   /** URL slug under the (site) group, e.g. "despre-noi" → /despre-noi */
   slug: string;
@@ -25,26 +28,35 @@ export interface InstitutionalPageMeta {
   navLabel: string;
   /** Which Schema.org type is justified for this page (rendered only when ready). */
   schemaKind: InstitutionalSchemaKind;
+  /** Footer column this page belongs to. */
+  group: InstitutionalGroup;
   /**
-   * Live gate. false = route/content not finished → NOT in Footer, NOT in sitemap.
-   * Flip to true only once the route file + real content exist (see activation docs).
+   * Live gate. false = route/content not finished/confirmed → NOT in Footer, NOT in
+   * sitemap, 404 via the InstitutionalPage guard. Flip to true only once the route
+   * file + real content exist and (for legal pages) the essentials are confirmed.
    */
   ready: boolean;
 }
 
 /**
- * The 7 institutional pages (FAZA 4.1). All start NOT ready — this infra PR ships
- * the reusable plumbing without publishing any page. Each is activated individually
- * when its real content lands.
+ * Institutional pages. Group "info" = FAZA 4.1 editorial/EEAT (live). Group "legal" =
+ * FAZA 4.2 legal/compliance; only /disclaimer-afiliere is ready (content fully derived
+ * from confirmed facts). Terms + Privacy await legal review; Cookies awaits confirmation
+ * of the Vercel non-essential-tech status — all kept ready:false (route 404s meanwhile).
  */
 export const INSTITUTIONAL_PAGES: InstitutionalPageMeta[] = [
-  { slug: "despre-noi", title: "Despre noi", navLabel: "Despre noi", schemaKind: "AboutPage", ready: true },
-  { slug: "contact", title: "Contact", navLabel: "Contact", schemaKind: "ContactPage", ready: true },
-  { slug: "politica-editoriala", title: "Politica editorială", navLabel: "Politica editorială", schemaKind: "Article", ready: true },
-  { slug: "cum-evaluam-cazinourile", title: "Cum evaluăm cazinourile", navLabel: "Cum evaluăm cazinourile", schemaKind: "Article", ready: true },
-  { slug: "autori", title: "Autori", navLabel: "Autori", schemaKind: "WebPage", ready: true },
-  { slug: "joc-responsabil", title: "Joc responsabil", navLabel: "Joc responsabil", schemaKind: "WebPage", ready: true },
-  { slug: "licente-si-reglementare", title: "Licențe și reglementare", navLabel: "Licențe și reglementare", schemaKind: "WebPage", ready: true },
+  { slug: "despre-noi", title: "Despre noi", navLabel: "Despre noi", schemaKind: "AboutPage", group: "info", ready: true },
+  { slug: "contact", title: "Contact", navLabel: "Contact", schemaKind: "ContactPage", group: "info", ready: true },
+  { slug: "politica-editoriala", title: "Politica editorială", navLabel: "Politica editorială", schemaKind: "Article", group: "info", ready: true },
+  { slug: "cum-evaluam-cazinourile", title: "Cum evaluăm cazinourile", navLabel: "Cum evaluăm cazinourile", schemaKind: "Article", group: "info", ready: true },
+  { slug: "autori", title: "Autori", navLabel: "Autori", schemaKind: "WebPage", group: "info", ready: true },
+  { slug: "joc-responsabil", title: "Joc responsabil", navLabel: "Joc responsabil", schemaKind: "WebPage", group: "info", ready: true },
+  { slug: "licente-si-reglementare", title: "Licențe și reglementare", navLabel: "Licențe și reglementare", schemaKind: "WebPage", group: "info", ready: true },
+  // FAZA 4.2 — legal / compliance
+  { slug: "disclaimer-afiliere", title: "Disclaimer afiliere", navLabel: "Disclaimer afiliere", schemaKind: "WebPage", group: "legal", ready: true },
+  { slug: "termeni-si-conditii", title: "Termeni și condiții", navLabel: "Termeni și condiții", schemaKind: "WebPage", group: "legal", ready: false },
+  { slug: "politica-de-confidentialitate", title: "Politica de confidențialitate", navLabel: "Confidențialitate", schemaKind: "WebPage", group: "legal", ready: false },
+  { slug: "politica-de-cookies", title: "Politica de cookies", navLabel: "Cookies", schemaKind: "WebPage", group: "legal", ready: false },
 ];
 
 /** Lookup by slug (used by route files to resolve their registry entry). */
@@ -57,7 +69,12 @@ export function readyInstitutionalPages(): InstitutionalPageMeta[] {
   return INSTITUTIONAL_PAGES.filter((p) => p.ready);
 }
 
-/** Footer "Informații" links — ready pages only (single source for the Footer + its test). */
+/** Ready pages in a given Footer group (info vs legal). */
+export function readyInstitutionalByGroup(group: InstitutionalGroup): InstitutionalPageMeta[] {
+  return INSTITUTIONAL_PAGES.filter((p) => p.ready && p.group === group);
+}
+
+/** Footer links for ready pages (all groups). Single source for the Footer + its test. */
 export function institutionalFooterLinks(): { label: string; href: string }[] {
   return readyInstitutionalPages().map((p) => ({ label: p.navLabel, href: `/${p.slug}` }));
 }
