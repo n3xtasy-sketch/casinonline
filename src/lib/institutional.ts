@@ -38,13 +38,13 @@ export interface InstitutionalPageMeta {
  * when its real content lands.
  */
 export const INSTITUTIONAL_PAGES: InstitutionalPageMeta[] = [
-  { slug: "despre-noi", title: "Despre noi", navLabel: "Despre noi", schemaKind: "AboutPage", ready: false },
-  { slug: "contact", title: "Contact", navLabel: "Contact", schemaKind: "ContactPage", ready: false },
-  { slug: "politica-editoriala", title: "Politica editorială", navLabel: "Politica editorială", schemaKind: "Article", ready: false },
-  { slug: "cum-evaluam-cazinourile", title: "Cum evaluăm cazinourile", navLabel: "Cum evaluăm cazinourile", schemaKind: "Article", ready: false },
-  { slug: "autori", title: "Autori", navLabel: "Autori", schemaKind: "WebPage", ready: false },
-  { slug: "joc-responsabil", title: "Joc responsabil", navLabel: "Joc responsabil", schemaKind: "WebPage", ready: false },
-  { slug: "licente-si-reglementare", title: "Licențe și reglementare", navLabel: "Licențe și reglementare", schemaKind: "WebPage", ready: false },
+  { slug: "despre-noi", title: "Despre noi", navLabel: "Despre noi", schemaKind: "AboutPage", ready: true },
+  { slug: "contact", title: "Contact", navLabel: "Contact", schemaKind: "ContactPage", ready: true },
+  { slug: "politica-editoriala", title: "Politica editorială", navLabel: "Politica editorială", schemaKind: "Article", ready: true },
+  { slug: "cum-evaluam-cazinourile", title: "Cum evaluăm cazinourile", navLabel: "Cum evaluăm cazinourile", schemaKind: "Article", ready: true },
+  { slug: "autori", title: "Autori", navLabel: "Autori", schemaKind: "WebPage", ready: true },
+  { slug: "joc-responsabil", title: "Joc responsabil", navLabel: "Joc responsabil", schemaKind: "WebPage", ready: true },
+  { slug: "licente-si-reglementare", title: "Licențe și reglementare", navLabel: "Licențe și reglementare", schemaKind: "WebPage", ready: true },
 ];
 
 /** Lookup by slug (used by route files to resolve their registry entry). */
