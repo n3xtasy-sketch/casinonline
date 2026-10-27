@@ -6,9 +6,12 @@ import { logActivity } from "@/lib/db/activity";
 import {
   dryRunImport,
   applyImport,
+  dryRunAffiliate,
+  applyAffiliate,
   MAX_IMPORT_BYTES,
   type ImportReport,
   type ImportOutcome,
+  type AffiliateDryRun,
 } from "@/lib/db/io";
 import { ENTITY_DESCRIPTORS, IO_IMPORT_ENTITIES, type IoEntity } from "@/lib/io/entities";
 import type { ImportMode } from "@/lib/io/validate";
@@ -38,11 +41,12 @@ export async function dryRunAction(
   entity: string,
   csvText: string,
   mode: string = "create",
-): Promise<ImportReport | { error: string }> {
+): Promise<ImportReport | AffiliateDryRun | { error: string }> {
   await requireAdmin();
-  if (!validEntity(entity)) return { error: "Entitate neimportabilă." };
   if (!validMode(mode)) return { error: "Mod de import invalid." };
   if (csvText.length > MAX_IMPORT_BYTES) return { error: "Fișier prea mare (max 2 MB)." };
+  if (entity === "affiliate_links") return dryRunAffiliate(csvText, mode);
+  if (!validEntity(entity)) return { error: "Entitate neimportabilă." };
   return dryRunImport(entity, csvText, mode);
 }
 
@@ -52,11 +56,26 @@ export async function runImportAction(
   hash: string,
   mode: string = "create",
   confirmPublished = false,
+  conflictTokens: Record<number, string> = {},
 ): Promise<ImportOutcome | { error: string }> {
   const db = await requireAdmin();
-  if (!validEntity(entity)) return { error: "Entitate neimportabilă." };
   if (!validMode(mode)) return { error: "Mod de import invalid." };
   if (csvText.length > MAX_IMPORT_BYTES) return { error: "Fișier prea mare (max 2 MB)." };
+
+  if (entity === "affiliate_links") {
+    // affiliate_links resolve live via the SECURITY DEFINER RPCs → no cached surface
+    // embeds a link URL, so no updateTag is needed (consistent with the Admin actions).
+    const res = await applyAffiliate(csvText, hash, mode, conflictTokens);
+    if ("error" in res) return res;
+    await logActivity(db, {
+      action: "import.affiliate_links",
+      entityType: "affiliate_links",
+      metadata: { mode, created: res.created, updated: res.updated, unchanged: res.unchanged, skipped: res.skipped, failed: res.failed },
+    });
+    return res;
+  }
+
+  if (!validEntity(entity)) return { error: "Entitate neimportabilă." };
 
   const res = await applyImport(entity, csvText, hash, mode, confirmPublished);
   if ("error" in res) return res;

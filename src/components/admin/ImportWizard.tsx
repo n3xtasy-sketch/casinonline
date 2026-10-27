@@ -5,8 +5,11 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/cn";
 import { IO_IMPORT_ENTITIES } from "@/lib/io/entities";
 import { dryRunAction, runImportAction } from "@/app/admin/(panel)/import/actions";
-import type { ImportReport, ImportOutcome, ReportRow } from "@/lib/db/io";
+import type { ImportReport, ImportOutcome, ReportRow, AffiliateDryRun } from "@/lib/db/io";
 import type { ImportMode, RowLevel } from "@/lib/io/validate";
+
+/** affiliate_links imports via a dedicated path (no slug/status) but shares this UI. */
+const ENTITY_OPTIONS = [...IO_IMPORT_ENTITIES, "affiliate_links"];
 
 const MAX_BYTES = 2 * 1024 * 1024;
 const LEVEL_DOT: Record<RowLevel, string> = { valid: "bg-accent", warning: "bg-gold", error: "bg-danger" };
@@ -60,7 +63,7 @@ function RowDiffView({ r }: { r: ReportRow }) {
 
 export function ImportWizard() {
   const router = useRouter();
-  const [entity, setEntity] = useState<string>(IO_IMPORT_ENTITIES[0]);
+  const [entity, setEntity] = useState<string>(ENTITY_OPTIONS[0]);
   const [mode, setMode] = useState<ImportMode>("create");
   const [csvText, setCsvText] = useState<string>("");
   const [fileName, setFileName] = useState<string>("");
@@ -102,8 +105,9 @@ export function ImportWizard() {
 
   function confirmImport() {
     if (!report) return;
+    const tokens = (report as AffiliateDryRun).conflictTokens ?? {};
     start(async () => {
-      const res = await runImportAction(entity, csvText, report.hash, mode, confirmPublished);
+      const res = await runImportAction(entity, csvText, report.hash, mode, confirmPublished, tokens);
       if ("error" in res) setError(res.error);
       else {
         setOutcome(res);
@@ -130,7 +134,7 @@ export function ImportWizard() {
             }}
             className="h-10 rounded-sm border border-border bg-field px-3 text-sm text-ink"
           >
-            {IO_IMPORT_ENTITIES.map((e) => (
+            {ENTITY_OPTIONS.map((e) => (
               <option key={e} value={e}>{e}</option>
             ))}
           </select>
@@ -180,7 +184,7 @@ export function ImportWizard() {
               <thead>
                 <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-ink-muted">
                   <th className="px-3 py-2">Linie</th>
-                  <th className="px-3 py-2">Slug</th>
+                  <th className="px-3 py-2">Slug / cheie</th>
                   <th className="px-3 py-2">Acțiune</th>
                   <th className="px-3 py-2">Modificări / Mesaje</th>
                 </tr>

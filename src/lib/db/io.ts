@@ -2,6 +2,7 @@ import "server-only";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import * as pipeline from "@/lib/io/pipeline";
+import * as affiliate from "@/lib/io/affiliate-import";
 import type { ImportMode } from "@/lib/io/validate";
 import type { IoEntity } from "@/lib/io/entities";
 
@@ -39,5 +40,26 @@ export function applyImport(
 export function exportEntity(entity: IoEntity, format: "csv" | "json", filters: { status?: string }) {
   return getSupabaseAuthClient().then((db) =>
     pipeline.exportEntity(db as unknown as SupabaseClient, entity, format, filters),
+  );
+}
+
+/* affiliate_links has no slug/status → a dedicated parallel importer (same admin
+ * session, never service_role). exportEntity above already handles its export. */
+export type { AffiliateDryRun } from "@/lib/io/affiliate-import";
+
+export function dryRunAffiliate(csvText: string, mode: ImportMode = "upsert") {
+  return getSupabaseAuthClient().then((db) =>
+    affiliate.dryRunAffiliate(db as unknown as SupabaseClient, csvText, mode),
+  );
+}
+
+export function applyAffiliate(
+  csvText: string,
+  expectedHash: string,
+  mode: ImportMode = "upsert",
+  conflictTokens: Record<number, string> = {},
+) {
+  return getSupabaseAuthClient().then((db) =>
+    affiliate.applyAffiliate(db as unknown as SupabaseClient, csvText, expectedHash, mode, conflictTokens),
   );
 }

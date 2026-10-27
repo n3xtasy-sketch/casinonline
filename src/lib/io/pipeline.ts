@@ -338,19 +338,21 @@ export async function exportEntity(
   filters: { status?: string },
 ): Promise<string> {
   if (entity === "affiliate_links") {
+    // id first → an exported row re-identifies its link on UPSERT import (incl. inactive),
+    // giving a 100%-UNCHANGED round-trip. Columns mirror AFFILIATE_CSV_COLUMNS.
     const { data } = await db
       .from("affiliate_links")
-      .select("placement, url, campaign, is_active, casino:casinos(slug)")
+      .select("id, placement, url, campaign, is_active, casino:casinos(slug)")
       .order("placement");
     const rows = ((data as unknown as {
-      placement: string; url: string; campaign: string | null; is_active: boolean;
+      id: string; placement: string; url: string; campaign: string | null; is_active: boolean;
       casino: { slug?: string } | null;
     }[]) ?? []).map((r) => ({
-      casino_slug: r.casino?.slug ?? "", placement: r.placement, url: r.url,
+      id: r.id, casino_slug: r.casino?.slug ?? "", placement: r.placement, url: r.url,
       campaign: r.campaign ?? "", is_active: r.is_active,
     }));
     if (format === "json") return JSON.stringify(rows, null, 2);
-    const cols = ["casino_slug", "placement", "url", "campaign", "is_active"];
+    const cols = ["id", "casino_slug", "placement", "url", "campaign", "is_active"];
     return toCsv(cols, rows.map((r) => cols.map((c) => (r as Record<string, unknown>)[c] as string)));
   }
 
