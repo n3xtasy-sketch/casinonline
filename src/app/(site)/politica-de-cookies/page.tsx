@@ -5,10 +5,10 @@ import { institutionalMetadata } from "@/lib/institutional";
 import { pageSchema } from "@/lib/schema";
 import type { GuideSection } from "@/types/guide";
 
-// ready:false in the registry → 404 until the status of non-essential technologies in
-// the Vercel project (Web Analytics / Speed Insights) is confirmed OFF. The copy below
-// reflects the application code as audited; if Vercel analytics is enabled, this page
-// must add that disclosure (and a consent mechanism) before going live.
+// ready:true (FAZA 4.2C): owner confirmed Vercel Web Analytics OFF + Speed Insights
+// unconfigured, and the audit confirmed no GA/GTM/Meta Pixel in code. So no
+// non-essential/consent-requiring technology runs for public visitors — only
+// essential admin-auth cookies. No speculative claim; no cookie banner required.
 export const metadata: Metadata = institutionalMetadata({
   slug: "politica-de-cookies",
   title: "Politica de cookies — CasinOnline.ro",
@@ -39,7 +39,8 @@ const sections: GuideSection[] = [
     heading: "Fara cookie-uri de analiza sau marketing",
     level: 2,
     body: [
-      "In configuratia actuala a aplicatiei nu folosim instrumente proprii de analiza a traficului (de exemplu Google Analytics) si nici cookie-uri de marketing sau de publicitate.",
+      "Nu folosim Google Analytics, Google Tag Manager, Meta Pixel sau alte instrumente proprii de analiza a traficului, si nici cookie-uri de marketing sau de publicitate.",
+      "Serviciile de analiza ale platformei de gazduire (Vercel Web Analytics si Speed Insights) sunt dezactivate, respectiv neconfigurate. Prin urmare, pentru vizitatorii publici nu exista tehnologii neesentiale care sa necesite consimtamant, iar site-ul nu afiseaza un banner de cookies.",
     ],
   },
   {

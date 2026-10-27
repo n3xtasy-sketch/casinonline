@@ -40,9 +40,9 @@ export interface InstitutionalPageMeta {
 
 /**
  * Institutional pages. Group "info" = FAZA 4.1 editorial/EEAT (live). Group "legal" =
- * FAZA 4.2 legal/compliance; only /disclaimer-afiliere is ready (content fully derived
- * from confirmed facts). Terms + Privacy await legal review; Cookies awaits confirmation
- * of the Vercel non-essential-tech status — all kept ready:false (route 404s meanwhile).
+ * FAZA 4.2 legal/compliance. FAZA 4.2C: disclaimer + cookies + privacy are live
+ * (owner-confirmed facts, no speculative claims). Terms stays ready:false — its
+ * limitation-of-liability + dispute clauses require legal review (route 404s meanwhile).
  */
 export const INSTITUTIONAL_PAGES: InstitutionalPageMeta[] = [
   { slug: "despre-noi", title: "Despre noi", navLabel: "Despre noi", schemaKind: "AboutPage", group: "info", ready: true },
@@ -54,9 +54,9 @@ export const INSTITUTIONAL_PAGES: InstitutionalPageMeta[] = [
   { slug: "licente-si-reglementare", title: "Licențe și reglementare", navLabel: "Licențe și reglementare", schemaKind: "WebPage", group: "info", ready: true },
   // FAZA 4.2 — legal / compliance
   { slug: "disclaimer-afiliere", title: "Disclaimer afiliere", navLabel: "Disclaimer afiliere", schemaKind: "WebPage", group: "legal", ready: true },
+  { slug: "politica-de-confidentialitate", title: "Politica de confidențialitate", navLabel: "Confidențialitate", schemaKind: "WebPage", group: "legal", ready: true },
+  { slug: "politica-de-cookies", title: "Politica de cookies", navLabel: "Cookies", schemaKind: "WebPage", group: "legal", ready: true },
   { slug: "termeni-si-conditii", title: "Termeni și condiții", navLabel: "Termeni și condiții", schemaKind: "WebPage", group: "legal", ready: false },
-  { slug: "politica-de-confidentialitate", title: "Politica de confidențialitate", navLabel: "Confidențialitate", schemaKind: "WebPage", group: "legal", ready: false },
-  { slug: "politica-de-cookies", title: "Politica de cookies", navLabel: "Cookies", schemaKind: "WebPage", group: "legal", ready: false },
 ];
 
 /** Lookup by slug (used by route files to resolve their registry entry). */

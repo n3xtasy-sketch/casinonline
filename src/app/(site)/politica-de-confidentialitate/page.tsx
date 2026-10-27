@@ -6,9 +6,11 @@ import { pageSchema } from "@/lib/schema";
 import { company, infrastructure } from "@/lib/company";
 import type { GuideSection } from "@/types/guide";
 
-// ready:false in the registry → this route 404s until legal review confirms the
-// retention periods, legal bases and hosting regions (see report). Visible copy below
-// uses only confirmed facts + lawful general phrasing; no fabricated specifics.
+// ready:true (FAZA 4.2C): owner confirmed the data controller, Supabase region
+// (Frankfurt/eu-central-1), Vercel hosting, public signups OFF, and a functional
+// contact email. Copy uses ONLY confirmed facts + lawful general phrasing — no
+// invented retention periods or legal bases. A detailed legal review of bases +
+// exact retention remains recommended (non-blocking; nothing speculative is asserted).
 export const metadata: Metadata = institutionalMetadata({
   slug: "politica-de-confidentialitate",
   title: "Politica de confidentialitate — CasinOnline.ro",
@@ -31,9 +33,10 @@ const sections: GuideSection[] = [
     heading: "Ce date prelucram",
     level: 2,
     body: [
-      "Aplicatia CasinOnline.ro nu stocheaza date personale ale vizitatorilor publici: nu exista conturi de utilizator public, formulare de inregistrare, newsletter sau instrumente proprii de analiza a traficului.",
-      "Acest lucru nu inseamna ca nu se prelucreaza deloc date tehnice. Ca la orice site, anumite date tehnice (de exemplu adresa IP si tipul de browser) pot fi procesate de furnizorii de infrastructura pentru functionarea si securitatea serviciului, asa cum este descris mai jos.",
-      "Pentru utilizatorii administrativi (echipa care gestioneaza continutul) prelucram adresa de email si datele de autentificare, precum si un jurnal al actiunilor administrative.",
+      "Aplicatia CasinOnline.ro nu stocheaza date personale ale vizitatorilor publici: nu exista conturi de utilizator public (inregistrarile publice sunt dezactivate), formulare de inregistrare, newsletter sau instrumente proprii de analiza a traficului.",
+      "Acest lucru nu inseamna ca nu se prelucreaza deloc date. Ca la orice site, anumite date tehnice (de exemplu adresa IP si tipul de browser) pot fi procesate de furnizorii de infrastructura pentru functionarea si securitatea serviciului, asa cum este descris mai jos.",
+      "Pentru utilizatorii administrativi (echipa care gestioneaza continutul) prelucram adresa de email si datele de autentificare, precum si un jurnal al actiunilor administrative. Nu exista inregistrare publica de conturi.",
+      "Daca ne scrii pe email, prelucram datele din mesaj (adresa de email si continutul) pentru a-ti raspunde.",
     ],
   },
   {
@@ -42,8 +45,9 @@ const sections: GuideSection[] = [
     level: 2,
     body: [
       `${infrastructure.vercel.name}: ${infrastructure.vercel.role} ${infrastructure.vercel.note}`,
-      `${infrastructure.supabase.name}: ${infrastructure.supabase.role} ${infrastructure.supabase.note}`,
+      `${infrastructure.supabase.name}: ${infrastructure.supabase.role} Proiectul de productie este gazduit in regiunea ${infrastructure.supabase.region}. ${infrastructure.supabase.note}`,
       `${infrastructure.fonts.name}: ${infrastructure.fonts.role} ${infrastructure.fonts.note}`,
+      infrastructure.euCaveat,
     ],
   },
   {
@@ -73,12 +77,12 @@ const sections: GuideSection[] = [
     ],
   },
   {
-    // NECESITA CONFIRMARE: regiunea de gazduire (Supabase/Vercel) pentru transferuri.
     id: "transferuri",
-    heading: "Transferuri de date",
+    heading: "Localizarea si transferurile de date",
     level: 2,
     body: [
-      "Datele tehnice pot fi procesate de furnizorii de infrastructura mentionati, in conformitate cu politicile si masurile de protectie ale acestora. Detaliile despre localizarea prelucrarii sunt cele comunicate de acesti furnizori.",
+      `Baza de date de productie este gazduita in ${infrastructure.supabase.region}. Datele tehnice pot fi procesate de furnizorii de infrastructura mentionati, in conformitate cu politicile si masurile de protectie ale acestora.`,
+      infrastructure.euCaveat,
     ],
   },
   {

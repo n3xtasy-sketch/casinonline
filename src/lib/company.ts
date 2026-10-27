@@ -47,6 +47,8 @@ export const infrastructure = {
   supabase: {
     name: "Supabase",
     role: "Baza de date, autentificare administrativa si gazduire imagini (CDN).",
+    /** Confirmed by owner: production project region. */
+    region: "Central EU (Frankfurt, Germania), eu-central-1",
     note: "Imaginile publice se incarca din CDN-ul Supabase; IP-ul si user-agent-ul vizitatorului ajung la CDN la incarcarea imaginilor.",
   },
   vercel: {
@@ -59,4 +61,16 @@ export const infrastructure = {
     role: "Fonturile sunt servite din domeniul propriu (self-hosted la build).",
     note: "Nu se trimit date catre Google la incarcarea paginii.",
   },
+  /** Owner-confirmed: no non-essential analytics is enabled anywhere. */
+  analytics: {
+    vercelWebAnalytics: "OFF",
+    vercelSpeedInsights: "neconfigurat",
+    note: "Nu folosim Google Analytics, Google Tag Manager, Meta Pixel sau instrumente proprii de analiza a traficului.",
+  },
+  /**
+   * Honest caveat requested by the owner: hosting in Frankfurt does NOT guarantee that
+   * every processing operation / transfer happens exclusively within the EU.
+   */
+  euCaveat:
+    "Gazduirea in Frankfurt nu garanteaza ca toate prelucrarile sau transferurile de date au loc exclusiv in Uniunea Europeana; furnizorii pot efectua anumite operatiuni conform propriilor politici.",
 } as const;
