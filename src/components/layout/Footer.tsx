@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
+import { institutionalFooterLinks } from "@/lib/institutional";
 
-const columns = [
+const baseColumns = [
   {
     title: "Cazinouri",
     links: [
@@ -29,10 +30,18 @@ const columns = [
 ];
 
 export function Footer() {
+  // "Informații" column is built ONLY from institutional pages that are live
+  // (ready). Until a page's real content ships, it is not linked here.
+  const infoLinks = institutionalFooterLinks();
+  const columns = infoLinks.length
+    ? [...baseColumns, { title: "Informații", links: infoLinks }]
+    : baseColumns;
+  const gridCols = columns.length >= 4 ? "lg:grid-cols-4" : "lg:grid-cols-3";
+
   return (
     <footer className="border-t border-border bg-footer">
       <div className="mx-auto max-w-[1600px] px-4 py-10 md:px-6">
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+        <div className={`grid gap-8 sm:grid-cols-2 ${gridCols}`}>
           {columns.map((col) => (
             <nav key={col.title} aria-label={col.title}>
               <h2 className="mb-3 text-sm font-semibold text-ink">{col.title}</h2>

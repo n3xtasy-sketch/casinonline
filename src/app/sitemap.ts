@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
-import { absoluteUrl } from "@/lib/site";
+import { absoluteUrl, siteConfig } from "@/lib/site";
 import { getSlugs, type SlugRow } from "@/lib/db/slugs";
+import { institutionalSitemapEntries } from "@/lib/institutional";
 
 /** Dynamic sitemap covering every hub and detail route (slugs + lastModified from DB). */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -55,5 +56,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
   );
 
-  return [...hubEntries, ...detailEntries];
+  // Institutional/EEAT pages — only the READY ones (empty until content ships).
+  const institutionalEntries: MetadataRoute.Sitemap = institutionalSitemapEntries(siteConfig.url).map(
+    (e) => ({ url: e.url, changeFrequency: e.changeFrequency, priority: e.priority }),
+  );
+
+  return [...hubEntries, ...detailEntries, ...institutionalEntries];
 }
