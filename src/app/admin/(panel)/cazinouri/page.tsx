@@ -3,6 +3,15 @@ import { Plus } from "lucide-react";
 import { ExportButtons } from "@/components/admin/ExportButtons";
 import { listAdminCasinos, listTags } from "@/lib/db/admin-casinos";
 import { BulkCasinoTable } from "@/components/admin/BulkCasinoTable";
+import { EditorialSummary } from "@/components/admin/EditorialSummary";
+import { EditorialFilterBar } from "@/components/admin/EditorialFilterBar";
+import {
+  editorialFlags,
+  matchesEditorialFilter,
+  parseEditorialFilter,
+  summarizeEditorial,
+  type EditorialFlags,
+} from "@/lib/editorial-status";
 import { cn } from "@/lib/cn";
 
 type Filter = "all" | "draft" | "published" | "archived";
@@ -15,14 +24,22 @@ const TABS: { key: Filter; label: string }[] = [
 ];
 
 interface PageProps {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; editorial?: string }>;
 }
 
 export default async function AdminCasinosPage({ searchParams }: PageProps) {
   const sp = await searchParams;
   const filter: Filter =
     sp.status === "draft" || sp.status === "published" || sp.status === "archived" ? sp.status : "all";
+  const editorialFilter = parseEditorialFilter(sp.editorial);
   const [casinos, tags] = await Promise.all([listAdminCasinos(filter), listTags()]);
+
+  // Flags computed server-side (now) and passed down → stable, no hydration drift.
+  const now = new Date();
+  const flagsById: Record<string, EditorialFlags> = {};
+  for (const c of casinos) flagsById[c.id] = editorialFlags(c.editorial, now);
+  const summary = summarizeEditorial(casinos.map((c) => flagsById[c.id]));
+  const shown = casinos.filter((c) => matchesEditorialFilter(flagsById[c.id], editorialFilter));
 
   return (
     <div className="flex flex-col gap-6">
@@ -60,7 +77,10 @@ export default async function AdminCasinosPage({ searchParams }: PageProps) {
         ))}
       </div>
 
-      <BulkCasinoTable rows={casinos} tags={tags} />
+      <EditorialSummary summary={summary} />
+      <EditorialFilterBar basePath="/admin/cazinouri" status={filter} current={editorialFilter} />
+
+      <BulkCasinoTable rows={shown} tags={tags} flagsById={flagsById} />
     </div>
   );
 }

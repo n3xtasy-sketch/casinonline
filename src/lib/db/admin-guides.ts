@@ -4,6 +4,8 @@ import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import type { Option } from "@/lib/db/admin-casinos";
 import type { GuideSection, GuideRelatedLink } from "@/types/guide";
 import { serializeSections, serializeRelatedLinks } from "@/lib/guide-format";
+import { authorName } from "@/lib/authors";
+import type { EditorialRowView } from "@/lib/editorial-status";
 
 export interface GuideEditData {
   id: string;
@@ -89,13 +91,16 @@ export interface AdminGuideRow {
   category: string;
   author: string;
   status: ContentStatus;
+  editorial: EditorialRowView;
 }
 
 export async function listAdminGuides(filter: "all" | ContentStatus = "all"): Promise<AdminGuideRow[]> {
   const db = await getSupabaseAuthClient();
   let q = db
     .from("guides")
-    .select("id, slug, title, author, status, category:guide_categories(label)")
+    .select(
+      "id, slug, title, author, status, updated_at, author_slug, verifier_slug, editorial_verified_at, category:guide_categories(label)",
+    )
     .order("status")
     .order("title");
   if (filter !== "all") q = q.eq("status", filter);
@@ -105,9 +110,17 @@ export async function listAdminGuides(filter: "all" | ContentStatus = "all"): Pr
     (data as unknown as {
       id: string; slug: string; title: string; author: string | null;
       status: ContentStatus; category: { label?: string } | null;
+      updated_at: string | null; author_slug: string | null;
+      verifier_slug: string | null; editorial_verified_at: string | null;
     }[]) ?? []
   ).map((r) => ({
     id: r.id, slug: r.slug, title: r.title, category: r.category?.label ?? "",
     author: r.author ?? "", status: r.status,
+    editorial: {
+      authorSlug: r.author_slug, verifierSlug: r.verifier_slug,
+      editorialVerifiedAt: r.editorial_verified_at,
+      authorName: authorName(r.author_slug), verifierName: authorName(r.verifier_slug),
+      updatedAt: r.updated_at,
+    },
   }));
 }
