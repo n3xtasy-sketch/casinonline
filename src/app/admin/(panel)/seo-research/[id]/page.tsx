@@ -77,6 +77,12 @@ export default async function SeoProjectPage({ params, searchParams }: PageProps
         ))}
       </section>
 
+      <nav className="flex flex-wrap gap-2">
+        <Link href={`/admin/seo-research/${id}/clusters`} className="inline-flex h-9 items-center rounded-sm border border-border px-4 text-sm font-medium text-ink hover:bg-elevated">
+          Clustere de keyworduri →
+        </Link>
+      </nav>
+
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-semibold text-ink">Import keyworduri (Ahrefs CSV)</h2>
         <AhrefsImportWizard projectId={id} defaultCountry={project.defaultCountry} />
