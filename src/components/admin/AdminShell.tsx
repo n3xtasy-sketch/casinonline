@@ -16,6 +16,7 @@ import {
   Milestone,
   History,
   Upload,
+  Telescope,
   LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -33,6 +34,7 @@ const items = [
   { label: "Affiliate Links", href: "/admin/affiliate-links", icon: Link2, ready: true },
   { label: "Media", href: "/admin/media", icon: ImageIcon, ready: true },
   { label: "SEO", href: "/admin/seo", icon: Search, ready: true },
+  { label: "SEO Research", href: "/admin/seo-research", icon: Telescope, ready: true },
   { label: "Redirects", href: "/admin/redirects", icon: Milestone, ready: true },
   { label: "Activity", href: "/admin/activity", icon: History, ready: true },
   { label: "Import", href: "/admin/import", icon: Upload, ready: true },
