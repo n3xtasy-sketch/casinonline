@@ -7,6 +7,7 @@ import { logActivity } from "@/lib/db/activity";
 import { applyStatusChange } from "@/lib/db/content-status";
 import type { ContentStatus } from "@/lib/content-status";
 import { parseSections, parseRelatedLinks } from "@/lib/guide-format";
+import { parseAuthorship, validateAuthorship } from "@/lib/editorial";
 import type { GuideFormState } from "./types";
 
 type DB = Awaited<ReturnType<typeof getSupabaseAuthClient>>;
@@ -96,13 +97,16 @@ export async function createGuide(
   }
   const { fields, error } = parseFields(formData);
   if (error) return { error };
+  const authorship = parseAuthorship(formData);
+  const authorErr = validateAuthorship(authorship.input);
+  if (authorErr) return { error: authorErr };
 
   const { data: dup } = await db.from("guides").select("id").eq("slug", slug).maybeSingle();
   if (dup) return { error: "Există deja un ghid cu acest slug." };
 
   const { error: insErr } = await db
     .from("guides")
-    .insert({ slug, ...fields, updated_at: new Date().toISOString() });
+    .insert({ slug, ...authorship.dbRow, ...fields, updated_at: new Date().toISOString() });
   if (insErr) {
     if (insErr.code === "23505") return { error: "Există deja un ghid cu acest slug." };
     return { error: `Eroare la salvare: ${insErr.message}` };
@@ -121,11 +125,14 @@ export async function updateGuide(
   const db = await requireAdmin();
   const { fields, error } = parseFields(formData);
   if (error) return { error };
+  const authorship = parseAuthorship(formData);
+  const authorErr = validateAuthorship(authorship.input);
+  if (authorErr) return { error: authorErr };
 
   // slug is read-only at edit; updated_at is re-stamped on every save.
   const { error: updErr } = await db
     .from("guides")
-    .update({ ...fields, updated_at: new Date().toISOString() })
+    .update({ ...authorship.dbRow, ...fields, updated_at: new Date().toISOString() })
     .eq("id", id);
   if (updErr) return { error: `Eroare la salvare: ${updErr.message}` };
 

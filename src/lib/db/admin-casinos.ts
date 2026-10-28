@@ -52,6 +52,9 @@ export interface CasinoEditData {
   paymentMethodIds: string[];
   gameIds: string[];
   affiliateUrl: string;
+  authorSlug: string;
+  verifierSlug: string;
+  editorialVerifiedAt: string;
 }
 
 /** Admin casino listing — sees every row (incl. archived) via the admin session. */
@@ -145,10 +148,13 @@ interface EditRow {
   casino_payment_methods: { payment_method_id: string }[] | null;
   casino_games: { game_id: string }[] | null;
   affiliate_links: { url: string; placement: string }[] | null;
+  author_slug: string | null;
+  verifier_slug: string | null;
+  editorial_verified_at: string | null;
 }
 
 const EDIT_SELECT =
-  "id, slug, name, status, year_launched, logo_url, rating, editor_score, license, license_verified_at, license_source, payout_speed, withdrawal_time, verified_at, verification_source, min_deposit, kyc, support, mobile, intro, editor_review, pros, cons, faq, casino_tags(tag_id), casino_payment_methods(payment_method_id), casino_games(game_id), affiliate_links(url, placement)";
+  "id, slug, name, status, year_launched, logo_url, rating, editor_score, license, license_verified_at, license_source, payout_speed, withdrawal_time, verified_at, verification_source, min_deposit, kyc, support, mobile, intro, editor_review, pros, cons, faq, casino_tags(tag_id), casino_payment_methods(payment_method_id), casino_games(game_id), affiliate_links(url, placement), author_slug, verifier_slug, editorial_verified_at";
 
 /** Full editable casino (admin only) by slug, or null. */
 export async function getCasinoEdit(slug: string): Promise<CasinoEditData | null> {
@@ -189,5 +195,8 @@ export async function getCasinoEdit(slug: string): Promise<CasinoEditData | null
     paymentMethodIds: selectedJunctionIds(r.casino_payment_methods, "payment_method_id"),
     gameIds: selectedJunctionIds(r.casino_games, "game_id"),
     affiliateUrl: affiliate?.url ?? "",
+    authorSlug: r.author_slug ?? "",
+    verifierSlug: r.verifier_slug ?? "",
+    editorialVerifiedAt: r.editorial_verified_at ? r.editorial_verified_at.slice(0, 10) : "",
   };
 }

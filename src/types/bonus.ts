@@ -30,6 +30,7 @@ export interface BonusDetailExtra {
   cons: string[];
   howToClaim: string[];
   faq?: { question: string; answer: string }[];
+  editorial?: import("@/lib/editorial").EditorialMeta;
 }
 
 export type BonusDetail = BonusCardData & BonusDetailExtra;

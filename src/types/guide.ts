@@ -39,6 +39,7 @@ export interface GuideDetailExtra {
   /** ISO timestamps for Article structured data (undefined when absent). */
   publishedAt?: string;
   modifiedAt?: string;
+  editorial?: import("@/lib/editorial").EditorialMeta;
 }
 
 export type GuideDetail = GuideCardData & GuideDetailExtra;

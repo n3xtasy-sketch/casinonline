@@ -22,6 +22,9 @@ export interface GuideEditData {
   faq: { question: string; answer: string }[];
   /** YYYY-MM-DD for the date input (empty when unset). */
   publishedAt: string;
+  authorSlug: string;
+  verifierSlug: string;
+  editorialVerifiedAt: string;
 }
 
 export async function listGuideCategories(): Promise<Option[]> {
@@ -45,10 +48,13 @@ interface EditRow {
   related_links: GuideRelatedLink[] | null;
   faq: { question: string; answer: string }[] | null;
   published_at: string | null;
+  author_slug: string | null;
+  verifier_slug: string | null;
+  editorial_verified_at: string | null;
 }
 
 const EDIT_SELECT =
-  "id, slug, title, category_id, excerpt, image_url, author, intro, reading_time, sections, related_links, faq, published_at";
+  "id, slug, title, category_id, excerpt, image_url, author, intro, reading_time, sections, related_links, faq, published_at, author_slug, verifier_slug, editorial_verified_at";
 
 export async function getGuideEdit(slug: string): Promise<GuideEditData | null> {
   const db = await getSupabaseAuthClient();
@@ -70,6 +76,9 @@ export async function getGuideEdit(slug: string): Promise<GuideEditData | null> 
     relatedLinksText: serializeRelatedLinks(r.related_links),
     faq: r.faq ?? [],
     publishedAt: r.published_at ? r.published_at.slice(0, 10) : "",
+    authorSlug: r.author_slug ?? "",
+    verifierSlug: r.verifier_slug ?? "",
+    editorialVerifiedAt: r.editorial_verified_at ? r.editorial_verified_at.slice(0, 10) : "",
   };
 }
 

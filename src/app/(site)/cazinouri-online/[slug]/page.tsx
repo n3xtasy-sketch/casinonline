@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/Badge";
 import { FAQAccordion } from "@/components/ui/FAQAccordion";
 import { CasinoCard } from "@/components/casino/CasinoCard";
 import { CasinoReviewHeader } from "@/components/casino/CasinoReviewHeader";
+import { EditorialByline } from "@/components/layout/EditorialByline";
+import { resolveByline } from "@/lib/editorial";
 import { CasinoFacts } from "@/components/casino/CasinoFacts";
 import { ProsCons } from "@/components/casino/ProsCons";
 import { getCasinoBySlug, getRelatedCasinos } from "@/lib/db/casinos";
@@ -42,11 +44,23 @@ export default async function CasinoReviewPage({ params }: PageProps) {
     { label: casino.name },
   ];
 
+  // Resolve the editorial byline: author link + verifier ONLY when a real verification
+  // (verifier + verified date) exists — never fabricated.
+  const byline = resolveByline({
+    authorSlug: casino.editorial?.authorSlug ?? null,
+    verifierSlug: casino.editorial?.verifierSlug ?? null,
+    verifiedAt: casino.editorial?.editorialVerifiedAt ?? null,
+    updatedAt: casino.editorial?.updatedAt ?? null,
+  });
+
   // Editorial Review JSON-LD only when a real rating exists (null/0 → no Review).
+  // Real author Person + reviewedBy are added only when actually present.
   const reviewSchema = casinoReviewSchema({
     name: casino.name,
     path: `/cazinouri-online/${slug}`,
     rating: casino.rating,
+    authorPerson: byline.author ? { name: byline.author.name, url: byline.author.href } : null,
+    reviewedBy: byline.verifier ? { name: byline.verifier.name, url: byline.verifier.href } : null,
   });
 
   return (
@@ -57,6 +71,15 @@ export default async function CasinoReviewPage({ params }: PageProps) {
       <Breadcrumbs items={crumbs} />
 
       <CasinoReviewHeader casino={casino} />
+
+      {casino.editorial ? (
+        <EditorialByline
+          authorSlug={casino.editorial.authorSlug}
+          verifierSlug={casino.editorial.verifierSlug}
+          verifiedAt={casino.editorial.editorialVerifiedAt}
+          updatedAt={casino.editorial.updatedAt}
+        />
+      ) : null}
 
       <section>
         <SectionHeader title={`Despre ${casino.name}`} />

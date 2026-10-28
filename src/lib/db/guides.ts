@@ -25,6 +25,9 @@ interface GuideDetailRow extends GuideRow {
   sections: GuideSection[] | null;
   related_links: GuideRelatedLink[] | null;
   faq: { question: string; answer: string }[] | null;
+  author_slug: string | null;
+  verifier_slug: string | null;
+  editorial_verified_at: string | null;
 }
 
 const RO_MONTH_YEAR = new Intl.DateTimeFormat("ro-RO", { month: "short", year: "numeric" });
@@ -58,13 +61,19 @@ function toDetail(row: GuideDetailRow): GuideDetail {
     faq: row.faq ?? [],
     publishedAt: row.published_at ?? undefined,
     modifiedAt: row.updated_at,
+    editorial: {
+      authorSlug: row.author_slug ?? null,
+      verifierSlug: row.verifier_slug ?? null,
+      editorialVerifiedAt: row.editorial_verified_at ?? null,
+      updatedAt: row.updated_at ?? null,
+    },
   };
 }
 
 const CARD_SELECT =
   "slug, title, excerpt, image_url, author, published_at, updated_at, category:guide_categories(slug, label)";
 
-const DETAIL_SELECT = `${CARD_SELECT}, intro, reading_time, sections, related_links, faq`;
+const DETAIL_SELECT = `${CARD_SELECT}, intro, reading_time, sections, related_links, faq, author_slug, verifier_slug, editorial_verified_at`;
 
 /** All guides for the listing (the page applies filter/sort). */
 export async function getGuides(): Promise<GuideCardData[]> {

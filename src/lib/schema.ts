@@ -123,21 +123,40 @@ export function faqPageSchema(items: { question: string; answer: string }[]) {
  * casino has no valid Review (emitting `ratingValue: 0` under `worstRating: 1` is
  * invalid structured data and we never fabricate a score).
  */
+/** A real person (author/verifier) resolved from the author registry, for schema. */
+export interface SchemaPerson {
+  name: string;
+  /** site-relative profile path, e.g. /autori/<slug> */
+  url: string;
+}
+
 export function casinoReviewSchema({
   name,
   path,
   rating,
+  authorPerson,
+  reviewedBy,
 }: {
   name: string;
   path: string;
   rating?: number | null;
+  /** Human author of the review; when absent, authorship stays with the organization. */
+  authorPerson?: SchemaPerson | null;
+  /** Only pass when a REAL editorial verification exists (verifier + verified_at). */
+  reviewedBy?: SchemaPerson | null;
 }) {
   if (rating == null || rating <= 0) return null;
+  const author = authorPerson
+    ? { "@type": "Person", name: authorPerson.name, url: absoluteUrl(authorPerson.url) }
+    : { "@type": "Organization", name: siteConfig.name };
   return {
     "@context": "https://schema.org",
     "@type": "Review",
     itemReviewed: { "@type": "Organization", name },
-    author: { "@type": "Organization", name: siteConfig.name },
+    author,
+    ...(reviewedBy
+      ? { reviewedBy: { "@type": "Person", name: reviewedBy.name, url: absoluteUrl(reviewedBy.url) } }
+      : {}),
     reviewRating: {
       "@type": "Rating",
       ratingValue: rating,
@@ -153,6 +172,8 @@ export function articleSchema({
   title,
   description,
   author,
+  authorPerson,
+  reviewedBy,
   path,
   datePublished,
   dateModified,
@@ -160,18 +181,29 @@ export function articleSchema({
 }: {
   title: string;
   description: string;
+  /** Fallback author name (organization) when no real person is assigned. */
   author: string;
+  /** Real human author resolved from the registry; takes precedence over `author`. */
+  authorPerson?: SchemaPerson | null;
+  /** Only pass when a REAL editorial verification exists (verifier + verified_at). */
+  reviewedBy?: SchemaPerson | null;
   path: string;
   datePublished?: string;
   dateModified?: string;
   image?: string;
 }) {
+  const authorNode = authorPerson
+    ? { "@type": "Person", name: authorPerson.name, url: absoluteUrl(authorPerson.url) }
+    : { "@type": "Organization", name: author };
   return {
     "@context": "https://schema.org",
     "@type": "Article",
     headline: title,
     description,
-    author: { "@type": "Organization", name: author },
+    author: authorNode,
+    ...(reviewedBy
+      ? { reviewedBy: { "@type": "Person", name: reviewedBy.name, url: absoluteUrl(reviewedBy.url) } }
+      : {}),
     publisher: {
       "@type": "Organization",
       name: siteConfig.name,
