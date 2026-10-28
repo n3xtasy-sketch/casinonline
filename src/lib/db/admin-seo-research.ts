@@ -41,6 +41,7 @@ export interface SeoImportRow {
   source: string;
   filename: string | null;
   rowCount: number;
+  status: string;
   importedAt: string;
 }
 
@@ -49,13 +50,13 @@ export async function listSeoImports(projectId: string, limit = 20): Promise<Seo
   const db = await getSupabaseAuthClient();
   const { data, error } = await db
     .from("seo_imports")
-    .select("id, source, filename, row_count, imported_at")
+    .select("id, source, filename, row_count, status, imported_at")
     .eq("project_id", projectId)
     .order("imported_at", { ascending: false })
     .limit(limit);
   if (error) throw new Error(`listSeoImports: ${error.message}`);
-  return ((data as unknown as { id: string; source: string; filename: string | null; row_count: number; imported_at: string }[]) ?? []).map(
-    (r) => ({ id: r.id, source: r.source, filename: r.filename, rowCount: r.row_count, importedAt: r.imported_at }),
+  return ((data as unknown as { id: string; source: string; filename: string | null; row_count: number; status: string; imported_at: string }[]) ?? []).map(
+    (r) => ({ id: r.id, source: r.source, filename: r.filename, rowCount: r.row_count, status: r.status, importedAt: r.imported_at }),
   );
 }
 

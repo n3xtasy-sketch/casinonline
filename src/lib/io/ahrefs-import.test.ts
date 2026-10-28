@@ -8,6 +8,7 @@ import {
   parseMetric,
   buildAhrefsRows,
   ahrefsContentHash,
+  classifyImport,
   type BuildOpts,
   type ColumnMapping,
 } from "@/lib/io/ahrefs-import";
@@ -93,9 +94,19 @@ test("buildAhrefsRows: country from CSV only when countryMode='csv'", () => {
   assert.equal(buildAhrefsRows(row, { mapping: m2, wizardCountry: "ro", countryMode: "csv" })[0].country, "us");
 });
 
-test("ahrefsContentHash: changes with mapping or country rule", () => {
-  const h1 = ahrefsContentHash("csv", opts);
-  assert.equal(h1, ahrefsContentHash("csv", opts));
-  assert.notEqual(h1, ahrefsContentHash("csv", { ...opts, countryMode: "csv" }));
-  assert.notEqual(h1, ahrefsContentHash("csv", { ...opts, mapping: { ...mapping, volume: null } }));
+test("classifyImport: completed / partial / failed", () => {
+  assert.equal(classifyImport(10, 10), "completed");
+  assert.equal(classifyImport(12, 10), "completed"); // defensive: >= total
+  assert.equal(classifyImport(4, 10), "partial");
+  assert.equal(classifyImport(0, 10), "failed");
+  assert.equal(classifyImport(0, 0), "completed"); // nothing to import
+});
+
+test("ahrefsContentHash: binds projectId + changes with mapping/country rule", () => {
+  const h1 = ahrefsContentHash("proj-A", "csv", opts);
+  assert.equal(h1, ahrefsContentHash("proj-A", "csv", opts));
+  // different project → different hash (prevents cross-project replay)
+  assert.notEqual(h1, ahrefsContentHash("proj-B", "csv", opts));
+  assert.notEqual(h1, ahrefsContentHash("proj-A", "csv", { ...opts, countryMode: "csv" }));
+  assert.notEqual(h1, ahrefsContentHash("proj-A", "csv", { ...opts, mapping: { ...mapping, volume: null } }));
 });

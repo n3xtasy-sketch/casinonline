@@ -71,13 +71,16 @@ export async function applyAhrefsAction(
 
   const opts = buildOpts(mapping, [], wizardCountry, countryMode);
   const res = await applyAhrefs(db as unknown as SupabaseClient, projectId, filename, csvText, opts, hash);
-  if ("error" in res) return res;
+  // Discriminate on `status` — a PARTIAL outcome is a (successful-but-incomplete)
+  // AhrefsOutcome that also carries an `error` message; only the {error}-only shape is a
+  // hard pre-check failure.
+  if (!("status" in res)) return res;
 
   await logActivity(db, {
     action: "seo_import.ahrefs",
     entityType: "seo_project",
     entityId: projectId,
-    metadata: { importId: res.importId, created: res.created, updated: res.updated, filename },
+    metadata: { importId: res.importId, status: res.status, created: res.created, updated: res.updated, processed: res.processed, total: res.total, filename },
   });
   return res;
 }

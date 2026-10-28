@@ -89,17 +89,24 @@ export default async function SeoProjectPage({ params, searchParams }: PageProps
             <table className="w-full min-w-[520px] text-sm">
               <thead><tr className="border-b border-border text-left text-xs uppercase tracking-wide text-ink-muted">
                 <th className="px-4 py-2 font-semibold">Fișier</th><th className="px-4 py-2 font-semibold">Sursă</th>
-                <th className="px-4 py-2 font-semibold">Rânduri</th><th className="px-4 py-2 font-semibold">Data</th>
+                <th className="px-4 py-2 font-semibold">Status</th>
+                <th className="px-4 py-2 font-semibold">Rânduri salvate</th><th className="px-4 py-2 font-semibold">Data</th>
               </tr></thead>
               <tbody>
-                {imports.map((im) => (
-                  <tr key={im.id} className="border-b border-border/60 last:border-0">
-                    <td className="px-4 py-2 text-ink">{im.filename || "—"}</td>
-                    <td className="px-4 py-2 text-ink-secondary">{im.source}</td>
-                    <td className="px-4 py-2 tabular-nums text-ink-secondary">{im.rowCount}</td>
-                    <td className="px-4 py-2 text-ink-muted">{fmtDate(im.importedAt)}</td>
-                  </tr>
-                ))}
+                {imports.map((im) => {
+                  const tone = im.status === "completed" ? "bg-accent/12 text-accent"
+                    : im.status === "partial" || im.status === "processing" ? "bg-gold/15 text-gold"
+                    : "bg-danger/15 text-danger";
+                  return (
+                    <tr key={im.id} className="border-b border-border/60 last:border-0">
+                      <td className="px-4 py-2 text-ink">{im.filename || "—"}</td>
+                      <td className="px-4 py-2 text-ink-secondary">{im.source}</td>
+                      <td className="px-4 py-2"><span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${tone}`}>{im.status}</span></td>
+                      <td className="px-4 py-2 tabular-nums text-ink-secondary">{im.rowCount}</td>
+                      <td className="px-4 py-2 text-ink-muted">{fmtDate(im.importedAt)}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

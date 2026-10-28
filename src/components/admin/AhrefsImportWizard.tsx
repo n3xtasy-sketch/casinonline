@@ -25,7 +25,7 @@ export function AhrefsImportWizard({ projectId, defaultCountry }: { projectId: s
   const [mapping, setMapping] = useState<ColumnMapping | null>(null);
   const [countryMode, setCountryMode] = useState<"wizard" | "csv">("wizard");
   const [report, setReport] = useState<AhrefsDryRun | null>(null);
-  const [outcome, setOutcome] = useState<{ created: number; updated: number } | null>(null);
+  const [outcome, setOutcome] = useState<{ created: number; updated: number; processed: number; total: number; partial: boolean; message?: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
@@ -53,8 +53,10 @@ export function AhrefsImportWizard({ projectId, defaultCountry }: { projectId: s
     if (!report || !mapping) return;
     start(async () => {
       const res = await applyAhrefsAction(projectId, fileName, csvText, mapping, defaultCountry, countryMode, report.hash);
-      if ("error" in res) setError(res.error);
-      else { setOutcome({ created: res.created, updated: res.updated }); setReport(null); router.refresh(); }
+      if (!("status" in res)) { setError(res.error); return; }
+      setOutcome({ created: res.created, updated: res.updated, processed: res.processed, total: res.total, partial: res.partial, message: res.error });
+      setReport(null);
+      router.refresh();
     });
   }
 
@@ -140,9 +142,16 @@ export function AhrefsImportWizard({ projectId, defaultCountry }: { projectId: s
       ) : null}
 
       {outcome ? (
-        <div className="rounded-md border border-accent/40 bg-accent/5 p-4 text-sm text-ink">
-          Import terminat: <strong>{outcome.created}</strong> keyworduri noi · <strong>{outcome.updated}</strong> actualizate.
-        </div>
+        outcome.partial ? (
+          <div className="rounded-md border border-gold/40 bg-gold/5 p-4 text-sm text-ink">
+            <p className="font-medium">Import parțial: {outcome.processed} din {outcome.total} rânduri salvate.</p>
+            <p className="mt-1 text-ink-secondary">{outcome.message}</p>
+          </div>
+        ) : (
+          <div className="rounded-md border border-accent/40 bg-accent/5 p-4 text-sm text-ink">
+            Import complet: <strong>{outcome.created}</strong> keyworduri noi · <strong>{outcome.updated}</strong> actualizate ({outcome.processed} din {outcome.total}).
+          </div>
+        )
       ) : null}
     </div>
   );
