@@ -228,6 +228,83 @@ test("Cannibalization: unassigned keyword fitting 2+ clusters → keyword_multi_
   assert.ok(w!.refs.includes("mX"));
 });
 
+// ── FIX A: NEEDS REVIEW for ambiguous predominantly-lexical groups ───────────────
+
+test("FIX A: bonus fara depunere / rotiri gratuite fara depunere → grouped but needsReview", () => {
+  const { suggestions } = generateClusterSuggestions([
+    kw("bonus fara depunere", { id: "f1" }),
+    kw("rotiri gratuite fara depunere", { id: "f2" }),
+  ]);
+  const g = suggestions.find((s) => s.keywordIds.includes("f1") && s.keywordIds.includes("f2"));
+  assert.ok(g, "pair should still be suggested (not discarded)");
+  assert.equal(g!.method, "lexical");
+  assert.equal(g!.needsReview, true);
+  assert.ok(g!.reasons.some((r) => /predominant lexical/i.test(r)), "explicit reason for the admin");
+});
+
+test("FIX A: a clear lexical group with a confirmed shared intent does NOT need review", () => {
+  const { suggestions } = generateClusterSuggestions([
+    kw("book of ra deluxe", { id: "cl1", intent: "Commercial" }),
+    kw("book of ra magic", { id: "cl2", intent: "Commercial" }),
+    kw("book of ra classic", { id: "cl3", intent: "Commercial" }),
+  ]);
+  const g = suggestions.find((s) => s.keywordIds.includes("cl1"))!;
+  assert.equal(g.method, "lexical");
+  assert.equal(g.needsReview, false); // confirmed intent (≥2 share Commercial) → not ambiguous
+  assert.ok(!g.reasons.some((r) => /predominant lexical/i.test(r)));
+});
+
+test("FIX A: does not blanket every lexical suggestion (rule is conditional)", () => {
+  // Confirmed-intent group above proves at least one lexical suggestion stays needsReview=false.
+  const { suggestions } = generateClusterSuggestions([
+    kw("book of ra deluxe", { id: "n1", intent: "Commercial" }),
+    kw("book of ra magic", { id: "n2", intent: "Commercial" }),
+  ]);
+  assert.ok(suggestions.some((s) => s.method === "lexical" && !s.needsReview));
+});
+
+// ── FIX C: suggestion truncation transparency ────────────────────────────────────
+
+function nDistinctGroups(count: number) {
+  const kws = [];
+  for (let g = 0; g < count; g++) {
+    kws.push(kw(`alfa${g} beta${g} unu`, { id: `g${g}a` }));
+    kws.push(kw(`alfa${g} beta${g} doi`, { id: `g${g}b` }));
+  }
+  return kws;
+}
+
+test("FIX C: suggestionsTotal/suggestionsTruncated are 0 when under the cap", () => {
+  const run = generateClusterSuggestions(nDistinctGroups(10));
+  assert.equal(run.suggestions.length, run.suggestionsTotal);
+  assert.equal(run.suggestionsTruncated, 0);
+});
+
+test("FIX C: exactly maxSuggestions → nothing truncated", () => {
+  const run = generateClusterSuggestions(nDistinctGroups(200), { maxSuggestions: 200 });
+  assert.equal(run.suggestions.length, 200);
+  assert.equal(run.suggestionsTotal, 200);
+  assert.equal(run.suggestionsTruncated, 0);
+});
+
+test("FIX C: over maxSuggestions → exact omitted count reported", () => {
+  const run = generateClusterSuggestions(nDistinctGroups(250), { maxSuggestions: 200 });
+  assert.equal(run.suggestions.length, 200);
+  assert.equal(run.suggestionsTotal, 250);
+  assert.equal(run.suggestionsTruncated, 50);
+});
+
+test("FIX C: keyword-truncation, suggestion-truncation and ungrouped are distinct fields", () => {
+  // 11 keywords, cap at 5 → 6 keyword-truncated; the survivors share nothing → ungrouped, 0 suggestions.
+  const kws = [];
+  for (let i = 0; i < 11; i++) kws.push(kw(`unic${i} distinct${i}`, { id: `u${i}`, volume: i }));
+  const run = generateClusterSuggestions(kws, { maxKeywords: 5 });
+  assert.equal(run.considered, 5);
+  assert.equal(run.truncated, 6); // keywords dropped by maxKeywords
+  assert.equal(run.suggestionsTruncated, 0); // none dropped by maxSuggestions
+  assert.equal(run.ungrouped, 5); // survivors grouped into nothing
+});
+
 // ── Performance guardrails ───────────────────────────────────────────────────────
 
 test("Performance: respects maxKeywords cap (truncates by volume) and completes", () => {

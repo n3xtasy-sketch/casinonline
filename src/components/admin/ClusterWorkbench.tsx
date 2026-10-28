@@ -350,9 +350,18 @@ export function ClusterWorkbench({ projectId, clusters, unassigned }: { projectI
           run.suggestions.length ? (
             <>
               <p className="text-xs text-ink-muted">
-                {run.suggestions.length} sugestii · {run.considered} keyworduri analizate
-                {run.truncated ? ` · ${run.truncated} omise (limită v1)` : ""} · {run.ungrouped} negrupate.
+                {run.suggestions.length} sugestii afișate (din {run.suggestionsTotal} găsite) · {run.considered} keyworduri analizate · {run.ungrouped} keyworduri negrupate.
               </p>
+              {run.suggestionsTruncated > 0 ? (
+                <p className="rounded-md border border-gold/40 bg-gold/5 p-2 text-xs text-ink-secondary">
+                  Au fost afișate primele {run.suggestions.length} de sugestii. Alte {run.suggestionsTruncated} sugestii nu au fost incluse din cauza limitei v1. Aplică/atribuie cele curente, apoi regenerează pentru restul.
+                </p>
+              ) : null}
+              {run.truncated > 0 ? (
+                <p className="rounded-md border border-gold/40 bg-gold/5 p-2 text-xs text-ink-secondary">
+                  {run.truncated} keyworduri nu au fost procesate (limită de {run.considered} keyworduri pe rulare; s-au păstrat cele cu volum mai mare). Diferit de cele {run.ungrouped} negrupate.
+                </p>
+              ) : null}
               <div className="flex flex-col gap-3">
                 {run.suggestions.map((s) => (
                   <SuggestionCard

@@ -82,6 +82,8 @@ export interface ClusteringConfig {
   simThreshold: number;
   /** Below this confidence a suggestion is flagged NEEDS REVIEW. */
   reviewThreshold: number;
+  /** A purely-lexical group below this confidence (and without confirmed intent) needs review. */
+  lexicalConfirmBand: number;
   /** Cap on a token's postings list used for pair generation (bounds O(block²)). */
   blockPairCap: number;
   /** Hard cap on keywords processed per run (larger projects are truncated by volume). */
@@ -98,6 +100,7 @@ export const DEFAULT_CONFIG: ClusteringConfig = {
   minSharedTokens: 2,
   simThreshold: 0.34,
   reviewThreshold: 55,
+  lexicalConfirmBand: 75,
   blockPairCap: 300,
   maxKeywords: 5000,
   maxSuggestions: 200,
@@ -109,10 +112,14 @@ export interface SuggestionRun {
   warnings: CannibalWarning[];
   /** Keywords considered (after the maxKeywords cap). */
   considered: number;
-  /** Keywords dropped by the cap (0 unless the project exceeds maxKeywords). */
+  /** Keywords dropped before clustering by the maxKeywords cap (distinct from ungrouped). */
   truncated: number;
-  /** Unassigned keywords that ended up in no suggestion. */
+  /** Unassigned keywords that ended up in no suggestion (distinct from truncated). */
   ungrouped: number;
+  /** Total groups found before the maxSuggestions cap. */
+  suggestionsTotal: number;
+  /** Groups omitted from the output by the maxSuggestions cap — exact (distinct from truncated/ungrouped). */
+  suggestionsTruncated: number;
 }
 
 // ── Tokenization ──────────────────────────────────────────────────────────────
@@ -316,8 +323,12 @@ function scoreGroup(
     for (let j = i + 1; j < bucketSets.length; j++)
       if (intentsConflict(bucketSets[i], bucketSets[j])) { conflict = true; break; }
   const intent = dominantIntent(members);
+  // Intent is "confirmed" only when ≥2 members explicitly share the same known bucket.
+  const bucketCounts = new Map<IntentBucket, number>();
+  for (const s of bucketSets) for (const b of s) bucketCounts.set(b, (bucketCounts.get(b) ?? 0) + 1);
+  const intentConfirmed = [...bucketCounts.values()].some((c) => c >= 2);
   if (conflict) { conf -= 25; reasons.push("Posibil conflict de intenție"); }
-  else if (bucketSets.length >= 2) { conf += 8; reasons.push("Intenție de căutare similară"); }
+  else if (intentConfirmed) { conf += 8; reasons.push("Intenție de căutare similară"); }
 
   // Specificity spread (token-length variance) → long-tail mixed with head terms.
   const lens = members.map((m) => tokenize(m.normalized).length);
@@ -325,7 +336,19 @@ function scoreGroup(
   if (spread >= 4) reasons.push("Specificitate variată (head + long-tail)");
 
   conf = Math.max(0, Math.min(100, conf));
-  const needsReview = conflict || conf < cfg.reviewThreshold || members.length > 25 || spread >= 5;
+  let needsReview = conflict || conf < cfg.reviewThreshold || members.length > 25 || spread >= 5;
+
+  // FIX A — general rule: a grouping resting PREDOMINANTLY on lexical overlap (no Parent
+  // Topic corroboration) whose intent cannot be confirmed from the data, and whose lexical
+  // evidence is not already strong (confidence below the confirm band), is ambiguous. Keep
+  // the suggestion but require human review. Strong lexical groups (conf ≥ band) and groups
+  // with a confirmed shared intent are NOT flagged, so this never blankets every lexical
+  // suggestion. Parent-topic / hybrid groups are unaffected (they carry a non-lexical signal).
+  if (method === "lexical" && !intentConfirmed && !conflict && conf < cfg.lexicalConfirmBand) {
+    needsReview = true;
+    reasons.push("Grupare predominant lexicală, fără intenție confirmată — verifică apartenența");
+  }
+
   const needsSerpValidation = method !== "parent_topic" || conf < 75 || conflict || intent === null;
   return { confidence: conf, reasons, needsReview, needsSerpValidation, intent };
 }
@@ -472,12 +495,14 @@ export function generateClusterSuggestions(
 
   // Sort suggestions: highest confidence first, stable by id; apply cap.
   suggestions.sort((a, b) => b.confidence - a.confidence || a.id.localeCompare(b.id));
+  const suggestionsTotal = suggestions.length;
   const capped = suggestions.slice(0, cfg.maxSuggestions);
+  const suggestionsTruncated = suggestionsTotal - capped.length; // exact: all groups were built
 
   const ungrouped = unplaced.filter((i) => !placed.has(i)).length;
   const warnings = detectCannibalization(capped, assigned, pool, weight, cfg);
 
-  return { suggestions: capped, warnings, considered: pool.length, truncated, ungrouped };
+  return { suggestions: capped, warnings, considered: pool.length, truncated, ungrouped, suggestionsTotal, suggestionsTruncated };
 }
 
 // ── Cannibalization (PRELIMINARY heuristic warnings only) ───────────────────────

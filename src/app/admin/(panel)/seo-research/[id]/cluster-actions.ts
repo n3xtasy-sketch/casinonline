@@ -49,6 +49,8 @@ export interface SuggestionsResult {
   considered: number;
   truncated: number;
   ungrouped: number;
+  suggestionsTotal: number;
+  suggestionsTruncated: number;
   /** Display info for every keyword referenced by a suggestion or warning. */
   keywordMap: Record<string, KeywordDisplay>;
 }
