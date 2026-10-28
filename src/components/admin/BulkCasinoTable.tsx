@@ -10,6 +10,8 @@ import type { BulkResult } from "@/lib/bulk";
 import { ContentStatusControl, StatusBadge } from "@/components/admin/ContentStatusControl";
 import { ExportCsvButton } from "@/components/admin/ExportCsvButton";
 import { BulkResultBanner } from "@/components/admin/BulkResultBanner";
+import { EditorialCells, fmtDate } from "@/components/admin/EditorialCells";
+import type { EditorialFlags } from "@/lib/editorial-status";
 import { setCasinoStatus } from "@/app/admin/(panel)/cazinouri/actions";
 import {
   bulkArchiveCasinos,
@@ -26,7 +28,15 @@ const CSV_COLUMNS = [
   { key: "slug", label: "Slug" },
 ];
 
-export function BulkCasinoTable({ rows, tags }: { rows: AdminCasinoRow[]; tags: Option[] }) {
+export function BulkCasinoTable({
+  rows,
+  tags,
+  flagsById,
+}: {
+  rows: AdminCasinoRow[];
+  tags: Option[];
+  flagsById: Record<string, EditorialFlags>;
+}) {
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [tagId, setTagId] = useState("");
@@ -92,27 +102,28 @@ export function BulkCasinoTable({ rows, tags }: { rows: AdminCasinoRow[]; tags: 
       {result ? <BulkResultBanner result={result} onClose={() => setResult(null)} /> : null}
 
       <div className="overflow-x-auto rounded-md border border-border bg-surface">
-        <table className="w-full min-w-[820px] text-sm">
+        <table className="w-full min-w-[1040px] text-sm">
           <thead>
             <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-ink-muted">
               <th className="px-4 py-3"><input type="checkbox" checked={allChecked} onChange={toggleAll} aria-label="Selectează tot" /></th>
               <th className="px-4 py-3 font-semibold">Nume</th>
               <th className="px-4 py-3 font-semibold">Status</th>
               <th className="px-4 py-3 font-semibold">Rating</th>
-              <th className="px-4 py-3 font-semibold">Licență</th>
-              <th className="px-4 py-3 font-semibold">Slug</th>
+              <th className="px-4 py-3 font-semibold">Autor</th>
+              <th className="px-4 py-3 font-semibold">Verificare editorială</th>
+              <th className="px-4 py-3 font-semibold">Actualizat</th>
               <th className="px-4 py-3 font-semibold">Acțiuni</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((c) => (
-              <tr key={c.id} className="border-b border-border/60 last:border-0">
+              <tr key={c.id} className="border-b border-border/60 align-top last:border-0">
                 <td className="px-4 py-3"><input type="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} aria-label={`Selectează ${c.name}`} /></td>
                 <td className="px-4 py-3 font-medium text-ink">{c.name}</td>
                 <td className="px-4 py-3"><StatusBadge status={c.status} /></td>
                 <td className="px-4 py-3 tabular-nums text-ink-secondary">{c.rating ? c.rating.toFixed(1) : "—"}</td>
-                <td className="px-4 py-3 text-ink-secondary">{c.license ?? "—"}</td>
-                <td className="px-4 py-3 font-mono text-xs text-ink-muted">{c.slug}</td>
+                <EditorialCells view={c.editorial} flags={flagsById[c.id]} />
+                <td className="px-4 py-3 text-ink-muted">{fmtDate(c.editorial.updatedAt) || "—"}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-4">
                     <Link href={`/admin/cazinouri/${c.slug}/edit`} className="font-medium text-accent hover:text-link-hover">Editează</Link>

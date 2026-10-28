@@ -4,16 +4,31 @@ import { ExportButtons } from "@/components/admin/ExportButtons";
 import { listAdminGuides } from "@/lib/db/admin-guides";
 import { StatusTabs, parseStatusFilter } from "@/components/admin/StatusTabs";
 import { StatusBadge, ContentStatusControl } from "@/components/admin/ContentStatusControl";
+import { EditorialSummary } from "@/components/admin/EditorialSummary";
+import { EditorialFilterBar } from "@/components/admin/EditorialFilterBar";
+import { EditorialCells, fmtDate } from "@/components/admin/EditorialCells";
+import {
+  editorialFlags,
+  matchesEditorialFilter,
+  parseEditorialFilter,
+  summarizeEditorial,
+} from "@/lib/editorial-status";
 import { setGuideStatus } from "./actions";
 
 interface PageProps {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; editorial?: string }>;
 }
 
 export default async function AdminGuidesPage({ searchParams }: PageProps) {
   const sp = await searchParams;
   const filter = parseStatusFilter(sp.status);
+  const editorialFilter = parseEditorialFilter(sp.editorial);
   const guides = await listAdminGuides(filter);
+
+  const now = new Date();
+  const withFlags = guides.map((g) => ({ g, flags: editorialFlags(g.editorial, now) }));
+  const summary = summarizeEditorial(withFlags.map((x) => x.flags));
+  const shown = withFlags.filter((x) => matchesEditorialFilter(x.flags, editorialFilter));
 
   return (
     <div className="flex flex-col gap-6">
@@ -32,27 +47,30 @@ export default async function AdminGuidesPage({ searchParams }: PageProps) {
       </div>
 
       <StatusTabs basePath="/admin/ghiduri" current={filter} />
+      <EditorialSummary summary={summary} />
+      <EditorialFilterBar basePath="/admin/ghiduri" status={filter} current={editorialFilter} />
 
       <div className="overflow-x-auto rounded-md border border-border bg-surface">
-        <table className="w-full min-w-[720px] text-sm">
+        <table className="w-full min-w-[920px] text-sm">
           <thead>
             <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-ink-muted">
               <th className="px-4 py-3 font-semibold">Titlu</th>
               <th className="px-4 py-3 font-semibold">Status</th>
               <th className="px-4 py-3 font-semibold">Categorie</th>
               <th className="px-4 py-3 font-semibold">Autor</th>
-              <th className="px-4 py-3 font-semibold">Slug</th>
+              <th className="px-4 py-3 font-semibold">Verificare editorială</th>
+              <th className="px-4 py-3 font-semibold">Actualizat</th>
               <th className="px-4 py-3 font-semibold">Acțiuni</th>
             </tr>
           </thead>
           <tbody>
-            {guides.map((g) => (
-              <tr key={g.id} className="border-b border-border/60 last:border-0">
+            {shown.map(({ g, flags }) => (
+              <tr key={g.id} className="border-b border-border/60 align-top last:border-0">
                 <td className="px-4 py-3 font-medium text-ink">{g.title}</td>
                 <td className="px-4 py-3"><StatusBadge status={g.status} /></td>
                 <td className="px-4 py-3 text-ink-secondary">{g.category || "—"}</td>
-                <td className="px-4 py-3 text-ink-secondary">{g.author || "—"}</td>
-                <td className="px-4 py-3 font-mono text-xs text-ink-muted">{g.slug}</td>
+                <EditorialCells view={g.editorial} flags={flags} />
+                <td className="px-4 py-3 text-ink-muted">{fmtDate(g.editorial.updatedAt) || "—"}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-4">
                     <Link href={`/admin/ghiduri/${g.slug}/edit`} className="font-medium text-accent hover:text-link-hover">Editează</Link>
@@ -61,6 +79,9 @@ export default async function AdminGuidesPage({ searchParams }: PageProps) {
                 </td>
               </tr>
             ))}
+            {shown.length === 0 ? (
+              <tr><td colSpan={7} className="px-4 py-6 text-center text-ink-muted">Niciun ghid pentru acest filtru.</td></tr>
+            ) : null}
           </tbody>
         </table>
       </div>

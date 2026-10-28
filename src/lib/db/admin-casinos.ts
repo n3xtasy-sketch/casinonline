@@ -2,6 +2,8 @@ import "server-only";
 import { selectedJunctionIds } from "@/lib/admin-relations";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import type { ContentStatus } from "@/lib/content-status";
+import { authorName } from "@/lib/authors";
+import type { EditorialRowView } from "@/lib/editorial-status";
 
 /** Admin read helpers for the casino form. Use the admin session (RLS = is_admin). */
 
@@ -21,6 +23,7 @@ export interface AdminCasinoRow {
   payoutSpeed: string | null;
   status: CasinoStatus;
   reviewUrl: string;
+  editorial: EditorialRowView;
 }
 
 export interface CasinoEditData {
@@ -64,7 +67,9 @@ export async function listAdminCasinos(
   const db = await getSupabaseAuthClient();
   let query = db
     .from("casinos")
-    .select("id, slug, name, rating, license, payout_speed, status")
+    .select(
+      "id, slug, name, rating, license, payout_speed, status, updated_at, author_slug, verifier_slug, editorial_verified_at",
+    )
     .order("status")
     .order("rating", { ascending: false });
   if (filter !== "all") query = query.eq("status", filter);
@@ -79,6 +84,10 @@ export async function listAdminCasinos(
       license: string | null;
       payout_speed: string | null;
       status: CasinoStatus;
+      updated_at: string | null;
+      author_slug: string | null;
+      verifier_slug: string | null;
+      editorial_verified_at: string | null;
     }[]) ?? []
   ).map((r) => ({
     id: r.id,
@@ -89,6 +98,12 @@ export async function listAdminCasinos(
     payoutSpeed: r.payout_speed,
     status: r.status,
     reviewUrl: `/cazinouri-online/${r.slug}`,
+    editorial: {
+      authorSlug: r.author_slug, verifierSlug: r.verifier_slug,
+      editorialVerifiedAt: r.editorial_verified_at,
+      authorName: authorName(r.author_slug), verifierName: authorName(r.verifier_slug),
+      updatedAt: r.updated_at,
+    },
   }));
 }
 
