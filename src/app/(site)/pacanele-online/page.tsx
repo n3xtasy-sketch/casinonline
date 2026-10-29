@@ -19,14 +19,14 @@ export const metadata: Metadata = {
   title: "Jocuri de cazino",
   description:
     "Descoperă sloturi și jocuri de cazino: filtrează după furnizor, categorie și volatilitate, sortează după RTP și găsește-ți jocul preferat.",
-  alternates: { canonical: "/jocuri-casino" },
+  alternates: { canonical: "/pacanele-online" },
   openGraph: {
     title: "Jocuri de cazino",
     description:
       "Descoperă sloturi și jocuri de cazino: filtrează după furnizor, categorie și volatilitate, sortează după RTP și găsește-ți jocul preferat.",
     type: "website",
     siteName: "CasinOnline.ro",
-    url: "/jocuri-casino",
+    url: "/pacanele-online",
     images: ["/opengraph-image"],
   },
   twitter: {
@@ -104,7 +104,7 @@ export default async function GameListingPage({ searchParams }: PageProps) {
       ) : (
         <div className="flex flex-col items-start gap-3 rounded-md border border-border bg-surface p-8">
           <p className="text-ink-secondary">Nu am găsit jocuri pentru filtrele selectate.</p>
-          <Button variant="secondary" href="/jocuri-casino">
+          <Button variant="secondary" href="/pacanele-online">
             Resetează filtrele
           </Button>
         </div>

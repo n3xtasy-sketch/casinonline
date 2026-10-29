@@ -35,7 +35,7 @@ const CONTENT: ContentSpec[] = [
   { table: "casinos", base: "/cazinouri-online", titleCol: "name", type: "casino" },
   { table: "bonuses", base: "/bonusuri-casino", titleCol: "offer", type: "bonus" },
   { table: "guides", base: "/ghiduri", titleCol: "title", type: "guide" },
-  { table: "games", base: "/jocuri-casino", titleCol: "name", type: "game" },
+  { table: "games", base: "/pacanele-online", titleCol: "name", type: "game" },
   { table: "providers", base: "/furnizori", titleCol: "name", type: "provider" },
   { table: "payment_methods", base: "/metode-de-plata", titleCol: "name", type: "payment" },
 ];
@@ -44,9 +44,9 @@ const CONTENT: ContentSpec[] = [
 const HUBS: { url: string; title: string; type: UrlType }[] = [
   { url: "/", title: "Acasă", type: "home" },
   { url: "/cazinouri-online", title: "Cazinouri online", type: "hub" },
-  { url: "/bonusuri-casino", title: "Bonusuri casino", type: "hub" },
+  { url: "/bonusuri", title: "Bonusuri casino", type: "hub" },
   { url: "/ghiduri", title: "Ghiduri", type: "hub" },
-  { url: "/jocuri-casino", title: "Jocuri casino", type: "hub" },
+  { url: "/pacanele-online", title: "Jocuri casino", type: "hub" },
   { url: "/furnizori", title: "Furnizori", type: "hub" },
   { url: "/metode-de-plata", title: "Metode de plată", type: "hub" },
 ];

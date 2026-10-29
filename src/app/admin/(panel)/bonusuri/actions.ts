@@ -214,7 +214,7 @@ export async function previewBonusCta(
 }
 
 function refresh() {
-  // Bonus data drives /bonusuri-casino + homepage/sidebar (tag 'bonuses'),
+  // Bonus data drives /bonusuri + homepage/sidebar (tag 'bonuses'),
   // and the casino cards embed the bonus offer/free_spins (tag 'casinos').
   updateTag("bonuses");
   updateTag("casinos");

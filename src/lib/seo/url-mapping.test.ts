@@ -31,11 +31,11 @@ function single(id: string, phrase: string, intent: string | null = null): Clust
 const INV: UrlEntry[] = [
   entry("/", "Acasă", "home"),
   entry("/cazinouri-online", "Cazinouri online", "hub"),
-  entry("/jocuri-casino", "Jocuri casino", "hub"),
+  entry("/pacanele-online", "Jocuri casino", "hub"),
   entry("/furnizori", "Furnizori", "hub"),
   entry("/metode-de-plata", "Metode de plata", "hub"),
   entry("/cazinouri-online/superbet-casino", "Superbet Casino", "casino"),
-  entry("/jocuri-casino/book-of-ra", "Book of Ra", "game"),
+  entry("/pacanele-online/book-of-ra", "Book of Ra", "game"),
 ];
 
 // ── slugify / deriveClusterMapping ───────────────────────────────────────────────
@@ -102,10 +102,10 @@ test("editorial protection: a confirmed mapping is never overridden", () => {
 
 // ── FIX G: generic-token influence reduced, specific coverage enforced ────────────
 
-test("FIX G: 'furnizori jocuri casino' favors /furnizori over /jocuri-casino", () => {
+test("FIX G: 'furnizori jocuri casino' favors /furnizori over /pacanele-online", () => {
   const [r] = recommendUrls([single("g", "furnizori jocuri casino")], INV);
   assert.equal(r.candidates[0].url, "/furnizori"); // specific 'furnizori' outranks generic 'jocuri/casino'
-  assert.ok(r.candidates[0].score > (r.candidates.find((c) => c.url === "/jocuri-casino")?.score ?? 0));
+  assert.ok(r.candidates[0].score > (r.candidates.find((c) => c.url === "/pacanele-online")?.score ?? 0));
   assert.equal(r.recommendation, "expand_existing");
 });
 
@@ -162,7 +162,7 @@ test("cannibalization: planned (new) slug collides with an existing page", () =>
 
 test("cannibalization: suggestion diverges from a confirmed editorial mapping", () => {
   const rec: MappingRecommendation = {
-    clusterId: "E", recommendation: "use_existing", explanation: "", candidates: [{ url: "/jocuri-casino/book-of-ra", title: "Book of Ra", type: "game", score: 0.9 }],
+    clusterId: "E", recommendation: "use_existing", explanation: "", candidates: [{ url: "/pacanele-online/book-of-ra", title: "Book of Ra", type: "game", score: 0.9 }],
     suggestedSlug: null, needsReview: false, currentUrl: "/ghiduri/vechi", currentStatus: "confirmed",
   };
   const w = detectUrlCannibalization([cluster({ id: "E", name: "E" })], INV, [rec]);

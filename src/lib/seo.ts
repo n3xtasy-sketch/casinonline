@@ -55,7 +55,7 @@ export function entityDefaultMeta(type: SeoType, e: EntityMetaInput): MetaDefaul
     case "casino":
       return { title: `${e.name} — Recenzie`, description: e.intro ?? "", path: `/cazinouri-online/${e.slug}`, ogType: "website" };
     case "game":
-      return { title: `${e.name} — ${e.provider}`, description: e.intro ?? "", path: `/jocuri-casino/${e.slug}`, ogType: "website" };
+      return { title: `${e.name} — ${e.provider}`, description: e.intro ?? "", path: `/pacanele-online/${e.slug}`, ogType: "website" };
     case "provider":
       return { title: `${e.name} — Jocuri și cazinouri`, description: e.intro ?? "", path: `/furnizori/${e.slug}`, ogType: "website" };
     case "payment_method":

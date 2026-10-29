@@ -36,7 +36,7 @@ function toCard(row: GameRow): GameCardData {
     thumbnailUrl: row.thumbnail_url ?? undefined,
     rtp: row.rtp ?? undefined,
     volatility: row.volatility ?? undefined,
-    href: `/jocuri-casino/${row.slug}`,
+    href: `/pacanele-online/${row.slug}`,
   };
 }
 

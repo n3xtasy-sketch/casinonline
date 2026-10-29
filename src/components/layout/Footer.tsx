@@ -15,15 +15,15 @@ const baseColumns = [
   {
     title: "Bonusuri",
     links: [
-      { label: "Toate bonusurile", href: "/bonusuri-casino" },
-      { label: "Bonus fără depunere", href: "/bonusuri-casino?tip=fara-depunere" },
-      { label: "Rotiri gratuite", href: "/bonusuri-casino?tip=rotiri-gratuite" },
+      { label: "Toate bonusurile", href: "/bonusuri" },
+      { label: "Bonus fără depunere", href: "/bonusuri?tip=fara-depunere" },
+      { label: "Rotiri gratuite", href: "/bonusuri?tip=rotiri-gratuite" },
     ],
   },
   {
     title: "Resurse",
     links: [
-      { label: "Jocuri", href: "/jocuri-casino" },
+      { label: "Jocuri", href: "/pacanele-online" },
       { label: "Furnizori", href: "/furnizori" },
       { label: "Ghiduri", href: "/ghiduri" },
     ],
