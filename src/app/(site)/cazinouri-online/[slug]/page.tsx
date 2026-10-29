@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { getPublishedCategory, getCategoryEntities } from "@/lib/db/seo-categories";
+import { CategoryPage, categoryMetadata } from "@/components/seo/CategoryPage";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { breadcrumbSchema, faqPageSchema, casinoReviewSchema } from "@/lib/schema";
@@ -26,6 +28,10 @@ export const instant = false;
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
+  // Deterministic resolver: a PUBLISHED casino category wins the shared /cazinouri-online/[slug]
+  // space (slug collisions prevented at the DB level), else the operator review.
+  const category = await getPublishedCategory("casino", slug);
+  if (category) return categoryMetadata(category);
   const casino = await getCasinoBySlug(slug);
   if (!casino) return {};
   return buildMetadata(entityDefaultMeta("casino", casino), await getSeoForSlug("casino", slug));
@@ -33,6 +39,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function CasinoReviewPage({ params }: PageProps) {
   const { slug } = await params;
+  const category = await getPublishedCategory("casino", slug);
+  if (category) {
+    const entities = await getCategoryEntities(category);
+    return <CategoryPage category={category} entities={entities} />;
+  }
   const casino = await getCasinoBySlug(slug);
   if (!casino) notFound();
 

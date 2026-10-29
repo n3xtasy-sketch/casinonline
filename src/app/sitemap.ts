@@ -3,6 +3,8 @@ import { absoluteUrl, siteConfig } from "@/lib/site";
 import { getSlugs, type SlugRow } from "@/lib/db/slugs";
 import { institutionalSitemapEntries } from "@/lib/institutional";
 import { readyAuthors } from "@/lib/authors";
+import { listPublishedCategories } from "@/lib/db/seo-categories";
+import { categoryPath } from "@/lib/seo-categories";
 
 /** Dynamic sitemap covering every hub and detail route (slugs + lastModified from DB). */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -69,5 +71,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.4,
   }));
 
-  return [...hubEntries, ...detailEntries, ...institutionalEntries, ...authorEntries];
+  // SEO category pages — ONLY published (draft/archived excluded; RLS also enforces this).
+  const categoryEntries: MetadataRoute.Sitemap = (await listPublishedCategories()).map((c) => ({
+    url: absoluteUrl(categoryPath(c.namespace, c.slug)),
+    changeFrequency: "weekly" as const,
+    priority: 0.7,
+    ...(c.updatedAt ? { lastModified: new Date(c.updatedAt) } : {}),
+  }));
+
+  return [...hubEntries, ...detailEntries, ...categoryEntries, ...institutionalEntries, ...authorEntries];
 }

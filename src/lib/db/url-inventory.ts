@@ -2,6 +2,7 @@ import "server-only";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import { INSTITUTIONAL_PAGES } from "@/lib/institutional";
 import { AUTHORS } from "@/lib/authors";
+import { categoryPath, type CategoryNamespace } from "@/lib/seo-categories";
 
 /**
  * URL inventory for SEO Research URL Mapping (FAZA 5.1E). Enumerates every PUBLIC page the
@@ -13,7 +14,7 @@ import { AUTHORS } from "@/lib/authors";
  */
 
 export type UrlType =
-  | "home" | "hub" | "casino" | "bonus" | "guide" | "game" | "provider" | "payment" | "institutional" | "author";
+  | "home" | "hub" | "casino" | "bonus" | "guide" | "game" | "provider" | "payment" | "institutional" | "author" | "category";
 
 export interface UrlEntry {
   url: string; // site-relative path, e.g. "/cazinouri-online/netbet"
@@ -79,6 +80,15 @@ export async function buildUrlInventory(): Promise<UrlEntry[]> {
 
   for (const a of AUTHORS)
     out.push({ url: `/autori/${a.slug}`, type: "author", title: a.name, source: "registru autori", status: a.ready ? "existing" : "planned" });
+
+  // SEO categories — ONLY published count as live URLs (draft/archived excluded from inventory).
+  const { data: cats, error: catErr } = await db
+    .from("seo_categories")
+    .select("namespace, slug, name, status")
+    .eq("status", "published");
+  if (catErr) throw new Error(`buildUrlInventory(seo_categories): ${catErr.message}`);
+  for (const c of (cats as unknown as { namespace: CategoryNamespace; slug: string; name: string }[]) ?? [])
+    out.push({ url: categoryPath(c.namespace, c.slug), type: "category", title: c.name, source: "seo_categories", status: "existing" });
 
   // Deterministic order: existing before planned, then by url.
   out.sort((x, y) => (x.status === y.status ? x.url.localeCompare(y.url) : x.status === "existing" ? -1 : 1));

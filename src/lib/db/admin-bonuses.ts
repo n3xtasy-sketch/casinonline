@@ -36,6 +36,8 @@ export interface BonusEditData {
   validity: string;
   code: string;
   kycRequired: "" | "true" | "false";
+  isNoDeposit: boolean;
+  isNoWagering: boolean;
   termsUrl: string;
   verifiedAt: string;
   expiresAt: string;
@@ -196,6 +198,8 @@ interface EditRow {
   validity: string | null;
   code: string | null;
   kyc_required: boolean | null;
+  is_no_deposit: boolean | null;
+  is_no_wagering: boolean | null;
   terms_url: string | null;
   verified_at: string | null;
   expires_at: string | null;
@@ -213,7 +217,7 @@ interface EditRow {
 }
 
 const EDIT_SELECT =
-  "id, slug, casino_id, bonus_type_id, offer, amount, free_spins, spin_value, max_win, eligible_slots, wagering, wagering_multiplier, wagering_basis, min_deposit, validity, code, kyc_required, terms_url, verified_at, expires_at, reward_stages, intro, terms, pros, cons, how_to_claim, faq, affiliate_link_id, author_slug, verifier_slug, editorial_verified_at";
+  "id, slug, casino_id, bonus_type_id, offer, amount, free_spins, spin_value, max_win, eligible_slots, wagering, wagering_multiplier, wagering_basis, min_deposit, validity, code, kyc_required, is_no_deposit, is_no_wagering, terms_url, verified_at, expires_at, reward_stages, intro, terms, pros, cons, how_to_claim, faq, affiliate_link_id, author_slug, verifier_slug, editorial_verified_at";
 
 export async function getBonusEdit(slug: string): Promise<BonusEditData | null> {
   const db = await getSupabaseAuthClient();
@@ -239,6 +243,8 @@ export async function getBonusEdit(slug: string): Promise<BonusEditData | null> 
     validity: r.validity ?? "",
     code: r.code ?? "",
     kycRequired: r.kyc_required == null ? "" : r.kyc_required ? "true" : "false",
+    isNoDeposit: Boolean(r.is_no_deposit),
+    isNoWagering: Boolean(r.is_no_wagering),
     termsUrl: r.terms_url ?? "",
     verifiedAt: r.verified_at ?? "",
     expiresAt: r.expires_at ?? "",

@@ -16,6 +16,8 @@ import { buildMetadata, entityDefaultMeta } from "@/lib/seo";
 import { getSeoForSlug } from "@/lib/db/seo";
 import { getCasinosForGame } from "@/lib/db/casinos";
 import { isAllowedDemoUrl } from "@/lib/demo";
+import { getPublishedCategory, getCategoryEntities } from "@/lib/db/seo-categories";
+import { CategoryPage, categoryMetadata } from "@/components/seo/CategoryPage";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -26,6 +28,10 @@ export const instant = false;
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
+  // Deterministic resolver: a PUBLISHED game category wins the shared /pacanele-online/[slug]
+  // space (slug collisions are prevented at the DB level), else the game detail.
+  const category = await getPublishedCategory("game", slug);
+  if (category) return categoryMetadata(category);
   const game = await getGameBySlug(slug);
   if (!game) return {};
   return buildMetadata(entityDefaultMeta("game", game), await getSeoForSlug("game", slug));
@@ -33,6 +39,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function GameDetailPage({ params }: PageProps) {
   const { slug } = await params;
+  const category = await getPublishedCategory("game", slug);
+  if (category) {
+    const entities = await getCategoryEntities(category);
+    return <CategoryPage category={category} entities={entities} />;
+  }
   const game = await getGameBySlug(slug);
   if (!game) notFound();
 
