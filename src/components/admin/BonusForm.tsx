@@ -213,6 +213,14 @@ export function BonusForm({
               <option value="false">Nu</option>
             </select>
           </label>
+          <label className="flex items-center gap-2 text-sm text-ink-secondary">
+            <input type="checkbox" name="is_no_deposit" value="true" defaultChecked={initial?.isNoDeposit ?? false} />
+            Fără depunere (clasificare SEO — poate coexista cu free spins)
+          </label>
+          <label className="flex items-center gap-2 text-sm text-ink-secondary">
+            <input type="checkbox" name="is_no_wagering" value="true" defaultChecked={initial?.isNoWagering ?? false} />
+            Fără rulaj (clasificare SEO — explicit, verificabil)
+          </label>
         </div>
       </Section>
 

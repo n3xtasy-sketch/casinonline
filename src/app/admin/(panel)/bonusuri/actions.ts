@@ -102,6 +102,9 @@ function parseFields(formData: FormData) {
     min_deposit: strOrNull(formData.get("min_deposit")),
     validity: strOrNull(formData.get("validity")),
     kyc_required: boolOrNull(formData.get("kyc_required")),
+    // SEO-B classification flags (not-null booleans): checkbox present → true, absent → false.
+    is_no_deposit: formData.get("is_no_deposit") === "true",
+    is_no_wagering: formData.get("is_no_wagering") === "true",
     terms_url: strOrNull(formData.get("terms_url")),
     verified_at: strOrNull(formData.get("verified_at")),
     expires_at: strOrNull(formData.get("expires_at")),
