@@ -120,7 +120,7 @@ export function GuideForm({ mode, action, initial, categories }: Props) {
         <textarea
           name="related_links"
           defaultValue={initial?.relatedLinksText}
-          placeholder={"/bonusuri-casino | Vezi toate bonusurile\n/cazinouri-online | Cazinouri recomandate"}
+          placeholder={"/bonusuri | Vezi toate bonusurile\n/cazinouri-online | Cazinouri recomandate"}
           className={area}
         />
         <span className="text-xs text-ink-muted">

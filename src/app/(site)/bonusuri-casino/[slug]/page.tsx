@@ -41,7 +41,7 @@ export default async function BonusDetailPage({ params }: PageProps) {
 
   const crumbs = [
     { label: "Acasă", href: "/" },
-    { label: "Bonusuri", href: "/bonusuri-casino" },
+    { label: "Bonusuri", href: "/bonusuri" },
     { label: `${bonus.bonusType} — ${bonus.casinoName}` },
   ];
 
@@ -117,7 +117,7 @@ export default async function BonusDetailPage({ params }: PageProps) {
         <section>
           <SectionHeader
             title="Bonusuri similare"
-            action={{ label: "Toate bonusurile", href: "/bonusuri-casino" }}
+            action={{ label: "Toate bonusurile", href: "/bonusuri" }}
           />
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {similar.map((b) => (

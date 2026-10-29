@@ -49,7 +49,7 @@ export default async function GameDetailPage({ params }: PageProps) {
 
   const crumbs = [
     { label: "Acasă", href: "/" },
-    { label: "Jocuri", href: "/jocuri-casino" },
+    { label: "Jocuri", href: "/pacanele-online" },
     { label: game.name },
   ];
 
@@ -114,7 +114,7 @@ export default async function GameDetailPage({ params }: PageProps) {
         <section>
           <SectionHeader
             title="Jocuri similare"
-            action={{ label: "Vezi toate", href: "/jocuri-casino" }}
+            action={{ label: "Vezi toate", href: "/pacanele-online" }}
           />
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
             {similar.map((g) => (

@@ -13,14 +13,14 @@ export const metadata: Metadata = {
   title: "Bonusuri de cazino",
   description:
     "Compară cele mai bune bonusuri de cazino din România: bonus de bun venit, fără depunere, rotiri gratuite, cashback și fără rulaj. Filtrează după tip și sortează.",
-  alternates: { canonical: "/bonusuri-casino" },
+  alternates: { canonical: "/bonusuri" },
   openGraph: {
     title: "Bonusuri de cazino",
     description:
       "Compară cele mai bune bonusuri de cazino din România: bonus de bun venit, fără depunere, rotiri gratuite, cashback și fără rulaj. Filtrează după tip și sortează.",
     type: "website",
     siteName: "CasinOnline.ro",
-    url: "/bonusuri-casino",
+    url: "/bonusuri",
     images: ["/opengraph-image"],
   },
   twitter: {
@@ -88,7 +88,7 @@ export default async function BonusListingPage({ searchParams }: PageProps) {
       ) : (
         <div className="flex flex-col items-start gap-3 rounded-md border border-border bg-surface p-8">
           <p className="text-ink-secondary">Nu am găsit bonusuri pentru filtrul selectat.</p>
-          <Button variant="secondary" href="/bonusuri-casino">
+          <Button variant="secondary" href="/bonusuri">
             Resetează filtrele
           </Button>
         </div>

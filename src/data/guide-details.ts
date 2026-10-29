@@ -36,7 +36,7 @@ const extras: Record<string, GuideDetailExtra> = {
       },
     ],
     relatedLinks: [
-      { label: "Vezi toate bonusurile de cazino", href: "/bonusuri-casino" },
+      { label: "Vezi toate bonusurile de cazino", href: "/bonusuri" },
       { label: "Bonus de bun venit Superbet", href: "/bonusuri-casino/superbet-bonus-bun-venit" },
       { label: "Cazinouri recomandate", href: "/cazinouri-online" },
     ],
@@ -76,8 +76,8 @@ const extras: Record<string, GuideDetailExtra> = {
       },
     ],
     relatedLinks: [
-      { label: "Toate jocurile de cazino", href: "/jocuri-casino" },
-      { label: "Sweet Bonanza — detalii joc", href: "/jocuri-casino/sweet-bonanza" },
+      { label: "Toate jocurile de cazino", href: "/pacanele-online" },
+      { label: "Sweet Bonanza — detalii joc", href: "/pacanele-online/sweet-bonanza" },
       { label: "Furnizorul Pragmatic Play", href: "/furnizori/pragmatic-play" },
     ],
     faq: [
@@ -190,7 +190,7 @@ const extras: Record<string, GuideDetailExtra> = {
       },
     ],
     relatedLinks: [
-      { label: "Toate bonusurile de bun venit", href: "/bonusuri-casino" },
+      { label: "Toate bonusurile de bun venit", href: "/bonusuri" },
       { label: "Bonus de bun venit Betano", href: "/bonusuri-casino/betano-bonus-bun-venit" },
       { label: "Cazinouri recomandate", href: "/cazinouri-online" },
     ],

@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/Button";
 
 const quickLinks = [
   { label: "Cazinouri", href: "/cazinouri-online" },
-  { label: "Bonusuri", href: "/bonusuri-casino" },
-  { label: "Jocuri", href: "/jocuri-casino" },
+  { label: "Bonusuri", href: "/bonusuri" },
+  { label: "Jocuri", href: "/pacanele-online" },
   { label: "Furnizori", href: "/furnizori" },
   { label: "Ghiduri", href: "/ghiduri" },
 ];

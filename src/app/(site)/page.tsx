@@ -36,7 +36,7 @@ export default async function HomePage() {
         title="Descoperă cele mai bune cazinouri online din România"
         description="Platformă premium de comparare: cazinouri, bonusuri, jocuri, furnizori și metode de plată — rapid, clar și de încredere."
         primaryCta={{ label: "Vezi cazinourile", href: "/cazinouri-online" }}
-        secondaryCta={{ label: "Explorează bonusuri", href: "/bonusuri-casino" }}
+        secondaryCta={{ label: "Explorează bonusuri", href: "/bonusuri" }}
       />
 
       {/* Recommended casinos */}
@@ -56,7 +56,7 @@ export default async function HomePage() {
       <section>
         <SectionHeader
           title="Jocuri populare"
-          action={{ label: "Vezi toate", href: "/jocuri-casino" }}
+          action={{ label: "Vezi toate", href: "/pacanele-online" }}
         />
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4">
           {popularGames.map((game) => (
@@ -69,7 +69,7 @@ export default async function HomePage() {
       <section>
         <SectionHeader
           title="Cele mai noi bonusuri"
-          action={{ label: "Vezi toate", href: "/bonusuri-casino" }}
+          action={{ label: "Vezi toate", href: "/bonusuri" }}
         />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {latestBonuses.map((bonus) => (

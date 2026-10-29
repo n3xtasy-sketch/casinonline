@@ -68,7 +68,7 @@ export default async function ProviderDetailPage({ params }: PageProps) {
         <section>
           <SectionHeader
             title={`Jocuri populare ${provider.name}`}
-            action={{ label: "Toate jocurile", href: "/jocuri-casino" }}
+            action={{ label: "Toate jocurile", href: "/pacanele-online" }}
           />
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
             {games.map((game) => (

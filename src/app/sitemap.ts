@@ -9,10 +9,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const hubs = [
     "/",
     "/cazinouri-online",
-    "/jocuri-casino",
+    "/pacanele-online",
     "/furnizori",
     "/metode-de-plata",
-    "/bonusuri-casino",
+    "/bonusuri",
     "/ghiduri",
   ];
 
@@ -27,7 +27,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const detail: Array<[string, SlugRow[]]> = [
     ["/cazinouri-online", casinos],
-    ["/jocuri-casino", games],
+    ["/pacanele-online", games],
     ["/furnizori", providers],
     ["/metode-de-plata", payments],
     ["/bonusuri-casino", bonuses],

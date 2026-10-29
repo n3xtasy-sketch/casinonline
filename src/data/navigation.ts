@@ -18,8 +18,8 @@ export const mainNav: NavGroup = {
   items: [
     { label: "Home", href: "/", icon: Home },
     { label: "Cazinouri", href: "/cazinouri-online", icon: Dice5 },
-    { label: "Bonusuri", href: "/bonusuri-casino", icon: Gift },
-    { label: "Jocuri", href: "/jocuri-casino", icon: Gamepad2 },
+    { label: "Bonusuri", href: "/bonusuri", icon: Gift },
+    { label: "Jocuri", href: "/pacanele-online", icon: Gamepad2 },
     { label: "Furnizori", href: "/furnizori", icon: Boxes },
     { label: "Metode de plată", href: "/metode-de-plata", icon: CreditCard },
     { label: "Ghiduri", href: "/ghiduri", icon: BookOpen },
@@ -30,9 +30,9 @@ export const mainNav: NavGroup = {
 export const gameNav: NavGroup = {
   label: "Jocuri",
   items: [
-    { label: "Sloturi", href: "/jocuri-casino?categorie=sloturi", icon: Cherry },
-    { label: "Megaways", href: "/jocuri-casino?categorie=megaways", icon: LayoutGrid },
-    { label: "Jackpot", href: "/jocuri-casino?categorie=jackpot", icon: Rocket },
+    { label: "Sloturi", href: "/pacanele-online?categorie=sloturi", icon: Cherry },
+    { label: "Megaways", href: "/pacanele-online?categorie=megaways", icon: LayoutGrid },
+    { label: "Jackpot", href: "/pacanele-online?categorie=jackpot", icon: Rocket },
   ],
 };
 
