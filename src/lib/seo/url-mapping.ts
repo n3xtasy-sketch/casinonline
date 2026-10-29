@@ -65,6 +65,10 @@ export interface MappingConfig {
   ambiguityMargin: number; // top-2 within this → NEEDS_REVIEW
   maxCandidates: number;
   splitSim: number; // keyword-similarity for split_keywords warning
+  /** Fraction of a cluster's SPECIFIC tokens that must appear in the page, else NEEDS_REVIEW. */
+  coverageMin: number;
+  /** Multiplier applied to a generic token's IDF weight (supplementary down-weight signal). */
+  genericFactor: number;
 }
 
 export const DEFAULT_MAPPING_CONFIG: MappingConfig = {
@@ -73,9 +77,19 @@ export const DEFAULT_MAPPING_CONFIG: MappingConfig = {
   ambiguityMargin: 0.08,
   maxCandidates: 5,
   splitSim: 0.5,
+  coverageMin: 0.5,
+  genericFactor: 0.12,
 };
 
 const DETAIL_TYPES: ReadonlySet<UrlType> = new Set(["casino", "bonus", "guide", "game", "provider", "payment"]);
+
+// Small supplementary list of vertical category words — used ONLY to down-weight (never as
+// the sole mechanism). The primary signal is IDF over the inventory. These are the words that
+// appear across the whole vertical ("every page is about casinos/games/bonuses"), so sharing
+// them says little about which specific page a cluster belongs to.
+const GENERIC_URL_TOKENS: ReadonlySet<string> = new Set([
+  "casino", "casinos", "cazino", "cazinou", "cazinouri", "online", "jocuri", "joc", "bonus", "bonusuri",
+]);
 
 const RO_DIAC: Record<string, string> = { ă: "a", â: "a", î: "i", ș: "s", ş: "s", ț: "t", ţ: "t" };
 
@@ -125,6 +139,26 @@ export function deriveClusterMapping(c: ClusterForMapping): { url: string | null
 
 // ── Recommendations ────────────────────────────────────────────────────────────
 
+/** A token is "specific" (carries page-selection meaning) when it is NOT a vertical-generic word. */
+function isSpecific(token: string): boolean {
+  return !GENERIC_URL_TOKENS.has(token);
+}
+
+/**
+ * IDF weight over the inventory corpus (primary, data-driven signal) × a generic down-weight
+ * (supplementary). Rare terms (brand/entity/topic names) weigh most; ubiquitous category words
+ * weigh least, so generic overlap can't by itself drive a confident recommendation.
+ */
+function makeWeightFn(existing: UrlEntry[], entryTok: Map<string, string[]>, cfg: MappingConfig): (t: string) => number {
+  const n = existing.length || 1;
+  const df = new Map<string, number>();
+  for (const e of existing) for (const t of new Set(entryTok.get(e.url))) df.set(t, (df.get(t) ?? 0) + 1);
+  return (t: string) => {
+    const idf = Math.log(1 + n / ((df.get(t) ?? 0) + 1)); // +1 smoothing; absent (specific) terms weigh high
+    return idf * (GENERIC_URL_TOKENS.has(t) ? cfg.genericFactor : 1);
+  };
+}
+
 export function recommendUrls(
   clusters: ClusterForMapping[],
   inventory: UrlEntry[],
@@ -132,17 +166,21 @@ export function recommendUrls(
 ): MappingRecommendation[] {
   const cfg = { ...DEFAULT_MAPPING_CONFIG, ...config };
   const existing = inventory.filter((e) => e.status === "existing");
-  const existingUrls = new Set(inventory.filter((e) => e.status === "existing").map((e) => e.url));
+  const existingUrls = new Set(existing.map((e) => e.url));
   const entryTok = new Map(existing.map((e) => [e.url, entryTokens(e)]));
-  const w = new Map<string, number>(); // unweighted Dice (all weights 1)
+  const weightFn = makeWeightFn(existing, entryTok, cfg);
+  const weight = new Map<string, number>(); // memoized weights for weightedDice
+  const w = (t: string): number => { let v = weight.get(t); if (v === undefined) { v = weightFn(t); weight.set(t, v); } return v; };
+  const dice = (a: string[], b: string[]) => { a.forEach(w); b.forEach(w); return weightedDice(a, b, weight); };
 
   return clusters
     .map((c) => {
       const cTok = clusterTokens(c);
+      const specific = cTok.filter(isSpecific);
       const current = deriveClusterMapping(c);
 
       const ranked: UrlCandidate[] = existing
-        .map((e) => ({ url: e.url, title: e.title, type: e.type, score: weightedDice(cTok, entryTok.get(e.url)!, w) }))
+        .map((e) => ({ url: e.url, title: e.title, type: e.type, score: dice(cTok, entryTok.get(e.url)!) }))
         .filter((x) => x.score > 0)
         .sort((a, b) => b.score - a.score || a.url.localeCompare(b.url))
         .slice(0, cfg.maxCandidates);
@@ -152,13 +190,20 @@ export function recommendUrls(
       const intent = (c.intent ?? "").toLowerCase();
       const infoIntent = intent.includes("information");
 
+      // Specific-term coverage: how much of the cluster's SPECIFIC vocabulary the best page represents.
+      const bestTok = best ? new Set(entryTok.get(best.url)) : new Set<string>();
+      const sharedSpecific = specific.filter((t) => bestTok.has(t));
+      const missingSpecific = specific.filter((t) => !bestTok.has(t));
+      const coverage = specific.length ? sharedSpecific.length / specific.length : 0;
+
       let recommendation: Recommendation;
       let explanation: string;
       let needsReview = false;
       let suggestedSlug: string | null = null;
+      const pct = (x: number) => Math.round(x * 100);
 
-      // Editorial decision is sacrosanct: a confirmed mapping is never overridden.
       if (current.status === "confirmed") {
+        // Editorial decision is sacrosanct: never overridden.
         const liveExisting = current.url ? existingUrls.has(current.url) : false;
         recommendation = liveExisting ? "use_existing" : "create_new";
         explanation = `Mapare confirmată manual (${current.url}) — păstrată, nu se suprascrie.`;
@@ -166,27 +211,41 @@ export function recommendUrls(
         recommendation = "create_new";
         suggestedSlug = slugify(c.primaryKeyword || c.name);
         explanation = "Nicio pagină existentă nu se potrivește lexical — pagină nouă (planificată).";
-      } else if (best.score >= cfg.useStrong && DETAIL_TYPES.has(best.type) && !(second && best.score - second.score < cfg.ambiguityMargin)) {
-        recommendation = "use_existing";
-        explanation = `Potrivire puternică (${Math.round(best.score * 100)}%) cu pagina existentă „${best.title}".`;
-        if (infoIntent && DETAIL_TYPES.has(best.type) && best.type !== "guide") {
-          needsReview = true;
-          explanation += " Intenție informațională vs pagină tranzacțională — verifică.";
-        }
+      } else if (specific.length === 0) {
+        // The whole cluster is generic category words → can't confidently pick a page.
+        recommendation = "needs_review";
+        needsReview = true;
+        explanation = "Keyword predominant generic (fără termeni specifici) — alege pagina manual.";
       } else if (second && best.score - second.score < cfg.ambiguityMargin && best.score >= cfg.expandMin) {
         recommendation = "needs_review";
         needsReview = true;
-        explanation = `Candidați apropiați („${best.title}" ${Math.round(best.score * 100)}% vs „${second.title}" ${Math.round(second.score * 100)}%) — alege manual.`;
+        explanation = `Candidați apropiați („${best.title}" ${pct(best.score)}% vs „${second.title}" ${pct(second.score)}%) — alege manual.`;
+      } else if (coverage === 0) {
+        // Match rests entirely on generic overlap; no specific term is represented in the page.
+        recommendation = "needs_review";
+        needsReview = true;
+        explanation = `Potrivire bazată pe termeni generici; termenii specifici (${specific.join(", ")}) nu apar în „${best.title}" — verifică.`;
+      } else if (coverage < cfg.coverageMin) {
+        // Only part of the specific intent is represented (e.g. brand matches but the action doesn't).
+        recommendation = "needs_review";
+        needsReview = true;
+        explanation = `„${best.title}" acoperă doar parțial termenii specifici (lipsesc: ${missingSpecific.join(", ")}) — verifică.`;
+      } else if (best.score >= cfg.useStrong && DETAIL_TYPES.has(best.type)) {
+        recommendation = "use_existing";
+        explanation = `Potrivire puternică (${pct(best.score)}%) cu pagina existentă „${best.title}" (termeni: ${sharedSpecific.join(", ")}).`;
+        if (infoIntent && best.type !== "guide") {
+          needsReview = true;
+          explanation += " Intenție informațională vs pagină tranzacțională — verifică.";
+        }
       } else if (best.score >= cfg.expandMin) {
         recommendation = "expand_existing";
-        explanation = `Pagină înrudită „${best.title}" (${Math.round(best.score * 100)}%) — extinde-o pentru a acoperi clusterul.`;
+        explanation = `Pagină înrudită „${best.title}" (${pct(best.score)}%, termeni: ${sharedSpecific.join(", ")}) — extinde-o pentru a acoperi clusterul.`;
       } else {
         recommendation = "create_new";
         suggestedSlug = slugify(c.primaryKeyword || c.name);
-        explanation = `Cea mai bună potrivire e slabă (${Math.round(best.score * 100)}%) — pagină nouă (planificată).`;
+        explanation = `Cea mai bună potrivire e slabă (${pct(best.score)}%) — pagină nouă (planificată).`;
       }
 
-      if (recommendation === "needs_review") needsReview = true;
       return { clusterId: c.id, recommendation, explanation, candidates: ranked, suggestedSlug, needsReview, currentUrl: current.url, currentStatus: current.status };
     })
     .sort((a, b) => a.clusterId.localeCompare(b.clusterId));
