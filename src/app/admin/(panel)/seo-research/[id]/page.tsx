@@ -81,6 +81,9 @@ export default async function SeoProjectPage({ params, searchParams }: PageProps
         <Link href={`/admin/seo-research/${id}/clusters`} className="inline-flex h-9 items-center rounded-sm border border-border px-4 text-sm font-medium text-ink hover:bg-elevated">
           Clustere de keyworduri →
         </Link>
+        <Link href={`/admin/seo-research/${id}/url-mapping`} className="inline-flex h-9 items-center rounded-sm border border-border px-4 text-sm font-medium text-ink hover:bg-elevated">
+          URL Mapping →
+        </Link>
       </nav>
 
       <section className="flex flex-col gap-3">
