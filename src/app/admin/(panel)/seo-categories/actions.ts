@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { updateTag } from "next/cache";
+import { revalidateSitemap } from "@/lib/revalidate-sitemap";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import { logActivity } from "@/lib/db/activity";
 import { validateCategoryInput } from "@/lib/seo-categories";
@@ -90,6 +91,7 @@ export async function saveCategory(_prev: CategoryFormState, formData: FormData)
   }
   await logActivity(db, { action: f.id ? "seo_category.update" : "seo_category.create", entityType: "seo_category", entityId: id, label: `${f.namespace}/${f.slug}` });
   updateTag("seo_categories");
+  revalidateSitemap();
   redirect("/admin/seo-categories");
 }
 
@@ -99,5 +101,6 @@ export async function deleteCategory(id: string): Promise<void> {
   if (error) throw new Error(`Ștergere eșuată: ${error.message}`);
   await logActivity(db, { action: "seo_category.delete", entityType: "seo_category", entityId: id });
   updateTag("seo_categories");
+  revalidateSitemap();
   redirect("/admin/seo-categories");
 }

@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { updateTag } from "next/cache";
+import { revalidateSitemap } from "@/lib/revalidate-sitemap";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import { logActivity } from "@/lib/db/activity";
 import { applyStatusChange } from "@/lib/db/content-status";
@@ -114,6 +115,7 @@ export async function createGuide(
 
   await logActivity(db, { action: "guide.create", entityType: "guide", label: String(fields.title ?? "") });
   updateTag("guides");
+  revalidateSitemap();
   redirect("/admin/ghiduri");
 }
 
@@ -138,6 +140,7 @@ export async function updateGuide(
 
   await logActivity(db, { action: "guide.update", entityType: "guide", entityId: id, label: String(fields.title ?? "") });
   updateTag("guides");
+  revalidateSitemap();
   redirect("/admin/ghiduri");
 }
 

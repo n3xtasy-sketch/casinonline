@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { updateTag } from "next/cache";
+import { revalidateSitemap } from "@/lib/revalidate-sitemap";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import { logActivity } from "@/lib/db/activity";
 import { applyStatusChange } from "@/lib/db/content-status";
@@ -168,6 +169,7 @@ export async function createCasino(
 
   await logActivity(db, { action: "casino.create", entityType: "casino", entityId: casinoId, label: fields.name });
   updateTag("casinos");
+  revalidateSitemap();
   redirect("/admin/cazinouri");
 }
 
@@ -218,5 +220,6 @@ export async function updateCasino(
 
   await logActivity(db, { action: "casino.update", entityType: "casino", entityId: id, label: fields.name });
   updateTag("casinos");
+  revalidateSitemap();
   redirect("/admin/cazinouri");
 }

@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { updateTag } from "next/cache";
+import { revalidateSitemap } from "@/lib/revalidate-sitemap";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import { logActivity } from "@/lib/db/activity";
 import { isValidIntent, evergreenBonusMatches } from "@/lib/evergreen-bonus";
@@ -77,6 +78,7 @@ export async function saveEvergreenPage(_prev: EvergreenFormState, formData: For
   }
   await logActivity(db, { action: id ? "seo_bonus_page.update" : "seo_bonus_page.create", entityType: "seo_bonus_page", entityId: pageId!, label: `${intent}` });
   updateTag("seo_bonus_pages");
+  revalidateSitemap();
   redirect("/admin/seo-bonus-pages");
 }
 
@@ -86,5 +88,6 @@ export async function deleteEvergreenPage(id: string): Promise<void> {
   if (error) throw new Error(`Ștergere eșuată: ${error.message}`);
   await logActivity(db, { action: "seo_bonus_page.delete", entityType: "seo_bonus_page", entityId: id });
   updateTag("seo_bonus_pages");
+  revalidateSitemap();
   redirect("/admin/seo-bonus-pages");
 }
