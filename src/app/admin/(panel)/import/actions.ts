@@ -3,6 +3,8 @@
 import { updateTag } from "next/cache";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import { logActivity } from "@/lib/db/activity";
+import { revalidateSitemap } from "@/lib/revalidate-sitemap";
+import { shouldRevalidateSitemapAfterImport } from "@/lib/sitemap-invalidation";
 import {
   dryRunImport,
   applyImport,
@@ -82,6 +84,10 @@ export async function runImportAction(
 
   const desc = ENTITY_DESCRIPTORS[entity];
   for (const t of desc.tags) updateTag(t);
+  // Regenerate the prerendered /sitemap.xml — but only when the import actually created/updated
+  // sitemap-listed content (a no-op import does not change the sitemap). updateTag above purges
+  // the data; this regenerates the static route so it re-reads it.
+  if (shouldRevalidateSitemapAfterImport(res)) revalidateSitemap();
   await logActivity(db, {
     action: `import.${entity}`,
     entityType: entity,
