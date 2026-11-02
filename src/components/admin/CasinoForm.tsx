@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
+import { casinoReviewSlug } from "@/lib/seo/casino-slug";
 import type { CasinoFormState } from "@/app/admin/(panel)/cazinouri/types";
 import type { CasinoEditData, Option } from "@/lib/db/admin-casinos";
 import { MediaField } from "@/components/admin/MediaField";
@@ -72,6 +73,11 @@ export function CasinoForm({ mode, action, initial, tags, paymentMethods, games 
   const [state, formAction, pending] = useActionState<CasinoFormState, FormData>(action, {
     error: null,
   });
+  // Create mode: auto-derive the slug from the name (convention `-casino`) until the admin edits
+  // the slug manually. Edit mode leaves slug read-only and the name uncontrolled (unchanged).
+  const [name, setName] = useState(initial?.name ?? "");
+  const [slug, setSlug] = useState("");
+  const [slugTouched, setSlugTouched] = useState(false);
 
   return (
     <form action={formAction} className="flex max-w-3xl flex-col gap-5">
@@ -87,17 +93,40 @@ export function CasinoForm({ mode, action, initial, tags, paymentMethods, games 
             className={`${input} cursor-not-allowed text-ink-muted`}
           />
         ) : (
-          <input
-            name="slug"
-            required
-            pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
-            placeholder="ex. betano-casino"
-            className={input}
-          />
+          <>
+            <input
+              name="slug"
+              pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+              placeholder="ex. betano-casino"
+              className={input}
+              value={slug}
+              onChange={(e) => { setSlug(e.target.value); setSlugTouched(true); }}
+            />
+            <span className="text-xs text-ink-muted">
+              Generat automat din nume (convenția „-casino”); poți edita manual. Numele comercial nu se schimbă.
+            </span>
+          </>
         )}
       </label>
 
-      <Field label="Nume *" name="name" defaultValue={initial?.name} required />
+      {mode === "edit" ? (
+        <Field label="Nume *" name="name" defaultValue={initial?.name} required />
+      ) : (
+        <label className="flex flex-col gap-1.5 text-sm">
+          <span className="font-medium text-ink-secondary">Nume *</span>
+          <input
+            name="name"
+            required
+            className={input}
+            value={name}
+            onChange={(e) => {
+              const v = e.target.value;
+              setName(v);
+              if (!slugTouched) setSlug(casinoReviewSlug(v));
+            }}
+          />
+        </label>
+      )}
       <MediaField label="Logo" name="logo_url" defaultValue={initial?.logoUrl} folder="casinos" />
 
       <div className="grid gap-5 sm:grid-cols-2">

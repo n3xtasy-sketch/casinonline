@@ -21,3 +21,13 @@ export function casinoReviewSlug(name: string): string {
   if (base.includes("casino") || base.includes("cazino")) return base;
   return `${base}-casino`;
 }
+
+/**
+ * Effective slug for a NEW casino in the create flow: a non-empty manual override (normalized)
+ * wins; otherwise the slug is derived from the official name via the convention. The caller still
+ * validates the result against SLUG_RE and checks uniqueness.
+ */
+export function resolveNewCasinoSlug(manualSlug: string, name: string): string {
+  const manual = manualSlug.trim().toLowerCase();
+  return manual || casinoReviewSlug(name);
+}
