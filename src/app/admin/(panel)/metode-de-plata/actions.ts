@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { updateTag } from "next/cache";
+import { revalidateSitemap } from "@/lib/revalidate-sitemap";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import { logActivity } from "@/lib/db/activity";
 import { applyStatusChange } from "@/lib/db/content-status";
@@ -86,6 +87,7 @@ function refresh() {
   // methods, so changes must refresh them too (tag 'casinos').
   updateTag("payments");
   updateTag("casinos");
+  revalidateSitemap();
 }
 
 export async function createPaymentMethod(

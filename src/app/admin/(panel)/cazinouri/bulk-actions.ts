@@ -1,6 +1,7 @@
 "use server";
 
 import { updateTag } from "next/cache";
+import { revalidateSitemap } from "@/lib/revalidate-sitemap";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import { logActivity } from "@/lib/db/activity";
 import type { BulkResult } from "@/lib/bulk";
@@ -25,6 +26,7 @@ async function requireAdmin(): Promise<DB> {
 function refreshCasinos() {
   updateTag("casinos");
   updateTag("bonuses");
+  revalidateSitemap(); // bulk publish/archive changes sitemap membership
 }
 
 async function setStatus(

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { listSeoForType } from "@/lib/db/admin-seo";
 import { SEO_TYPES, seoTypeLabel, type SeoType } from "@/lib/seo";
 import { cn } from "@/lib/cn";
+import { SitemapRevalidateButton } from "@/components/admin/SitemapRevalidateButton";
 
 const DOT: Record<string, string> = { green: "bg-accent", yellow: "bg-gold", red: "bg-danger" };
 
@@ -30,6 +31,8 @@ export default async function AdminSeoPage({ searchParams }: PageProps) {
           Override meta/OG/robots per entitate, cu fallback automat la metadata curentă.
         </p>
       </div>
+
+      <SitemapRevalidateButton />
 
       <div className="flex flex-wrap gap-1">
         {SEO_TYPES.map((t) => (

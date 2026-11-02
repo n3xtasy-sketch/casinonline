@@ -1,5 +1,6 @@
 import "server-only";
 import { updateTag } from "next/cache";
+import { revalidateSitemap } from "@/lib/revalidate-sitemap";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import { logActivity } from "@/lib/db/activity";
 import type { ContentStatus } from "@/lib/content-status";
@@ -47,5 +48,6 @@ export async function applyStatusChange(db: DB, opts: ApplyStatusOptions): Promi
   });
 
   for (const t of opts.tags) updateTag(t);
+  revalidateSitemap(); // status change alters sitemap membership → regenerate the prerendered route
   return {};
 }

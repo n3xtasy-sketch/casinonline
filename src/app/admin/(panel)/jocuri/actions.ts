@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { updateTag } from "next/cache";
+import { revalidateSitemap } from "@/lib/revalidate-sitemap";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import { logActivity } from "@/lib/db/activity";
 import { applyStatusChange } from "@/lib/db/content-status";
@@ -101,6 +102,7 @@ function refresh() {
   updateTag("games");
   updateTag("casinos");
   updateTag("providers");
+  revalidateSitemap();
 }
 
 export async function createGame(

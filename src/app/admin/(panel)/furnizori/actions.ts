@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { updateTag } from "next/cache";
+import { revalidateSitemap } from "@/lib/revalidate-sitemap";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import { logActivity } from "@/lib/db/activity";
 import { applyStatusChange } from "@/lib/db/content-status";
@@ -69,6 +70,7 @@ function refresh() {
   // the provider name, so renaming must refresh them too (tag 'games').
   updateTag("providers");
   updateTag("games");
+  revalidateSitemap();
 }
 
 export async function createProvider(

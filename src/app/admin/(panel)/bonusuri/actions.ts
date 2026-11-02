@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { updateTag } from "next/cache";
+import { revalidateSitemap } from "@/lib/revalidate-sitemap";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import { logActivity } from "@/lib/db/activity";
 import { applyStatusChange } from "@/lib/db/content-status";
@@ -221,6 +222,7 @@ function refresh() {
   // and the casino cards embed the bonus offer/free_spins (tag 'casinos').
   updateTag("bonuses");
   updateTag("casinos");
+  revalidateSitemap();
 }
 
 export async function createBonus(
