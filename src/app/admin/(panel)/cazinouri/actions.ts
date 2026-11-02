@@ -7,6 +7,7 @@ import { logActivity } from "@/lib/db/activity";
 import { applyStatusChange } from "@/lib/db/content-status";
 import { syncJunctionAtomic, type RpcRunner, type JunctionCol } from "@/lib/junction-sync";
 import { parseAuthorship, validateAuthorship } from "@/lib/editorial";
+import { resolveNewCasinoSlug } from "@/lib/seo/casino-slug";
 import type { ContentStatus } from "@/lib/content-status";
 import type { CasinoFormState } from "./types";
 
@@ -132,12 +133,14 @@ export async function createCasino(
   formData: FormData,
 ): Promise<CasinoFormState> {
   const db = await requireAdmin();
-  const slug = String(formData.get("slug") ?? "").trim().toLowerCase();
+  const fields = parseFields(formData);
+  if (!fields.name) return { error: "Numele este obligatoriu." };
+  // New-operator slug convention: a manual override wins; otherwise derive `-casino` from the
+  // name (never doubling an existing casino/cazino). Commercial name stays untouched.
+  const slug = resolveNewCasinoSlug(String(formData.get("slug") ?? ""), fields.name);
   if (!SLUG_RE.test(slug)) {
     return { error: "Slug invalid — doar litere mici, cifre și cratime (ex. betano-casino)." };
   }
-  const fields = parseFields(formData);
-  if (!fields.name) return { error: "Numele este obligatoriu." };
   const authorship = parseAuthorship(formData);
   const authorErr = validateAuthorship(authorship.input);
   if (authorErr) return { error: authorErr };

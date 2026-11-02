@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { casinoSlugRedirects } from "./src/lib/seo/casino-redirects";
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -14,6 +15,8 @@ const nextConfig: NextConfig = {
       { source: "/jocuri-casino", destination: "/pacanele-online", permanent: true },
       { source: "/jocuri-casino/:slug*", destination: "/pacanele-online/:slug*", permanent: true },
       { source: "/bonusuri-casino", destination: "/bonusuri", permanent: true },
+      // Casino review slug standardization (→ -casino). 308 parent + child per renamed operator.
+      ...casinoSlugRedirects(),
     ];
   },
   experimental: {
