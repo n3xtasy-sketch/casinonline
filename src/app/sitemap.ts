@@ -5,6 +5,8 @@ import { institutionalSitemapEntries } from "@/lib/institutional";
 import { readyAuthors } from "@/lib/authors";
 import { listPublishedCategories } from "@/lib/db/seo-categories";
 import { categoryPath } from "@/lib/seo-categories";
+import { listPublishedEvergreenPages } from "@/lib/db/seo-bonus-pages";
+import { evergreenPath } from "@/components/seo/EvergreenBonusPage";
 
 /** Dynamic sitemap covering every hub and detail route (slugs + lastModified from DB). */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -79,5 +81,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...(c.updatedAt ? { lastModified: new Date(c.updatedAt) } : {}),
   }));
 
-  return [...hubEntries, ...detailEntries, ...categoryEntries, ...institutionalEntries, ...authorEntries];
+  // Evergreen operator bonus pages — ONLY published (operator also published; RLS enforces this).
+  const evergreenEntries: MetadataRoute.Sitemap = (await listPublishedEvergreenPages()).map((p) => ({
+    url: absoluteUrl(evergreenPath(p.casinoSlug, p.intent)),
+    changeFrequency: "weekly" as const,
+    priority: 0.6,
+    ...(p.updatedAt ? { lastModified: new Date(p.updatedAt) } : {}),
+  }));
+
+  return [...hubEntries, ...detailEntries, ...categoryEntries, ...evergreenEntries, ...institutionalEntries, ...authorEntries];
 }
