@@ -69,12 +69,21 @@ export default async function SeoProjectPage({ params, searchParams }: PageProps
       </div>
 
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {indicators.map((i) => (
-          <div key={i.label} className="rounded-md border border-border bg-surface p-4">
-            <div className="text-2xl font-bold tabular-nums text-ink">{i.value}</div>
-            <div className="mt-0.5 text-xs text-ink-muted">{i.label}</div>
-          </div>
-        ))}
+        {indicators.map((i) => {
+          const card = (
+            <>
+              <div className="text-2xl font-bold tabular-nums text-ink">{i.value}</div>
+              <div className="mt-0.5 text-xs text-ink-muted">{i.label}</div>
+            </>
+          );
+          return i.label === "Brief-uri" ? (
+            <Link key={i.label} href={`/admin/seo-research/${id}/briefs`} className="rounded-md border border-border bg-surface p-4 hover:bg-elevated">
+              {card}
+            </Link>
+          ) : (
+            <div key={i.label} className="rounded-md border border-border bg-surface p-4">{card}</div>
+          );
+        })}
       </section>
 
       <nav className="flex flex-wrap gap-2">
@@ -83,6 +92,9 @@ export default async function SeoProjectPage({ params, searchParams }: PageProps
         </Link>
         <Link href={`/admin/seo-research/${id}/url-mapping`} className="inline-flex h-9 items-center rounded-sm border border-border px-4 text-sm font-medium text-ink hover:bg-elevated">
           URL Mapping →
+        </Link>
+        <Link href={`/admin/seo-research/${id}/briefs`} className="inline-flex h-9 items-center rounded-sm border border-border px-4 text-sm font-medium text-ink hover:bg-elevated">
+          Brief-uri →
         </Link>
       </nav>
 
