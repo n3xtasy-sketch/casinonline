@@ -90,6 +90,16 @@ export async function buildUrlInventory(): Promise<UrlEntry[]> {
   for (const c of (cats as unknown as { namespace: CategoryNamespace; slug: string; name: string }[]) ?? [])
     out.push({ url: categoryPath(c.namespace, c.slug), type: "category", title: c.name, source: "seo_categories", status: "existing" });
 
+  // Evergreen operator bonus pages — ONLY published (operator published too).
+  const { data: ever, error: evErr } = await db
+    .from("seo_bonus_pages")
+    .select("intent, casino:casinos(slug, name, status)")
+    .eq("status", "published");
+  if (evErr) throw new Error(`buildUrlInventory(seo_bonus_pages): ${evErr.message}`);
+  for (const p of (ever as unknown as { intent: string; casino: { slug: string; name: string; status: string } | null }[]) ?? [])
+    if (p.casino?.status === "published")
+      out.push({ url: `/cazinouri-online/${p.casino.slug}/${p.intent}`, type: "bonus", title: `${p.casino.name} — ${p.intent}`, source: "seo_bonus_pages", status: "existing" });
+
   // Deterministic order: existing before planned, then by url.
   out.sort((x, y) => (x.status === y.status ? x.url.localeCompare(y.url) : x.status === "existing" ? -1 : 1));
   return out;
