@@ -1,12 +1,18 @@
 import "server-only";
 import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import { loadEntityRegistry } from "@/lib/db/admin-entities";
+import { buildUrlInventory } from "@/lib/db/url-inventory";
 import { buildEntityRelations, type EntityRelation, type RelationInput } from "@/lib/seo/entity-relations";
+import { topicalCoverage, type TopicalRow } from "@/lib/seo/topical-coverage";
 import type { EntityRecord } from "@/lib/seo/entity-registry";
 
 export interface EntityGraph {
   registry: EntityRecord[];
   relations: EntityRelation[];
+}
+
+export interface SemanticContext extends EntityGraph {
+  topical: TopicalRow[];
 }
 
 /**
@@ -49,4 +55,16 @@ export async function loadEntityGraph(): Promise<EntityGraph> {
 
   const knownIds = new Set(registry.map((e) => e.id));
   return { registry, relations: buildEntityRelations(input, knownIds) };
+}
+
+/**
+ * KE-2C: the entity graph PLUS topical coverage over the draft-inclusive URL inventory. Used by the
+ * SEO Brief Workbench to compute read-only semantic recommendations. Read-only, admin RLS; fixed
+ * query count (graph + one inventory build). GLOBAL CMS — brief/project scoping stays at the caller.
+ */
+export async function loadSemanticContext(): Promise<SemanticContext> {
+  const { registry, relations } = await loadEntityGraph();
+  const inventory = await buildUrlInventory({ includeDrafts: true });
+  const byId = new Map(registry.map((e) => [e.id, e] as const));
+  return { registry, relations, topical: topicalCoverage(relations, byId, inventory) };
 }
