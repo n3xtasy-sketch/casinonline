@@ -1,5 +1,6 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { cacheLife, cacheTag } from "next/cache";
+import { cacheTagForTable } from "@/lib/sitemap-invalidation";
 
 export interface SlugRow {
   slug: string;
@@ -10,7 +11,7 @@ export interface SlugRow {
 export async function getSlugs(table: string): Promise<SlugRow[]> {
   "use cache";
   cacheLife("hours");
-  cacheTag(table);
+  cacheTag(cacheTagForTable(table)); // payment_methods → "payments" so mutations invalidate it
   const db = getSupabaseServerClient();
   const { data, error } = await db.from(table).select("slug, updated_at");
   if (error) throw new Error(`getSlugs(${table}): ${error.message}`);
