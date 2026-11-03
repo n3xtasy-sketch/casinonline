@@ -162,6 +162,31 @@ test("mergeEntityLists: empty sides + dedupe", () => {
   assert.equal(mergeEntityLists([MANUAL_TERM], [MANUAL_TERM]).length, 1); // name+type dedupe
 });
 
+// ── KE-2C risk analysis (A/B/C) — pinned behavior ──────────────────────────────
+test("KE-2C risk A: a removed suggested entity REAPPEARS on regenerate (no persisted rejection) unless locked", () => {
+  const afterRemoval = existingValues([CONFIRMED], PROV_ALL("suggested")); // editor removed FRESH_TERM
+  const regen = mergeBriefDraft(afterRemoval, draft([FRESH_TERM]), []); // generator still yields it
+  assert.ok(regen.values.entities.some((e) => e.name === "rotiri gratuite")); // reappears
+  const locked = mergeBriefDraft(afterRemoval, draft([FRESH_TERM]), ["entities"]);
+  assert.ok(!locked.values.entities.some((e) => e.name === "rotiri gratuite")); // lock prevents it
+});
+
+test("KE-2C risk B: a slug rename does NOT duplicate a confirmed entity (keyed on name+type, not ref)", () => {
+  const oldRef: BriefEntity = { name: "Superbet Casino", type: "casino", source: "confirmed", ref: "/cazinouri-online/superbet-casino" };
+  const newRef: BriefEntity = { name: "Superbet Casino", type: "casino", source: "suggested", ref: "/cazinouri-online/superbet-ro" };
+  const merged = mergeEntityLists([oldRef], [newRef]);
+  assert.equal(merged.length, 1);
+  assert.equal(merged[0].source, "confirmed"); // existing wins
+});
+
+test("KE-2C risk C: identical name+type dedupe to one (existing precedence, case-insensitive)", () => {
+  const a: BriefEntity = { name: "Skrill", type: "payment", source: "confirmed", ref: "/metode-de-plata/skrill" };
+  const b: BriefEntity = { name: "skrill", type: "payment", source: "suggested", ref: null };
+  const merged = mergeEntityLists([a], [b]);
+  assert.equal(merged.length, 1);
+  assert.equal(merged[0].source, "confirmed");
+});
+
 // ════════════════════════ KE-0 compatibility (unchanged generation) ════════════════════════
 test("buildBriefDraft still emits suggested lexical entities (KE-0 behavior intact)", () => {
   const input: BriefClusterInput = {

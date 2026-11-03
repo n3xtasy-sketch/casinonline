@@ -99,6 +99,9 @@ export default async function SeoProjectPage({ params, searchParams }: PageProps
         <Link href={`/admin/seo-research/${id}/coverage`} className="inline-flex h-9 items-center rounded-sm border border-border px-4 text-sm font-medium text-ink hover:bg-elevated">
           Content Coverage →
         </Link>
+        <Link href={`/admin/seo-research/${id}/entities`} className="inline-flex h-9 items-center rounded-sm border border-border px-4 text-sm font-medium text-ink hover:bg-elevated">
+          Entități & Topical →
+        </Link>
       </nav>
 
       <section className="flex flex-col gap-3">

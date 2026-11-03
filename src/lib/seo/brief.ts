@@ -303,13 +303,19 @@ export interface BriefValues {
 /**
  * Union-merge the entity list on REGENERATE (KE-2C protection fix). Existing entities are preserved
  * FIRST (so editor-confirmed CMS entities and manually-added ones are never dropped), fresh entities
- * are appended, and duplicates are removed by ref (or name+type when there is no ref). This replaces
- * the previous overwrite behaviour, which silently discarded confirmed/manual entities whenever the
- * `entities` field was not locked (the field's provenance is always 'suggested'). Backward-
- * compatible: operates on the stored BriefEntity[] shape; no schema change.
+ * are appended, and duplicates are removed. This replaces the previous overwrite behaviour, which
+ * silently discarded confirmed/manual entities whenever the `entities` field was not locked (the
+ * field's provenance is always 'suggested'). Backward-compatible: operates on the stored
+ * BriefEntity[] shape; no schema change.
+ *
+ * Identity is (normalized name + type), NOT the ref. Refs are slug-based (/cazinouri-online/<slug>),
+ * so keying on ref would make a casino's slug rename produce a DUPLICATE on regenerate (old-ref row
+ * + new-ref row for the same entity). Keying on name+type keeps a single row (existing wins, so its
+ * confirmed/manual source survives). Trade-off: two genuinely distinct entities sharing an identical
+ * name AND type would collapse — rare for CMS rows and acceptable vs. silent duplication.
  */
 export function mergeEntityLists(existing: BriefEntity[], fresh: BriefEntity[]): BriefEntity[] {
-  const key = (e: BriefEntity) => (e.ref ? `ref:${e.ref}` : `name:${e.name.trim().toLowerCase()}|${e.type}`);
+  const key = (e: BriefEntity) => `${e.name.trim().toLowerCase()}|${e.type}`;
   const out: BriefEntity[] = [];
   const seen = new Set<string>();
   for (const e of [...existing, ...fresh]) {
