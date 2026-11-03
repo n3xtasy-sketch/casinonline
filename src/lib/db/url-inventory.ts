@@ -52,7 +52,14 @@ const HUBS: { url: string; title: string; type: UrlType }[] = [
   { url: "/metode-de-plata", title: "Metode de plată", type: "hub" },
 ];
 
-export async function buildUrlInventory(): Promise<UrlEntry[]> {
+/**
+ * @param opts.includeDrafts When true, DRAFT seo_categories / seo_bonus_pages are surfaced as
+ *   `planned` (for the admin coverage view). Default false → public callers (sitemap, URL mapping)
+ *   get the unchanged live/planned inventory. Drafts are NEVER exposed publicly by this flag; only
+ *   admin-session callers pass it.
+ */
+export async function buildUrlInventory(opts: { includeDrafts?: boolean } = {}): Promise<UrlEntry[]> {
+  const includeDrafts = opts.includeDrafts ?? false;
   const db = await getSupabaseAuthClient();
   const out: UrlEntry[] = [];
 
@@ -81,24 +88,29 @@ export async function buildUrlInventory(): Promise<UrlEntry[]> {
   for (const a of AUTHORS)
     out.push({ url: `/autori/${a.slug}`, type: "author", title: a.name, source: "registru autori", status: a.ready ? "existing" : "planned" });
 
-  // SEO categories — ONLY published count as live URLs (draft/archived excluded from inventory).
+  // SEO categories — published are live (existing). With includeDrafts, drafts surface as PLANNED
+  // (admin coverage view); archived always excluded. Default omits drafts → unchanged public output.
   const { data: cats, error: catErr } = await db
     .from("seo_categories")
     .select("namespace, slug, name, status")
-    .eq("status", "published");
+    .in("status", includeDrafts ? ["published", "draft"] : ["published"]);
   if (catErr) throw new Error(`buildUrlInventory(seo_categories): ${catErr.message}`);
-  for (const c of (cats as unknown as { namespace: CategoryNamespace; slug: string; name: string }[]) ?? [])
-    out.push({ url: categoryPath(c.namespace, c.slug), type: "category", title: c.name, source: "seo_categories", status: "existing" });
+  for (const c of (cats as unknown as { namespace: CategoryNamespace; slug: string; name: string; status: string }[]) ?? [])
+    out.push({ url: categoryPath(c.namespace, c.slug), type: "category", title: c.name, source: "seo_categories", status: c.status === "published" ? "existing" : "planned" });
 
-  // Evergreen operator bonus pages — ONLY published (operator published too).
+  // Evergreen operator bonus pages — live = evergreen published AND operator published. With
+  // includeDrafts, draft evergreen (or draft operator) pages surface as PLANNED. Default unchanged.
   const { data: ever, error: evErr } = await db
     .from("seo_bonus_pages")
-    .select("intent, casino:casinos(slug, name, status)")
-    .eq("status", "published");
+    .select("intent, status, casino:casinos(slug, name, status)")
+    .in("status", includeDrafts ? ["published", "draft"] : ["published"]);
   if (evErr) throw new Error(`buildUrlInventory(seo_bonus_pages): ${evErr.message}`);
-  for (const p of (ever as unknown as { intent: string; casino: { slug: string; name: string; status: string } | null }[]) ?? [])
-    if (p.casino?.status === "published")
-      out.push({ url: `/cazinouri-online/${p.casino.slug}/${p.intent}`, type: "bonus", title: `${p.casino.name} — ${p.intent}`, source: "seo_bonus_pages", status: "existing" });
+  for (const p of (ever as unknown as { intent: string; status: string; casino: { slug: string; name: string; status: string } | null }[]) ?? []) {
+    if (!p.casino?.slug) continue;
+    const live = p.status === "published" && p.casino.status === "published";
+    if (!live && !includeDrafts) continue; // default: only genuinely live evergreen pages
+    out.push({ url: `/cazinouri-online/${p.casino.slug}/${p.intent}`, type: "bonus", title: `${p.casino.name} — ${p.intent}`, source: "seo_bonus_pages", status: live ? "existing" : "planned" });
+  }
 
   // Deterministic order: existing before planned, then by url.
   out.sort((x, y) => (x.status === y.status ? x.url.localeCompare(y.url) : x.status === "existing" ? -1 : 1));
