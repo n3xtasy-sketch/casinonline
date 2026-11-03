@@ -24,7 +24,9 @@ export default async function BriefEditorPage({ params }: PageProps) {
         <h1 className="text-2xl font-bold text-ink">{brief.title || "Brief"}</h1>
         <p className="text-sm text-ink-secondary">{project.name}{brief.clusterName ? ` · cluster: ${brief.clusterName}` : ""}</p>
       </div>
-      <BriefEditor projectId={id} initial={brief} urls={urls} />
+      {/* key on (id:updatedAt) → remount + re-init from the fresh snapshot after a regenerate
+          (router.refresh brings a newer updated_at). Save/transition keep local state (no refresh). */}
+      <BriefEditor key={`${brief.id}:${brief.updatedAt}`} projectId={id} initial={brief} urls={urls} />
     </div>
   );
 }

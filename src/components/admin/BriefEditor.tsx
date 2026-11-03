@@ -7,6 +7,7 @@ import {
   type BriefSavePayload,
 } from "@/app/admin/(panel)/seo-research/[id]/briefs/brief-actions";
 import { availableBriefTransitions, briefStatusLabel, type BriefStatus } from "@/lib/brief-status";
+import { isBriefDirty, type BriefEditorSnapshot } from "@/lib/brief-editor-state";
 import type { BriefRow } from "@/lib/db/admin-seo-briefs";
 import type { BriefEntity, FaqItem, OutlineItem, Provenance } from "@/lib/seo/brief";
 
@@ -49,10 +50,21 @@ function parseFaq(raw: string, original: FaqItem[]): FaqItem[] {
   }).filter((x) => x.question);
 }
 
+/** The persisted snapshot of a brief row, in the editor's (textarea) representation. */
+function snapshotOf(b: BriefRow): BriefEditorSnapshot {
+  return {
+    title: b.title ?? "", primaryKeyword: b.primaryKeyword ?? "", secondary: (b.secondaryKeywords ?? []).join("\n"),
+    intent: b.intent ?? "", targetUrl: b.targetUrl ?? "", h1: b.h1 ?? "",
+    outline: serOutline(b.outline), entities: serEntities(b.entities), faq: serFaq(b.faq),
+    notes: b.notes ?? "", locked: b.lockedFields ?? [],
+  };
+}
+
 export function BriefEditor({ projectId, initial, urls }: { projectId: string; initial: BriefRow; urls: { url: string; title: string; status: string }[] }) {
   const router = useRouter();
   const [status, setStatus] = useState<BriefStatus>(initial.status);
   const [updatedAt, setUpdatedAt] = useState(initial.updatedAt);
+  const [baseline, setBaseline] = useState<BriefEditorSnapshot>(() => snapshotOf(initial));
   const [locked, setLocked] = useState<Set<FieldKey>>(new Set(initial.lockedFields as FieldKey[]));
   const [msg, setMsg] = useState<{ tone: "ok" | "err" | "warn"; text: string } | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
@@ -71,11 +83,23 @@ export function BriefEditor({ projectId, initial, urls }: { projectId: string; i
   const [faq, setFaq] = useState(serFaq(initial.faq));
   const [notes, setNotes] = useState(initial.notes ?? "");
 
+  // Current editor snapshot + unsaved-changes detection (vs the last persisted baseline).
+  const current: BriefEditorSnapshot = {
+    title, primaryKeyword, secondary, intent, targetUrl, h1, outline, entities, faq, notes, locked: [...locked],
+  };
+  const dirty = isBriefDirty(baseline, current);
+
+  // Resync with persisted data is handled by REMOUNT: the page keys <BriefEditor> on
+  // `${brief.id}:${brief.updatedAt}`, so after a regenerate (router.refresh → new updated_at) the
+  // component remounts and re-initializes every field from the fresh server snapshot. Save and
+  // status transitions update local state in the event handler (no refresh), so their feedback
+  // persists and unsaved edits are never silently reset.
   const lock = (f: FieldKey) => setLocked((s) => new Set(s).add(f));
   const toggleLock = (f: FieldKey) => setLocked((s) => { const n = new Set(s); if (n.has(f)) n.delete(f); else n.add(f); return n; });
   const prov = (f: FieldKey): Provenance => (locked.has(f) ? "manual" : (initial.fieldProvenance[f] ?? "suggested"));
 
   const transitions = availableBriefTransitions(status);
+  const DIRTY_MSG = "Salvează modificările înainte de a continua.";
 
   // Plain render FUNCTIONS (not components) — defining components inline would remount the
   // subtree on every keystroke and drop input focus.
@@ -108,6 +132,7 @@ export function BriefEditor({ projectId, initial, urls }: { projectId: string; i
 
   const save = () => {
     setMsg(null);
+    const snapshot = current; // capture the exact values being saved → becomes the new baseline
     const payload: BriefSavePayload = {
       title,
       primaryKeyword,
@@ -123,15 +148,23 @@ export function BriefEditor({ projectId, initial, urls }: { projectId: string; i
     };
     start(async () => {
       const r = await saveBriefAction(projectId, initial.id, payload, updatedAt);
-      if ("error" in r) { setMsg({ tone: "err", text: r.error }); return; }
+      if ("error" in r) {
+        // Optimistic-concurrency conflict (or validation) — surface it, keep the edits (no refresh,
+        // no baseline change) so the user can reconcile. Never a silent overwrite.
+        setMsg({ tone: "err", text: r.error });
+        return;
+      }
+      // Persisted → editor is now clean and already shows the saved values; no refresh (which
+      // would remount and drop this feedback). The briefs list re-reads fresh on navigation.
+      setBaseline(snapshot);
       setUpdatedAt(r.updatedAt);
       setWarnings(r.warnings);
-      setMsg({ tone: "ok", text: "Salvat." });
-      router.refresh();
+      setMsg({ tone: "ok", text: "Salvat ✓" });
     });
   };
 
   const transition = (next: BriefStatus, confirm?: string) => {
+    if (dirty) { setMsg({ tone: "err", text: DIRTY_MSG }); return; }
     if (confirm && !window.confirm(confirm)) return;
     setMsg(null);
     start(async () => {
@@ -140,24 +173,26 @@ export function BriefEditor({ projectId, initial, urls }: { projectId: string; i
       setStatus(next);
       setUpdatedAt(r.updatedAt);
       setMsg({ tone: "ok", text: `Status: ${briefStatusLabel(next)}.` });
-      router.refresh();
+      // No refresh: status updated locally, feedback persists; fields unchanged.
     });
   };
 
   const regenerate = () => {
+    if (dirty) { setMsg({ tone: "err", text: DIRTY_MSG }); return; }
     if (!window.confirm("Regenerezi din cluster? Câmpurile blocate (lock) și cele confirmate se păstrează.")) return;
     setMsg(null);
     start(async () => {
       const r = await regenerateBriefAction(projectId, initial.id);
       if ("error" in r) { setMsg({ tone: "err", text: r.error }); return; }
-      setMsg({ tone: "warn", text: "Regenerat. Reîncarcă pagina pentru a vedea valorile actualizate." });
       setWarnings(r.warnings);
-      router.refresh();
+      setMsg({ tone: "ok", text: "Regenerat — valorile actualizate s-au încărcat." });
+      router.refresh(); // effect resyncs the fields from the new server snapshot (not dirty)
     });
   };
 
   const remove = () => {
-    if (!window.confirm("Ștergi definitiv brief-ul?")) return;
+    const prompt = dirty ? "Ai modificări nesalvate. Ștergi definitiv brief-ul (modificările se pierd)?" : "Ștergi definitiv brief-ul?";
+    if (!window.confirm(prompt)) return;
     start(async () => {
       const r = await deleteBriefAction(projectId, initial.id);
       if ("error" in r) { setMsg({ tone: "err", text: r.error }); return; }
@@ -166,6 +201,7 @@ export function BriefEditor({ projectId, initial, urls }: { projectId: string; i
   };
 
   const reviewFlags = useMemo(() => (initial.sources as { reviewFlags?: string[] })?.reviewFlags ?? [], [initial.sources]);
+  const blockActions = pending || dirty;
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_260px]">
@@ -203,10 +239,11 @@ export function BriefEditor({ projectId, initial, urls }: { projectId: string; i
         </datalist>
 
         {!readOnly ? (
-          <div className="flex items-center gap-2">
-            <button type="button" onClick={save} disabled={pending} className="h-10 rounded-sm bg-accent px-5 text-sm font-semibold text-[#06110a] hover:bg-accent-hover disabled:opacity-50">
+          <div className="flex items-center gap-3">
+            <button type="button" onClick={save} disabled={pending || !dirty} className="h-10 rounded-sm bg-accent px-5 text-sm font-semibold text-[#06110a] hover:bg-accent-hover disabled:opacity-50">
               {pending ? "Se salvează…" : "Salvează"}
             </button>
+            {dirty ? <span className="inline-flex items-center gap-1.5 text-sm font-medium text-gold"><span className="h-2 w-2 rounded-full bg-gold" />Modificări nesalvate</span> : null}
           </div>
         ) : null}
 
@@ -216,6 +253,11 @@ export function BriefEditor({ projectId, initial, urls }: { projectId: string; i
 
       {/* Right rail: status + actions */}
       <aside className="flex flex-col gap-4">
+        {dirty ? (
+          <p className="rounded-sm border border-gold/40 bg-gold/10 px-3 py-2 text-[12px] font-medium text-gold">
+            Ai modificări nesalvate. Salvează-le înainte de a schimba statusul sau a regenera.
+          </p>
+        ) : null}
         <div className="rounded-md border border-border bg-surface p-4">
           <div className="text-xs uppercase tracking-wide text-ink-muted">Status</div>
           <div className="mt-1 text-lg font-semibold text-ink">{briefStatusLabel(status)}</div>
@@ -225,7 +267,8 @@ export function BriefEditor({ projectId, initial, urls }: { projectId: string; i
                 key={t.next}
                 type="button"
                 onClick={() => transition(t.next, t.confirm)}
-                disabled={pending}
+                disabled={blockActions}
+                title={dirty ? DIRTY_MSG : undefined}
                 className={`h-9 rounded-sm px-3 text-sm font-medium disabled:opacity-50 ${t.tone === "accent" ? "bg-accent text-[#06110a] hover:bg-accent-hover" : "border border-border text-ink hover:bg-elevated"}`}
               >
                 {t.label}
@@ -239,13 +282,14 @@ export function BriefEditor({ projectId, initial, urls }: { projectId: string; i
           <button
             type="button"
             onClick={regenerate}
-            disabled={pending || status !== "draft" || !initial.clusterId}
+            disabled={blockActions || status !== "draft" || !initial.clusterId}
+            title={dirty ? DIRTY_MSG : undefined}
             className="mt-2 h-9 w-full rounded-sm border border-border px-3 text-sm font-medium text-ink hover:bg-elevated disabled:opacity-50"
           >
             Regenerează din cluster
           </button>
           <p className="mt-1 text-[11px] text-ink-muted">
-            {status !== "draft" ? "Doar în draft." : !initial.clusterId ? "Brief fără cluster." : "Păstrează câmpurile lock/confirmate."}
+            {dirty ? "Salvează întâi." : status !== "draft" ? "Doar în draft." : !initial.clusterId ? "Brief fără cluster." : "Păstrează câmpurile lock/confirmate."}
           </p>
           {reviewFlags.length ? <p className="mt-2 text-[11px] text-gold">De revizuit: {reviewFlags.join(", ")}</p> : null}
         </div>
