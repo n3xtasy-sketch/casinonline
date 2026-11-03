@@ -96,6 +96,9 @@ export default async function SeoProjectPage({ params, searchParams }: PageProps
         <Link href={`/admin/seo-research/${id}/briefs`} className="inline-flex h-9 items-center rounded-sm border border-border px-4 text-sm font-medium text-ink hover:bg-elevated">
           Brief-uri →
         </Link>
+        <Link href={`/admin/seo-research/${id}/coverage`} className="inline-flex h-9 items-center rounded-sm border border-border px-4 text-sm font-medium text-ink hover:bg-elevated">
+          Content Coverage →
+        </Link>
       </nav>
 
       <section className="flex flex-col gap-3">
