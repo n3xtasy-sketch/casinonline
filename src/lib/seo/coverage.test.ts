@@ -118,6 +118,57 @@ test("best match is a DRAFT page → planned (not gap)", () => {
   assert.equal(r.targetStatus, "planned");
 });
 
+// ── REGRESSION (hub head-term): a listing hub is recognized as Candidate, not Gap/Covered ──
+test("head/listing cluster 'cele mai bune cazinouri online' → candidate for the /cazinouri-online hub", () => {
+  const c = cluster("c1", "cele mai bune cazinouri online", [kw("cele mai bune cazinouri online")], "Top Cazinouri Online");
+  const inv = [
+    uentry("/cazinouri-online", "hub", "existing", "Cazinouri online"),
+    uentry("/cazinouri-online/netbet-casino", "casino", "existing", "NetBet Casino"),
+  ];
+  const r = one([c], inv);
+  assert.equal(r.state, "candidate");
+  assert.equal(r.targetUrl, "/cazinouri-online");
+  assert.notEqual(r.state, "covered"); // never auto-covered (not confirmed)
+  assert.ok(r.reasons.some((x) => /head\/listing|hub-ul general/i.test(x)));
+});
+
+// negative: operator-specific keyword must NOT become a false casino-hub candidate
+test("operator-specific cluster does NOT become a /cazinouri-online hub candidate", () => {
+  const c = cluster("c1", "netbet bonus fara depunere", [kw("netbet bonus fara depunere")]);
+  const r = one([c], [uentry("/cazinouri-online", "hub", "existing", "Cazinouri online")]);
+  assert.notEqual(r.targetUrl, "/cazinouri-online");
+  assert.notEqual(r.state, "candidate");
+});
+
+// negative: a generic 'casino/cazino online' cluster (singular, no 'cazinouri' slug token) is NOT
+// upgraded to a hub Candidate — it stays `ambiguous` (the hub may be the weak best match, but it is
+// never promoted to Candidate the way a true 'cazinouri online' head term is).
+test("generic casino/cazino cluster (no 'cazinouri' token) is NOT promoted to a hub candidate", () => {
+  const c = cluster("c1", "casino online", [kw("casino online"), kw("cazino online")]);
+  const r = one([c], [uentry("/cazinouri-online", "hub", "existing", "Cazinouri online")]);
+  assert.equal(r.state, "ambiguous");
+  assert.notEqual(r.state, "candidate");
+});
+
+// point 8: validated cases unaffected — bonus clusters still map to the general page, NOT the hub
+test("bonus cluster → planned on the general bonus page even when the casino hub exists", () => {
+  const c = cluster("c1", "bonus fara depunere", [kw("bonus fara depunere")]);
+  const inv = [
+    uentry("/cazinouri-online", "hub", "existing", "Cazinouri online"),
+    uentry("/bonusuri/bonus-fara-depunere", "category", "planned", "Bonus fara depunere"),
+  ];
+  const r = one([c], inv);
+  assert.equal(r.state, "planned");
+  assert.equal(r.targetUrl, "/bonusuri/bonus-fara-depunere");
+});
+
+test("rotiri gratuite fara depunere → planned on its general page", () => {
+  const c = cluster("c1", "rotiri gratuite fara depunere", [kw("rotiri gratuite fara depunere")]);
+  const r = one([c], [uentry("/bonusuri/rotiri-gratuite-fara-depunere", "category", "planned", "Rotiri gratuite fara depunere")]);
+  assert.equal(r.state, "planned");
+  assert.equal(r.targetUrl, "/bonusuri/rotiri-gratuite-fara-depunere");
+});
+
 // ── missing data: empty cluster does not throw ──────────────────────────────────
 test("cluster with no keywords does not crash → gap", () => {
   const c = cluster("c1", null, [], "Gol");

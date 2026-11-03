@@ -20,6 +20,7 @@ import {
   recommendUrls, deriveClusterMapping,
   type ClusterForMapping, type Recommendation, type MappingConfig,
 } from "@/lib/seo/url-mapping";
+import { tokenize } from "@/lib/seo/clustering";
 import type { UrlEntry, UrlType } from "@/lib/db/url-inventory";
 
 export type CoverageState = "covered" | "candidate" | "planned" | "gap" | "ambiguous";
@@ -47,6 +48,20 @@ export function pageScope(url: string): PageScope {
   if (/^\/bonusuri-casino\/[^/]+$/.test(url)) return "offer"; // /bonusuri-casino/<slug>
   if (/^\/bonusuri\/[^/]+$/.test(url)) return "general"; // /bonusuri/<slug>
   return "other";
+}
+
+/** All tokens of a cluster (primary keyword + member keywords). */
+function clusterTokens(c: ClusterForMapping): Set<string> {
+  const toks = new Set<string>();
+  for (const t of tokenize((c.primaryKeyword ?? "").toLowerCase())) toks.add(t);
+  for (const k of c.keywords) for (const t of tokenize(k.normalized)) toks.add(t);
+  return toks;
+}
+
+/** Slug tokens of a URL's last path segment (e.g. /cazinouri-online → ["cazinouri","online"]). */
+function urlSlugTokens(url: string): string[] {
+  const slug = url.split("/").filter(Boolean).pop() ?? "";
+  return tokenize(slug.replace(/-/g, " "));
 }
 
 function row(
@@ -96,6 +111,11 @@ export function computeCoverage(
   const recDrafts = new Map(recommendUrls(clusters, allAsExisting, config).map((r) => [r.clusterId, r]));
 
   const offerNote = "Țintă = pagină de ofertă individuală (deal specific) — nu echivalează cu acoperire pe pagina generală/operator; verifică.";
+  // Listing hubs (e.g. /cazinouri-online) + their slug tokens — the canonical existing page for a
+  // vertical HEAD term. Used to recognize head/listing clusters that specific-token matching misses.
+  const listingHubs = inventory
+    .filter((e) => e.type === "hub" && e.status === "existing")
+    .map((e) => ({ url: e.url, toks: urlSlugTokens(e.url) }));
 
   const out = clusters.map((c): CoverageRow => {
     const recE = recExisting.get(c.id)!;
@@ -138,26 +158,41 @@ export function computeCoverage(
       reasons.push(`Maparea sugerată (${current.url}) nu mai există în inventory — reevaluez din potriviri.`);
     }
 
-    // ── 3) No usable mapping → best match across published + draft ──
+    // ── 3) No usable mapping → best SPECIFIC match across published + draft ──
     const best = recD.candidates[0] ?? null;
+    const usable = !!best && recD.recommendation !== "create_new" && recD.recommendation !== "needs_review";
+    if (usable && best) {
+      const st = realStatus(best.url);
+      const scope = pageScope(best.url);
+      if (st === "planned") {
+        reasons.push(`Pagina țintă există ca draft: ${best.url} (${recD.recommendation}, ${Math.round(best.score * 100)}%).`);
+        return row(c, "planned", "medium", best.url, st, recD.recommendation, reasons, typeOf, best.score);
+      }
+      reasons.push(`Potrivire lexicală cu pagină publicată ${best.url} (${recD.recommendation}, ${Math.round(best.score * 100)}%) — necesită confirmare editorială.`);
+      if (scope === "offer") reasons.push(offerNote);
+      return row(c, "candidate", scope === "offer" ? "low" : "medium", best.url, st, recD.recommendation, reasons, typeOf, best.score);
+    }
+
+    // ── 3b) Listing-HUB head-term recognition (before gap/ambiguous). A general listing hub is the
+    // canonical existing page for its vertical HEAD term; specific-token coverage structurally can't
+    // match it. Recognize it as CANDIDATE (never covered, never gap) ONLY when ALL of the hub's slug
+    // tokens appear in the cluster — keyed on the real slug (e.g. "cazinouri"+"online"), so an
+    // operator/bonus keyword can never become a false hub candidate. ──
+    const cToks = clusterTokens(c);
+    const hub = listingHubs.find((h) => h.toks.length > 0 && h.toks.every((t) => cToks.has(t)));
+    if (hub) {
+      reasons.push(`Termen „head/listing": hub-ul general ${hub.url} acoperă verticala (termeni: ${hub.toks.join(", ")}) — confirmă editorial (potrivire pe termeni verticali, nu pe termeni specifici).`);
+      const hubScore = best && best.url === hub.url ? best.score : null;
+      return row(c, "candidate", "medium", hub.url, "existing", recD.recommendation, reasons, typeOf, hubScore);
+    }
+
+    // ── 3c) Otherwise: gap (no match) or ambiguous (weak/generic match) ──
     if (!best || recD.recommendation === "create_new") {
       reasons.push("Nicio pagină existentă sau draft nu se potrivește — conținut nou (gap).");
       return row(c, "gap", "medium", null, null, recD.recommendation, reasons, typeOf);
     }
-    if (recD.recommendation === "needs_review") {
-      reasons.push(`Potrivire ambiguă — ${recD.explanation}`);
-      return row(c, "ambiguous", "low", best.url, realStatus(best.url), recD.recommendation, reasons, typeOf, best.score);
-    }
-    // use_existing / expand_existing (lexical, not confirmed)
-    const st = realStatus(best.url);
-    const scope = pageScope(best.url);
-    if (st === "planned") {
-      reasons.push(`Pagina țintă există ca draft: ${best.url} (${recD.recommendation}, ${Math.round(best.score * 100)}%).`);
-      return row(c, "planned", "medium", best.url, st, recD.recommendation, reasons, typeOf, best.score);
-    }
-    reasons.push(`Potrivire lexicală cu pagină publicată ${best.url} (${recD.recommendation}, ${Math.round(best.score * 100)}%) — necesită confirmare editorială.`);
-    if (scope === "offer") reasons.push(offerNote);
-    return row(c, "candidate", scope === "offer" ? "low" : "medium", best.url, st, recD.recommendation, reasons, typeOf, best.score);
+    reasons.push(`Potrivire ambiguă — ${recD.explanation}`);
+    return row(c, "ambiguous", "low", best.url, realStatus(best.url), recD.recommendation, reasons, typeOf, best.score);
   });
 
   return out.sort((a, b) => a.clusterId.localeCompare(b.clusterId));
