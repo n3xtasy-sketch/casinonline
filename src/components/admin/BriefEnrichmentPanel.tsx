@@ -49,10 +49,13 @@ export function BriefEnrichmentPanel({ enrichment }: { enrichment: BriefEnrichme
   return (
     <section className="flex flex-col gap-5 rounded-md border border-border bg-surface p-4">
       <div>
-        <h2 className="text-base font-semibold text-ink">Recomandări semantice (KE-2C)</h2>
+        <h2 className="text-base font-semibold text-ink">
+          Recomandări semantice (KE-2C)
+          <span className="ml-2 inline-flex rounded-full bg-elevated px-2 py-0.5 align-middle text-[11px] font-medium text-ink-secondary">scope: {enrichment.scope}</span>
+        </h2>
         <p className="mt-0.5 text-[12px] text-ink-muted">
           Doar sugestii, din CMS/relații verificate — fără validare SERP/AI. Le adaugi manual în câmpuri; nimic nu se scrie automat.
-          Recomandările nu sunt persistate (recalculate la fiecare încărcare).
+          Filtrate editorial după tipul paginii (scope). Recomandările nu sunt persistate (recalculate la fiecare încărcare).
         </p>
       </div>
       {total === 0 ? (

@@ -26,7 +26,7 @@ export default async function BriefEditorPage({ params }: PageProps) {
   try {
     const { registry, relations, topical } = await loadSemanticContext();
     const keywords = [brief.primaryKeyword ?? "", ...brief.secondaryKeywords, brief.title ?? ""].filter(Boolean);
-    enrichment = enrichBrief({ keywords, existingEntities: brief.entities }, registry, relations, topical);
+    enrichment = enrichBrief({ keywords, existingEntities: brief.entities, targetUrl: brief.targetUrl }, registry, relations, topical);
   } catch {
     enrichment = null; // non-fatal: the editor below still renders
   }

@@ -20,7 +20,7 @@ const REG = buildEntityRegistry({
   payments: [{ id: "u-skrill", name: "Skrill", slug: "skrill", status: "published" }],
   bonusTypes: [{ id: "u-nodep", label: "Fără depunere", slug: "fara-depunere" }],
   gameCategories: [],
-  tags: [],
+  tags: [{ id: "u-tag", label: "Retrageri rapide", slug: "retrageri-rapide" }],
 });
 const BY_ID = new Map(REG.map((e) => [e.id, e] as const));
 const KNOWN = new Set(REG.map((e) => e.id));
@@ -29,16 +29,18 @@ const REL = buildEntityRelations({
   casinoGames: [{ casinoId: "u-sb", gameId: "u-sweet" }],
   games: [{ id: "u-sweet", providerId: "u-prag" }],
   casinoPayments: [{ casinoId: "u-sb", paymentMethodId: "u-skrill" }],
-  casinoTags: [],
+  casinoTags: [{ casinoId: "u-sb", tagId: "u-tag" }],
   casinoLicenses: [{ casinoId: "u-sb", license: "ONJN" }],
 }, KNOWN);
 
 const u = (url: string, status: "existing" | "planned", type: UrlType = "casino"): UrlEntry => ({ url, type, title: url, source: "t", status });
 const REVIEW = "/cazinouri-online/superbet-casino";
 const OPERATOR = "/cazinouri-online/superbet-casino/bonus-fara-depunere";
+const OFFER_URL = "/bonusuri-casino/superbet-bonus-bun-venit";
 const TOPICAL = (inv: UrlEntry[]) => topicalCoverage(REL, BY_ID, inv);
-const enrich = (keywords: string[], existing: BriefEntity[] = [], inv: UrlEntry[] = [u(REVIEW, "existing")]) =>
-  enrichBrief({ keywords, existingEntities: existing }, REG, REL, TOPICAL(inv));
+const enrich = (keywords: string[], existing: BriefEntity[] = [], inv: UrlEntry[] = [u(REVIEW, "existing")], targetUrl?: string) =>
+  enrichBrief({ keywords, existingEntities: existing, targetUrl }, REG, REL, TOPICAL(inv));
+const relTypes = (recs: { relationType?: string }[]): string[] => [...new Set(recs.map((r) => r.relationType).filter((x): x is string => !!x))].sort();
 
 // ════════════════════════ ENRICHMENT ENGINE ════════════════════════
 test("resolves confirmed CMS entities from keywords", () => {
@@ -90,7 +92,59 @@ test("generic keyword resolves to nothing → no recommendations (scoping, no no
 });
 
 test("missing registry/relations → empty enrichment, no crash", () => {
-  assert.deepEqual(enrichBrief({ keywords: ["superbet"], existingEntities: [] }, [], [], []), { entities: [], secondaryTopics: [], questions: [], gaps: [] });
+  assert.deepEqual(enrichBrief({ keywords: ["superbet"], existingEntities: [] }, [], [], []), { scope: "other", entities: [], secondaryTopics: [], questions: [], gaps: [] });
+});
+
+// ════════════════════════ KE-2C.1 EDITORIAL RELEVANCE FILTERING ════════════════════════
+const KW = ["superbet bonus de bun venit", "superbet casino"]; // resolves the casino + offer + types
+
+test("scope OFFER: only the offer type + operator; NO operator games/payments/tags/FAQ", () => {
+  const e = enrich(KW, [], [u(REVIEW, "existing"), u(OFFER_URL, "existing", "bonus")], OFFER_URL);
+  assert.equal(e.scope, "offer");
+  // topics limited to the offer's type + the operator link
+  assert.deepEqual(relTypes(e.secondaryTopics), ["bonus_bonus_type", "casino_bonus"]);
+  assert.ok(e.secondaryTopics.some((t) => /Operator: Superbet Casino/.test(t.label)));
+  // the reported bug: operator's payment/game/tag must NOT be recommended for an individual offer
+  assert.ok(!e.secondaryTopics.some((t) => ["casino_payment", "casino_game", "casino_tag"].includes(t.relationType!)));
+  assert.equal(e.questions.length, 0); // no operator-wide FAQ on an offer
+});
+
+test("scope REVIEW: bonuses/games/payment/license topics; internal TAGS are metadata (excluded)", () => {
+  const e = enrich(KW, [], [u(REVIEW, "existing")], REVIEW);
+  assert.equal(e.scope, "review");
+  assert.ok(relTypes(e.secondaryTopics).includes("casino_payment"));
+  assert.ok(relTypes(e.secondaryTopics).includes("casino_game"));
+  assert.ok(relTypes(e.secondaryTopics).includes("casino_license"));
+  assert.ok(!relTypes(e.secondaryTopics).includes("casino_tag")); // tags = metadata, not a topic
+  assert.ok(e.questions.length > 0); // review gets operator FAQ
+});
+
+test("scope OPERATOR evergreen: bonus-focused topics; NO games/payments/tags", () => {
+  const e = enrich(KW, [], [u(REVIEW, "existing"), u(OPERATOR, "existing", "bonus")], OPERATOR);
+  assert.equal(e.scope, "operator");
+  assert.ok(relTypes(e.secondaryTopics).every((t) => ["casino_bonus", "casino_bonus_type", "casino_license"].includes(t)));
+  assert.ok(!relTypes(e.secondaryTopics).some((t) => ["casino_game", "casino_payment", "casino_tag"].includes(t)));
+  // FAQ limited to bonus type / license (not payments/games)
+  assert.ok(e.questions.every((q) => ["casino_bonus_type", "casino_license"].includes(q.relationType!)));
+});
+
+test("scope GENERAL category page: entity-level only, no operator relations/FAQ", () => {
+  const e = enrich(KW, [], [u(REVIEW, "existing")], "/bonusuri/bonus-de-bun-venit");
+  assert.equal(e.scope, "general");
+  assert.equal(e.secondaryTopics.length, 0);
+  assert.equal(e.questions.length, 0);
+  assert.ok(e.entities.length > 0); // entities still surfaced
+});
+
+test("negative: an individual offer never recommends Skrill (operator payment) as a topic", () => {
+  const e = enrich(KW, [], [u(REVIEW, "existing"), u(OFFER_URL, "existing", "bonus")], OFFER_URL);
+  assert.ok(!e.secondaryTopics.some((t) => /Skrill/i.test(t.label)));
+});
+
+test("back-compat: no targetUrl → scope 'other' (keyword-driven expansion, tags still excluded)", () => {
+  const e = enrich(["superbet casino"]);
+  assert.equal(e.scope, "other");
+  assert.ok(!relTypes(e.secondaryTopics).includes("casino_tag")); // tags excluded everywhere
 });
 
 test("enrichment is deterministic", () => {
