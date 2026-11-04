@@ -301,9 +301,39 @@ export interface BriefValues {
 }
 
 /**
+ * Union-merge the entity list on REGENERATE (KE-2C protection fix). Existing entities are preserved
+ * FIRST (so editor-confirmed CMS entities and manually-added ones are never dropped), fresh entities
+ * are appended, and duplicates are removed. This replaces the previous overwrite behaviour, which
+ * silently discarded confirmed/manual entities whenever the `entities` field was not locked (the
+ * field's provenance is always 'suggested'). Backward-compatible: operates on the stored
+ * BriefEntity[] shape; no schema change.
+ *
+ * Identity is (normalized name + type), NOT the ref. Refs are slug-based (/cazinouri-online/<slug>),
+ * so keying on ref would make a casino's slug rename produce a DUPLICATE on regenerate (old-ref row
+ * + new-ref row for the same entity). Keying on name+type keeps a single row (existing wins, so its
+ * confirmed/manual source survives). Trade-off: two genuinely distinct entities sharing an identical
+ * name AND type would collapse — rare for CMS rows and acceptable vs. silent duplication.
+ */
+export function mergeEntityLists(existing: BriefEntity[], fresh: BriefEntity[]): BriefEntity[] {
+  const key = (e: BriefEntity) => `${e.name.trim().toLowerCase()}|${e.type}`;
+  const out: BriefEntity[] = [];
+  const seen = new Set<string>();
+  for (const e of [...existing, ...fresh]) {
+    const k = key(e);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(e);
+  }
+  return out;
+}
+
+/**
  * Merge a freshly-generated draft into an existing brief on REGENERATE. A field is PRESERVED when
  * it is locked (editor-controlled) OR its current provenance is 'manual' or 'confirmed'; otherwise
- * it is refreshed from the new suggestion. Returns the merged values + provenance. Deterministic.
+ * it is refreshed from the new suggestion. The `entities` field is special-cased: unless fully
+ * preserved (locked/manual/confirmed) it is UNION-merged (KE-2C) so confirmed/manual entities
+ * survive regeneration rather than being overwritten. Returns merged values + provenance.
+ * Deterministic.
  */
 export function mergeBriefDraft(
   existing: BriefValues & { fieldProvenance: Record<string, Provenance> },
@@ -321,6 +351,16 @@ export function mergeBriefDraft(
     return fresh[key as unknown as keyof BriefDraft] as unknown as BriefValues[K];
   };
 
+  // entities: preserve fully when locked/manual/confirmed; otherwise union-merge (never overwrite).
+  let entities: BriefEntity[];
+  if (keep("entities")) {
+    entities = existing.entities;
+    prov.entities = existing.fieldProvenance.entities ?? "manual";
+  } else {
+    entities = mergeEntityLists(existing.entities, fresh.entities);
+    prov.entities = existing.fieldProvenance.entities ?? fresh.fieldProvenance.entities ?? "suggested";
+  }
+
   const values: BriefValues = {
     title: pick("title", "title"),
     primaryKeyword: pick("primary_keyword", "primaryKeyword"),
@@ -329,7 +369,7 @@ export function mergeBriefDraft(
     targetUrl: pick("target_url", "targetUrl"),
     h1: pick("h1", "h1"),
     outline: pick("outline", "outline"),
-    entities: pick("entities", "entities"),
+    entities,
     faq: pick("faq", "faq"),
   };
   return { values, fieldProvenance: prov };
