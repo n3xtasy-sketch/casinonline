@@ -21,6 +21,7 @@ test("isValidSelector: whitelist per namespace", () => {
   assert.ok(isValidSelector("bonus", "bonus:no_deposit"));
   assert.ok(isValidSelector("bonus", "bonus:no_deposit+free_spins"));
   assert.ok(isValidSelector("bonus", "bonus:free_spins_deposit")); // URL-1.1 deposit free spins
+  assert.ok(isValidSelector("bonus", "bonus:free_spins")); // URL-2.1 any free spins
   assert.ok(isValidSelector("bonus", "bonus:no_wagering"));
   assert.ok(isValidSelector("bonus", "bonus:type=cashback"));
   assert.ok(isValidSelector("game", "game:category=megaways"));
@@ -50,6 +51,25 @@ test("bonusMatches: the free-spins / no-deposit OVERLAP (one offer, many categor
   assert.ok(bonusMatches("bonus:free_spins_deposit", fsWithDep)); // deposit free spins
   assert.ok(!bonusMatches("bonus:free_spins_deposit", fsNoDep)); // no-deposit free spins excluded
   assert.ok(!bonusMatches("bonus:free_spins_deposit", noDepCash)); // no free spins excluded
+});
+
+test("bonusMatches: general free_spins (URL-2.1) = ANY free spins, with or without deposit", () => {
+  const fsNoDep = { typeSlug: "rotiri-gratuite", freeSpins: 277, isNoDeposit: true };
+  const fsWithDep = { typeSlug: "rotiri-gratuite", freeSpins: 200, isNoDeposit: false };
+  const noFs = { typeSlug: "fara-depunere", freeSpins: 0, isNoDeposit: true };
+  assert.ok(bonusMatches("bonus:free_spins", fsNoDep)); // no-deposit FS included (unlike free_spins_deposit)
+  assert.ok(bonusMatches("bonus:free_spins", fsWithDep)); // deposit FS included
+  assert.ok(!bonusMatches("bonus:free_spins", noFs)); // no free spins excluded
+});
+
+test("MULTI-CATEGORY membership: one no-deposit-free-spins offer belongs to several categories (no row duplication)", () => {
+  // The architectural Betano "rotiri gratuite fără depunere" offer.
+  const offer = { typeSlug: "rotiri-gratuite", freeSpins: 200, isNoDeposit: true };
+  assert.ok(bonusMatches("bonus:no_deposit", offer)); // /bonusuri/fara-depunere
+  assert.ok(bonusMatches("bonus:free_spins", offer)); // /bonusuri/rotiri-gratuite (general)
+  assert.ok(bonusMatches("bonus:no_deposit+free_spins", offer)); // legacy no-deposit free spins
+  assert.ok(!bonusMatches("bonus:no_wagering", offer)); // NOT /bonusuri/fara-rulaj
+  assert.ok(!bonusMatches("bonus:free_spins_deposit", offer)); // NOT the deposit-only operator intent
 });
 
 test("bonusMatches: no_wagering is flag-driven (not derived)", () => {
