@@ -52,8 +52,17 @@ test("multi-intent priority: no-deposit + free spins + cashback type → bonus-f
 test("multi-intent priority: cashback + deposit free spins → bonus-cashback (cashback beats deposit FS)", () => {
   assert.equal(offerCanonicalIntent(offer({ typeSlug: "cashback", freeSpins: 20, isNoDeposit: false })), "bonus-cashback");
 });
-test("multi-intent priority: welcome type + deposit free spins → rotiri-gratuite (free spins beats welcome)", () => {
-  assert.equal(offerCanonicalIntent(offer({ typeSlug: "bonus-de-bun-venit", freeSpins: 30, isNoDeposit: false })), "rotiri-gratuite");
+// URL-2.2: welcome TYPE beats deposit free spins → a welcome + free spins offer stays bonus-de-bun-venit.
+test("priority: welcome type + deposit free spins → bonus-de-bun-venit (welcome beats deposit FS)", () => {
+  assert.equal(offerCanonicalIntent(offer({ typeSlug: "bonus-de-bun-venit", freeSpins: 30, isNoDeposit: false })), "bonus-de-bun-venit");
+});
+test("priority: no-deposit + free spins stays bonus-fara-depunere (no-deposit beats everything)", () => {
+  assert.equal(offerCanonicalIntent(offer({ typeSlug: "bonus-de-bun-venit", freeSpins: 50, isNoDeposit: true })), "bonus-fara-depunere");
+  assert.equal(offerCanonicalIntent(offer({ typeSlug: "rotiri-gratuite", freeSpins: 200, isNoDeposit: true })), "bonus-fara-depunere");
+});
+test("priority: deposit free spins NOT of welcome type → rotiri-gratuite", () => {
+  assert.equal(offerCanonicalIntent(offer({ typeSlug: "rotiri-gratuite", freeSpins: 100, isNoDeposit: false })), "rotiri-gratuite");
+  assert.equal(offerCanonicalIntent(offer({ typeSlug: "reload", freeSpins: 40, isNoDeposit: false })), "rotiri-gratuite");
 });
 
 // ════════════════════════ DESTINATION RESOLUTION ════════════════════════

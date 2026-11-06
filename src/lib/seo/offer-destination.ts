@@ -6,12 +6,12 @@
  * fixed priority, reusing the existing SEO-C predicate (`evergreenBonusMatches`) where the intent
  * already exists in the registry.
  *
- * Canonical intents (aligned to the approved operator structure):
- *   1. Bonus fără depunere                → bonus-fara-depunere
- *   2. Rotiri gratuite fără depunere       → bonus-fara-depunere   (no-deposit free spins collapse here)
- *   3. Bonus de bun venit (cu depunere)    → bonus-de-bun-venit
- *   4. Rotiri gratuite la depunere         → rotiri-gratuite       (deposit free spins)
- *   5. Cashback                            → bonus-cashback
+ * Canonical intent PRIORITY (URL-2.2): no-deposit → cashback → welcome type → deposit free spins:
+ *   - no-deposit (± free spins)            → bonus-fara-depunere   (no-deposit free spins collapse here)
+ *   - cashback                             → bonus-cashback
+ *   - welcome type (± free spins)          → bonus-de-bun-venit    (welcome beats deposit free spins)
+ *   - deposit free spins (non-welcome)     → rotiri-gratuite
+ *   - otherwise                            → null (safe hub fallback)
  *
  * Destination resolution (never a 404):
  *   override (editor-chosen, same operator, PUBLISHED evergreen page) →
@@ -125,14 +125,16 @@ const evergreenUrl = (casinoSlug: string, intent: string) => `/cazinouri-online/
  * the offer does not map to any approved intent → the resolver falls back to the hub.
  */
 export function offerCanonicalIntent(offer: OfferForDestination): CanonicalIntent | null {
-  // Rules 1 & 2: any no-deposit offer (with or without free spins) → bonus-fara-depunere.
+  // Priority (URL-2.2): no-deposit → cashback → welcome TYPE → deposit free spins → none.
+  // 1. Any no-deposit offer (with or without free spins) → bonus-fara-depunere.
   if (evergreenBonusMatches("bonus-fara-depunere", offer)) return "bonus-fara-depunere";
-  // Rule 5: cashback.
+  // 2. Cashback.
   if (evergreenBonusMatches("bonus-cashback", offer)) return "bonus-cashback";
-  // Rule 4: deposit free spins (reuses the aligned `rotiri-gratuite` intent = free_spins_deposit).
-  if (evergreenBonusMatches("rotiri-gratuite", offer)) return "rotiri-gratuite";
-  // Rule 3: welcome deposit bonus.
+  // 3. Welcome bonus (even when it also grants free spins) → bonus-de-bun-venit. This is checked
+  //    BEFORE deposit-free-spins so a "welcome + free spins" offer stays a welcome destination.
   if (evergreenBonusMatches("bonus-de-bun-venit", offer)) return "bonus-de-bun-venit";
+  // 4. Deposit free spins that are NOT a welcome type (e.g. a reload/free-spins offer) → rotiri-gratuite.
+  if (evergreenBonusMatches("rotiri-gratuite", offer)) return "rotiri-gratuite";
   return null; // unclassifiable → safe hub fallback (never misclassified)
 }
 
