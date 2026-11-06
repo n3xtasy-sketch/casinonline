@@ -86,7 +86,7 @@ async function SidebarWidgets() {
                 ) : null}
               </div>
             ) : null}
-            <Button href={bonus.claimUrl} className="mt-1 w-full">
+            <Button href={bonus.seoHref} className="mt-1 w-full">
               Vezi oferta
             </Button>
           </div>

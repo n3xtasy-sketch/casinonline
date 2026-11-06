@@ -6,11 +6,13 @@ import type { BonusCardData } from "@/types/bonus";
 
 /**
  * Bonus card (DESIGN.md "Bonus cards"): dark card with a subtle green accent wash.
- * Shows bonus type, casino, offer, wagering and a single CTA. The offer title links to the resolved
- * canonical SEO destination (URL-2); the CTA keeps the affiliate claimUrl — the two are distinct.
+ * Shows bonus type, casino, offer, wagering and a single CTA. Both the offer title and the "Vezi
+ * oferta" CTA link to the resolved canonical SEO destination (seoHref), NOT the affiliate claimUrl —
+ * the affiliate "Revendică bonusul" CTA lives on the destination page. claimUrl stays on the data
+ * model (used by the destination pages), just not navigated from the card.
  */
 export function BonusCard({ bonus }: { bonus: BonusCardData }) {
-  const { bonusType, casinoName, offer, freeSpins, wagering, code, claimUrl, seoHref } = bonus;
+  const { bonusType, casinoName, offer, freeSpins, wagering, code, seoHref } = bonus;
 
   return (
     <Card interactive padding="lg" className="relative h-full overflow-hidden">
@@ -58,7 +60,7 @@ export function BonusCard({ bonus }: { bonus: BonusCardData }) {
         ) : null}
 
         <div className="mt-auto pt-1">
-          <Button href={claimUrl} className="w-full">
+          <Button href={seoHref} className="w-full">
             Vezi oferta
           </Button>
         </div>
