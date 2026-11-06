@@ -86,9 +86,14 @@ async function SidebarWidgets() {
                 ) : null}
               </div>
             ) : null}
-            <Button href={bonus.seoHref} className="mt-1 w-full">
-              Vezi oferta
-            </Button>
+            <div className="mt-1 flex flex-col gap-2">
+              <Button href={bonus.claimUrl} className="w-full">
+                Revendică bonusul
+              </Button>
+              <Button variant="secondary" href={bonus.seoHref} className="w-full">
+                Detalii bonus
+              </Button>
+            </div>
           </div>
         ) : (
           <p className="text-sm text-ink-secondary">Niciun bonus disponibil momentan.</p>

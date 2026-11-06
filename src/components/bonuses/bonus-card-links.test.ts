@@ -12,17 +12,25 @@ import { readFileSync } from "node:fs";
  */
 const read = (p: string) => readFileSync(`${process.cwd()}/${p}`, "utf8");
 
-test("BonusCard: title AND 'Vezi oferta' navigate to seoHref, never claimUrl", () => {
+test("BonusCard: title links to seoHref but becomes plain text on self-link; CTAs correct", () => {
   const src = read("src/components/bonuses/BonusCard.tsx");
-  assert.match(src, /<Link href=\{seoHref\}/); // title → seoHref
-  assert.match(src, /<Button href=\{seoHref\}[\s\S]*?Vezi oferta/); // CTA → seoHref
-  assert.doesNotMatch(src, /href=\{claimUrl\}/); // no affiliate navigation from the card
+  // title is conditional: <Link href={seoHref}> when showDetails, else a plain <span>
+  assert.match(src, /showDetails \?[\s\S]*?<Link href=\{seoHref\}[\s\S]*?:\s*\(\s*<span/);
+  assert.match(src, /<Button href=\{claimUrl\}[\s\S]*?Revendică bonusul/); // primary affiliate CTA
+  assert.match(src, /variant="secondary" href=\{seoHref\}[\s\S]*?Detalii bonus/); // secondary SEO link
+  assert.match(src, /shouldShowDetailsLink/); // self-link suppression wired
 });
 
-test("RightSidebar: 'Vezi oferta' navigates to bonus.seoHref, not bonus.claimUrl", () => {
+test("RightSidebar: SEO nav (seoHref) + affiliate access (claimUrl) both present", () => {
   const src = read("src/components/layout/RightSidebar.tsx");
-  assert.match(src, /href=\{bonus\.seoHref\}[\s\S]*?Vezi oferta/);
-  assert.doesNotMatch(src, /href=\{bonus\.claimUrl\}/);
+  assert.match(src, /href=\{bonus\.claimUrl\}[\s\S]*?Revendică bonusul/); // affiliate
+  assert.match(src, /href=\{bonus\.seoHref\}[\s\S]*?Detalii bonus/); // SEO nav
+});
+
+test("CategoryPage passes currentPath to BonusCard (enables self-link suppression)", () => {
+  const src = read("src/components/seo/CategoryPage.tsx");
+  assert.match(src, /currentPath=\{currentPath\}/);
+  assert.match(src, /const currentPath = categoryPath\(/);
 });
 
 test("Destination pages keep 'Revendică bonusul' on claimUrl (not changed by URL-2.3)", () => {
