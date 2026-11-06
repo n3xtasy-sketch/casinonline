@@ -63,6 +63,47 @@ export interface OfferDestination {
   reasons: string[];
 }
 
+// ── CMS field model (URL-2) — pure logic shared by the admin override field, so it is unit-tested. ──
+export interface EvergreenPageRef {
+  id: string;
+  casinoSlug: string;
+  intent: string;
+}
+export interface DestinationFieldModel {
+  auto: OfferDestination;
+  effective: OfferDestination;
+  /** Published + same-operator + semantically-compatible pages (the dropdown options). */
+  candidates: EvergreenPageRef[];
+  /** False when a saved override is no longer among the candidates (operator/offer changed). */
+  overrideValid: boolean;
+}
+
+/**
+ * Compute the admin SEO-destination field state: the auto destination, the effective destination
+ * (auto unless a valid override is selected), the candidate pages (same operator + compatible), and
+ * whether the current override is still valid. Pure — reuses the frontend resolver + predicate.
+ */
+export function bonusDestinationModel(
+  offer: OfferForDestination,
+  pages: EvergreenPageRef[],
+  publishedBonusCategories: Iterable<string>,
+  overrideId: string,
+): DestinationFieldModel {
+  const candidates = pages.filter((p) => p.casinoSlug === offer.casinoSlug && evergreenBonusMatches(p.intent, offer));
+  const overrideValid = overrideId === "" || candidates.some((c) => c.id === overrideId);
+  const base = {
+    publishedEvergreen: new Set(pages.map((p) => evergreenKey(p.casinoSlug, p.intent))),
+    publishedBonusCategories: new Set(publishedBonusCategories),
+  };
+  const auto = resolveOfferDestination(offer, { ...base, override: null });
+  const overridePage = pages.find((p) => p.id === overrideId) ?? null;
+  const effective =
+    overrideId && overrideValid && overridePage
+      ? resolveOfferDestination(offer, { ...base, override: { casinoSlug: overridePage.casinoSlug, intent: overridePage.intent } })
+      : auto;
+  return { auto, effective, candidates, overrideValid };
+}
+
 const HUB = "/bonusuri";
 /** Canonical intent → approved /bonusuri category slug (the fallback category). */
 const INTENT_CATEGORY: Record<CanonicalIntent, string> = {

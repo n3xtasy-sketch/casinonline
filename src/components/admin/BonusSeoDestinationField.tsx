@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { evergreenBonusMatches, intentLabel } from "@/lib/evergreen-bonus";
-import { resolveOfferDestination, evergreenKey, type OfferForDestination } from "@/lib/seo/offer-destination";
+import { intentLabel } from "@/lib/evergreen-bonus";
+import { bonusDestinationModel, type OfferForDestination } from "@/lib/seo/offer-destination";
 import type { EvergreenPageChoice } from "@/lib/db/admin-bonuses";
 
 /**
@@ -36,29 +36,10 @@ export function BonusSeoDestinationField(props: {
     [props.casinoSlug, props.bonusTypeSlug, props.freeSpins, props.isNoDeposit, props.isNoWagering],
   );
 
-  const publishedEvergreen = useMemo(
-    () => new Set(props.evergreenPages.map((p) => evergreenKey(p.casinoSlug, p.intent))),
-    [props.evergreenPages],
+  const { auto, effective, candidates, overrideValid } = useMemo(
+    () => bonusDestinationModel(offer, props.evergreenPages, props.publishedBonusCategories, overrideId),
+    [offer, props.evergreenPages, props.publishedBonusCategories, overrideId],
   );
-  const categories = useMemo(() => new Set(props.publishedBonusCategories), [props.publishedBonusCategories]);
-
-  // Candidate pages: same operator + semantically compatible with the current offer.
-  const candidates = useMemo(
-    () => props.evergreenPages.filter((p) => p.casinoId === props.casinoId && evergreenBonusMatches(p.intent, offer)),
-    [props.evergreenPages, props.casinoId, offer],
-  );
-  const overrideValid = overrideId === "" || candidates.some((c) => c.id === overrideId);
-  const overridePage = props.evergreenPages.find((p) => p.id === overrideId) ?? null;
-
-  const auto = resolveOfferDestination(offer, { publishedEvergreen, publishedBonusCategories: categories, override: null });
-  const effective =
-    overrideId && overrideValid && overridePage
-      ? resolveOfferDestination(offer, {
-          publishedEvergreen,
-          publishedBonusCategories: categories,
-          override: { casinoSlug: overridePage.casinoSlug, intent: overridePage.intent },
-        })
-      : auto;
 
   const label = "font-medium text-ink-secondary";
   const code = "font-mono text-[12px] text-link";

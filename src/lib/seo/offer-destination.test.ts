@@ -2,8 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import {
-  offerCanonicalIntent, resolveOfferDestination, evergreenKey,
-  type OfferForDestination, type DestinationContext,
+  offerCanonicalIntent, resolveOfferDestination, evergreenKey, bonusDestinationModel,
+  type OfferForDestination, type DestinationContext, type EvergreenPageRef,
 } from "@/lib/seo/offer-destination";
 
 // ── fixtures ──────────────────────────────────────────────────────────────────
@@ -197,4 +197,45 @@ test("resolved url is a valid JSON-LD ItemList target (existing page shape)", ()
   assert.match(ever.url, /^\/cazinouri-online\/[^/]+\/[^/]+$/);
   const cat = resolveOfferDestination(NO_DEPOSIT, ctx({ publishedBonusCategories: new Set(["fara-depunere"]) }));
   assert.match(cat.url, /^\/bonusuri\/[^/]+$/);
+});
+
+// ════════════════════════ CMS FIELD MODEL (bonusDestinationModel) ════════════════════════
+const PAGES: EvergreenPageRef[] = [
+  { id: "p1", casinoSlug: SB, intent: "bonus-fara-depunere" },
+  { id: "p2", casinoSlug: SB, intent: "bonus-cashback" },
+  { id: "p3", casinoSlug: "netbet-casino", intent: "bonus-fara-depunere" },
+];
+const CATS = ["fara-depunere"];
+
+test("field: candidates are same-operator + semantically compatible only", () => {
+  const m = bonusDestinationModel(NO_DEPOSIT, PAGES, CATS, "");
+  assert.deepEqual(m.candidates.map((c) => c.id), ["p1"]); // not p2 (cashback), not p3 (other operator)
+  assert.equal(m.overrideValid, true);
+  assert.equal(m.auto.url, "/cazinouri-online/superbet-casino/bonus-fara-depunere");
+  assert.deepEqual(m.effective, m.auto); // no override → effective = auto
+});
+
+test("field: a valid override drives the effective destination", () => {
+  const m = bonusDestinationModel(NO_DEP_NO_WAGER, PAGES, CATS, "p1");
+  assert.equal(m.overrideValid, true);
+  assert.equal(m.effective.kind, "override");
+  assert.equal(m.effective.url, "/cazinouri-online/superbet-casino/bonus-fara-depunere");
+});
+
+test("field: override to an incompatible page (wrong type) → invalid, effective falls back to auto", () => {
+  const m = bonusDestinationModel(NO_DEPOSIT, PAGES, CATS, "p2"); // cashback page for a no-deposit offer
+  assert.equal(m.overrideValid, false);
+  assert.ok(!m.candidates.some((c) => c.id === "p2"));
+  assert.deepEqual(m.effective, m.auto); // incompatible override ignored
+});
+
+test("field: override to another operator's page → invalid", () => {
+  const m = bonusDestinationModel(NO_DEPOSIT, PAGES, CATS, "p3");
+  assert.equal(m.overrideValid, false);
+});
+
+test("field: changing the offer TYPE invalidates a previously-valid override", () => {
+  assert.equal(bonusDestinationModel(NO_DEPOSIT, PAGES, CATS, "p1").overrideValid, true);
+  // same override id, but offer is now cashback → p1 (no-deposit page) no longer compatible
+  assert.equal(bonusDestinationModel(CASHBACK, PAGES, CATS, "p1").overrideValid, false);
 });
