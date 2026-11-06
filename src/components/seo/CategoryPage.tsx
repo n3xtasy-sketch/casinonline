@@ -27,7 +27,7 @@ export function categoryMetadata(category: SeoCategory): Metadata {
 }
 
 function entityItems(entities: CategoryEntities): { name: string; url: string }[] {
-  if (entities.namespace === "bonus") return entities.items.map((b) => ({ name: `${b.bonusType} — ${b.casinoName}`, url: absoluteUrl(b.href) }));
+  if (entities.namespace === "bonus") return entities.items.map((b) => ({ name: `${b.bonusType} — ${b.casinoName}`, url: absoluteUrl(b.seoHref) }));
   if (entities.namespace === "game") return entities.items.map((g) => ({ name: g.name, url: absoluteUrl(g.href) }));
   return entities.items.map((c) => ({ name: c.name, url: absoluteUrl(c.reviewUrl) }));
 }

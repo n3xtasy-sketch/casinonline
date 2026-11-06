@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -5,10 +6,11 @@ import type { BonusCardData } from "@/types/bonus";
 
 /**
  * Bonus card (DESIGN.md "Bonus cards"): dark card with a subtle green accent wash.
- * Shows bonus type, casino, offer, wagering and a single CTA.
+ * Shows bonus type, casino, offer, wagering and a single CTA. The offer title links to the resolved
+ * canonical SEO destination (URL-2); the CTA keeps the affiliate claimUrl — the two are distinct.
  */
 export function BonusCard({ bonus }: { bonus: BonusCardData }) {
-  const { bonusType, casinoName, offer, freeSpins, wagering, code, claimUrl } = bonus;
+  const { bonusType, casinoName, offer, freeSpins, wagering, code, claimUrl, seoHref } = bonus;
 
   return (
     <Card interactive padding="lg" className="relative h-full overflow-hidden">
@@ -30,7 +32,9 @@ export function BonusCard({ bonus }: { bonus: BonusCardData }) {
         </div>
 
         <div>
-          <p className="text-xl font-bold text-ink">{offer}</p>
+          <Link href={seoHref} className="text-xl font-bold text-ink hover:text-accent">
+            {offer}
+          </Link>
           {freeSpins ? (
             <p className="mt-0.5 text-sm font-semibold text-accent">
               + {freeSpins} rotiri gratuite

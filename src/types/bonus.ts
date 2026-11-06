@@ -14,8 +14,10 @@ export interface BonusCardData {
   /** Wagering requirement, e.g. "x30" or "Fără rulaj". */
   wagering?: string;
   code?: string;
-  /** Internal bonus detail page. */
+  /** Internal bonus detail page (legacy /bonusuri-casino/<slug> — route still served). */
   href: string;
+  /** Resolved canonical SEO destination (URL-2): operator evergreen / category / hub. Never a 404. */
+  seoHref: string;
   /** Affiliate claim URL (centralized handling added later). */
   claimUrl: string;
 }

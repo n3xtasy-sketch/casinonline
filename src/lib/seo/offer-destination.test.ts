@@ -157,3 +157,44 @@ test("determinism", () => {
   const c = ctx({ publishedEvergreen: new Set([evergreenKey(SB, "bonus-fara-depunere")]) });
   assert.deepEqual(resolveOfferDestination(NO_DEPOSIT, c), resolveOfferDestination(NO_DEPOSIT, c));
 });
+
+// ════════════════════════ URL-2 INTEGRATION SCENARIOS ════════════════════════
+test("operator change → destination follows the offer's operator", () => {
+  const c = ctx({ publishedEvergreen: new Set([evergreenKey(SB, "bonus-fara-depunere"), evergreenKey("netbet-casino", "bonus-fara-depunere")]) });
+  assert.equal(resolveOfferDestination(NO_DEPOSIT, c).url, "/cazinouri-online/superbet-casino/bonus-fara-depunere");
+  assert.equal(resolveOfferDestination(offer({ typeSlug: "fara-depunere", isNoDeposit: true, casinoSlug: "netbet-casino" }), c).url, "/cazinouri-online/netbet-casino/bonus-fara-depunere");
+});
+
+test("offer TYPE change → different canonical destination", () => {
+  const c = ctx({ publishedBonusCategories: new Set(["fara-depunere", "cashback"]) });
+  assert.equal(resolveOfferDestination(NO_DEPOSIT, c).url, "/bonusuri/fara-depunere");
+  assert.equal(resolveOfferDestination(CASHBACK, c).url, "/bonusuri/cashback"); // same offer slot, type changed
+});
+
+test("multiple offers of the SAME operator resolve independently to their own intent", () => {
+  const c = ctx({ publishedEvergreen: new Set([evergreenKey(SB, "bonus-fara-depunere"), evergreenKey(SB, "bonus-cashback")]) });
+  const noDep = resolveOfferDestination(offer({ typeSlug: "fara-depunere", isNoDeposit: true }), c);
+  const cashback = resolveOfferDestination(offer({ typeSlug: "cashback" }), c);
+  assert.equal(noDep.url, "/cazinouri-online/superbet-casino/bonus-fara-depunere");
+  assert.equal(cashback.url, "/cazinouri-online/superbet-casino/bonus-cashback");
+  assert.notEqual(noDep.url, cashback.url);
+});
+
+test("SEO destination is a content path — never an affiliate /go/ CTA link (separation)", () => {
+  const urls = [
+    resolveOfferDestination(NO_DEPOSIT, ctx({ publishedEvergreen: new Set([evergreenKey(SB, "bonus-fara-depunere")]) })).url,
+    resolveOfferDestination(CASHBACK, ctx({ publishedBonusCategories: new Set(["cashback"]) })).url,
+    resolveOfferDestination(RELOAD, ctx()).url,
+  ];
+  for (const u of urls) {
+    assert.ok(!u.startsWith("/go/"), `${u} must not be an affiliate CTA link`);
+    assert.ok(u.startsWith("/bonusuri") || u.startsWith("/cazinouri-online/"), `${u} must be a bonus/operator content path`);
+  }
+});
+
+test("resolved url is a valid JSON-LD ItemList target (existing page shape)", () => {
+  const ever = resolveOfferDestination(NO_DEPOSIT, ctx({ publishedEvergreen: new Set([evergreenKey(SB, "bonus-fara-depunere")]) }));
+  assert.match(ever.url, /^\/cazinouri-online\/[^/]+\/[^/]+$/);
+  const cat = resolveOfferDestination(NO_DEPOSIT, ctx({ publishedBonusCategories: new Set(["fara-depunere"]) }));
+  assert.match(cat.url, /^\/bonusuri\/[^/]+$/);
+});

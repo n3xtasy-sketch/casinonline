@@ -9,6 +9,7 @@ import { applyStatusChange } from "@/lib/db/content-status";
 import { validateJsonField } from "@/lib/io/validate";
 import { parseAuthorship, validateAuthorship } from "@/lib/editorial";
 import { PLACEMENT_VALUES } from "@/lib/affiliate-placements";
+import { evergreenBonusMatches } from "@/lib/evergreen-bonus";
 import type { ContentStatus } from "@/lib/content-status";
 import type { BonusFormState } from "./types";
 
@@ -106,6 +107,8 @@ function parseFields(formData: FormData) {
     // SEO-B classification flags (not-null booleans): checkbox present → true, absent → false.
     is_no_deposit: formData.get("is_no_deposit") === "true",
     is_no_wagering: formData.get("is_no_wagering") === "true",
+    // URL-2 editorial SEO destination override (seo_bonus_pages.id); "" → NULL (automatic).
+    seo_destination_page_id: strOrNull(formData.get("seo_destination_page_id")),
     terms_url: strOrNull(formData.get("terms_url")),
     verified_at: strOrNull(formData.get("verified_at")),
     expires_at: strOrNull(formData.get("expires_at")),
@@ -129,6 +132,31 @@ function validateNewFields(f: ReturnType<typeof parseFields>): string | null {
     if (v != null && v < 0) return `${label} nu poate fi negativ.`;
   }
   if (f.terms_url && !/^https?:\/\/\S+$/.test(f.terms_url)) return "URL termeni invalid (http(s)://).";
+  return null;
+}
+
+/**
+ * Validate an editorial SEO-destination override (URL-2). The chosen page must exist, belong to the
+ * SAME operator (also enforced by the 0038 DB trigger), be PUBLISHED, and be SEMANTICALLY COMPATIBLE
+ * with the offer (the offer qualifies for that page's intent). "" → NULL → automatic, always valid.
+ */
+async function validateDestination(db: DB, fields: ReturnType<typeof parseFields>): Promise<string | null> {
+  const pageId = fields.seo_destination_page_id;
+  if (!pageId) return null;
+  const { data } = await db.from("seo_bonus_pages").select("casino_id, intent, status").eq("id", pageId).maybeSingle();
+  const page = data as { casino_id: string; intent: string; status: string } | null;
+  if (!page) return "Pagina SEO selectată nu există.";
+  if (page.casino_id !== fields.casino_id) return "Pagina SEO selectată aparține altui operator.";
+  if (page.status !== "published") return "Pagina SEO selectată nu este publicată.";
+  let typeSlug = "";
+  if (fields.bonus_type_id) {
+    const { data: bt } = await db.from("bonus_types").select("slug").eq("id", fields.bonus_type_id).maybeSingle();
+    typeSlug = (bt as { slug: string } | null)?.slug ?? "";
+  }
+  const ok = evergreenBonusMatches(page.intent, {
+    typeSlug, freeSpins: fields.free_spins, isNoDeposit: fields.is_no_deposit, isNoWagering: fields.is_no_wagering,
+  });
+  if (!ok) return "Pagina SEO selectată nu este compatibilă cu caracteristicile ofertei.";
   return null;
 }
 
@@ -251,6 +279,8 @@ export async function createBonus(
   const authorship = parseAuthorship(formData);
   const authorErr = validateAuthorship(authorship.input);
   if (authorErr) return { error: authorErr };
+  const destErr = await validateDestination(db, fields);
+  if (destErr) return { error: destErr };
 
   const { data: dup } = await db.from("bonuses").select("id").eq("slug", slug).maybeSingle();
   if (dup) return { error: "Există deja un bonus cu acest slug." };
@@ -310,6 +340,8 @@ export async function updateBonus(
   const authorship = parseAuthorship(formData);
   const authorErr = validateAuthorship(authorship.input);
   if (authorErr) return { error: authorErr };
+  const destErr = await validateDestination(db, fields);
+  if (destErr) return { error: destErr };
 
   // slug is read-only at edit → fetch it to build the per-bonus /go/<casino>/<bonus> link.
   const { data: cur } = await db.from("bonuses").select("slug").eq("id", id).maybeSingle();
