@@ -54,6 +54,8 @@ export interface BonusEditData {
   verifierSlug: string;
   /** YYYY-MM-DD for the date input ("" when none). */
   editorialVerifiedAt: string;
+  /** URL-2 editorial SEO destination override (seo_bonus_pages.id), "" = automatic. */
+  seoDestinationPageId: string;
 }
 
 /** One affiliate link, client-safe, for the bonus form picker. Includes inactive so the
@@ -102,6 +104,35 @@ export async function listCasinoSlugs(): Promise<Record<string, string>> {
   const out: Record<string, string> = {};
   for (const r of (data as unknown as { id: string; slug: string }[]) ?? []) out[r.id] = r.slug;
   return out;
+}
+
+/** bonus_type id → slug (for client-side intent compatibility in the SEO-destination field). */
+export async function listBonusTypeSlugs(): Promise<Record<string, string>> {
+  const db = await getSupabaseAuthClient();
+  const { data, error } = await db.from("bonus_types").select("id, slug");
+  if (error) throw new Error(`listBonusTypeSlugs: ${error.message}`);
+  const out: Record<string, string> = {};
+  for (const r of (data as unknown as { id: string; slug: string }[]) ?? []) out[r.id] = r.slug;
+  return out;
+}
+
+/** One PUBLISHED operator evergreen page (operator also published) — the override candidate pool. */
+export interface EvergreenPageChoice {
+  id: string;
+  casinoId: string;
+  casinoSlug: string;
+  intent: string;
+}
+export async function listEvergreenPageChoices(): Promise<EvergreenPageChoice[]> {
+  const db = await getSupabaseAuthClient();
+  const { data, error } = await db
+    .from("seo_bonus_pages")
+    .select("id, casino_id, intent, casino:casinos(slug, status)")
+    .eq("status", "published");
+  if (error) throw new Error(`listEvergreenPageChoices: ${error.message}`);
+  return ((data as unknown as { id: string; casino_id: string; intent: string; casino: { slug: string; status: string } | null }[]) ?? [])
+    .filter((r) => r.casino?.status === "published")
+    .map((r) => ({ id: r.id, casinoId: r.casino_id, casinoSlug: r.casino!.slug, intent: r.intent }));
 }
 
 export interface AdminBonusRow {
@@ -211,13 +242,14 @@ interface EditRow {
   how_to_claim: string[] | null;
   faq: { question: string; answer: string }[] | null;
   affiliate_link_id: string | null;
+  seo_destination_page_id: string | null;
   author_slug: string | null;
   verifier_slug: string | null;
   editorial_verified_at: string | null;
 }
 
 const EDIT_SELECT =
-  "id, slug, casino_id, bonus_type_id, offer, amount, free_spins, spin_value, max_win, eligible_slots, wagering, wagering_multiplier, wagering_basis, min_deposit, validity, code, kyc_required, is_no_deposit, is_no_wagering, terms_url, verified_at, expires_at, reward_stages, intro, terms, pros, cons, how_to_claim, faq, affiliate_link_id, author_slug, verifier_slug, editorial_verified_at";
+  "id, slug, casino_id, bonus_type_id, offer, amount, free_spins, spin_value, max_win, eligible_slots, wagering, wagering_multiplier, wagering_basis, min_deposit, validity, code, kyc_required, is_no_deposit, is_no_wagering, terms_url, verified_at, expires_at, reward_stages, intro, terms, pros, cons, how_to_claim, faq, affiliate_link_id, author_slug, verifier_slug, editorial_verified_at, seo_destination_page_id";
 
 export async function getBonusEdit(slug: string): Promise<BonusEditData | null> {
   const db = await getSupabaseAuthClient();
@@ -259,5 +291,6 @@ export async function getBonusEdit(slug: string): Promise<BonusEditData | null> 
     authorSlug: r.author_slug ?? "",
     verifierSlug: r.verifier_slug ?? "",
     editorialVerifiedAt: r.editorial_verified_at ? r.editorial_verified_at.slice(0, 10) : "",
+    seoDestinationPageId: r.seo_destination_page_id ?? "",
   };
 }

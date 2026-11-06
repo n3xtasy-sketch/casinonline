@@ -2,10 +2,11 @@
 
 import { useActionState, useState } from "react";
 import type { BonusFormState } from "@/app/admin/(panel)/bonusuri/types";
-import type { BonusEditData, RewardStage, AffiliateLinkChoice } from "@/lib/db/admin-bonuses";
+import type { BonusEditData, RewardStage, AffiliateLinkChoice, EvergreenPageChoice } from "@/lib/db/admin-bonuses";
 import type { Option } from "@/lib/db/admin-casinos";
 import { AffiliateLinkField } from "@/components/admin/AffiliateLinkField";
 import { AuthorshipFields } from "@/components/admin/AuthorshipFields";
+import { BonusSeoDestinationField } from "@/components/admin/BonusSeoDestinationField";
 
 interface Props {
   mode: "create" | "edit";
@@ -16,6 +17,10 @@ interface Props {
   affiliateLinks: AffiliateLinkChoice[];
   casinoSlugs: Record<string, string>;
   previewAction: (casinoSlug: string, bonusSlug: string) => Promise<{ url: string | null }>;
+  /** URL-2 SEO destination override field. */
+  evergreenPages: EvergreenPageChoice[];
+  bonusTypeSlugs: Record<string, string>;
+  publishedBonusCategories: string[];
 }
 
 const input =
@@ -137,10 +142,16 @@ function RewardStagesEditor({ initial }: { initial: RewardStage[] }) {
 
 export function BonusForm({
   mode, action, initial, casinos, bonusTypes, affiliateLinks, casinoSlugs, previewAction,
+  evergreenPages, bonusTypeSlugs, publishedBonusCategories,
 }: Props) {
   const [state, formAction, pending] = useActionState<BonusFormState, FormData>(action, { error: null });
   const [casinoId, setCasinoId] = useState(initial?.casinoId ?? "");
   const [slug, setSlug] = useState(initial?.slug ?? "");
+  // Lifted classification signals (drive the SEO-destination field reactively).
+  const [bonusTypeId, setBonusTypeId] = useState(initial?.bonusTypeId ?? "");
+  const [freeSpins, setFreeSpins] = useState(initial?.freeSpins ?? "");
+  const [isNoDeposit, setIsNoDeposit] = useState(initial?.isNoDeposit ?? false);
+  const [isNoWagering, setIsNoWagering] = useState(initial?.isNoWagering ?? false);
 
   return (
     <form action={formAction} className="flex max-w-3xl flex-col gap-5">
@@ -169,7 +180,7 @@ export function BonusForm({
           </label>
           <label className="flex flex-col gap-1.5 text-sm">
             <span className="font-medium text-ink-secondary">Tip bonus</span>
-            <select name="bonus_type_id" defaultValue={initial?.bonusTypeId ?? ""} className={input}>
+            <select name="bonus_type_id" value={bonusTypeId} onChange={(e) => setBonusTypeId(e.target.value)} className={input}>
               <option value="">— niciunul —</option>
               {bonusTypes.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
             </select>
@@ -184,7 +195,10 @@ export function BonusForm({
       <Section title="B. Valoarea bonusului">
         <Text label="Sumă (text)" name="amount" defaultValue={initial?.amount} placeholder="100% până la 500 RON" />
         <div className="grid gap-5 sm:grid-cols-3">
-          <Text label="Free spins" name="free_spins" type="number" min="0" step="1" defaultValue={initial?.freeSpins} />
+          <label className="flex flex-col gap-1.5 text-sm">
+            <span className="font-medium text-ink-secondary">Free spins</span>
+            <input name="free_spins" type="number" min="0" step="1" value={freeSpins} onChange={(e) => setFreeSpins(e.target.value)} className={input} />
+          </label>
           <Text label="Valoare rotire (RON)" name="spin_value" type="number" min="0" step="any" defaultValue={initial?.spinValue} />
           <Text label="Câștig maxim (RON)" name="max_win" type="number" min="0" step="any" defaultValue={initial?.maxWin} />
         </div>
@@ -214,11 +228,11 @@ export function BonusForm({
             </select>
           </label>
           <label className="flex items-center gap-2 text-sm text-ink-secondary">
-            <input type="checkbox" name="is_no_deposit" value="true" defaultChecked={initial?.isNoDeposit ?? false} />
+            <input type="checkbox" name="is_no_deposit" value="true" checked={isNoDeposit} onChange={(e) => setIsNoDeposit(e.target.checked)} />
             Fără depunere (clasificare SEO — poate coexista cu free spins)
           </label>
           <label className="flex items-center gap-2 text-sm text-ink-secondary">
-            <input type="checkbox" name="is_no_wagering" value="true" defaultChecked={initial?.isNoWagering ?? false} />
+            <input type="checkbox" name="is_no_wagering" value="true" checked={isNoWagering} onChange={(e) => setIsNoWagering(e.target.checked)} />
             Fără rulaj (clasificare SEO — explicit, verificabil)
           </label>
         </div>
@@ -268,6 +282,19 @@ export function BonusForm({
           previewAction={previewAction}
         />
       </Section>
+
+      {/* I. Destinație SEO (URL-2) */}
+      <BonusSeoDestinationField
+        casinoId={casinoId}
+        casinoSlug={casinoSlugs[casinoId] ?? ""}
+        bonusTypeSlug={bonusTypeSlugs[bonusTypeId] ?? ""}
+        freeSpins={freeSpins}
+        isNoDeposit={isNoDeposit}
+        isNoWagering={isNoWagering}
+        evergreenPages={evergreenPages}
+        publishedBonusCategories={publishedBonusCategories}
+        initialOverrideId={initial?.seoDestinationPageId ?? ""}
+      />
 
       <p className="text-xs text-ink-muted">
         CTA-ul public rezolvă prin <code>/go/&lt;casino-slug&gt;/&lt;bonus-slug&gt;</code>: link specific →
