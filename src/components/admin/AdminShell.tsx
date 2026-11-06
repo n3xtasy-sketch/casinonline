@@ -17,6 +17,7 @@ import {
   History,
   Upload,
   Telescope,
+  Sparkles,
   Tags,
   LogOut,
 } from "lucide-react";
@@ -38,6 +39,7 @@ const items = [
   { label: "Categorii SEO", href: "/admin/seo-categories", icon: Tags, ready: true },
   { label: "Pagini evergreen", href: "/admin/seo-bonus-pages", icon: Gift, ready: true },
   { label: "SEO Research", href: "/admin/seo-research", icon: Telescope, ready: true },
+  { label: "Content Studio", href: "/admin/content-studio", icon: Sparkles, ready: true },
   { label: "Redirects", href: "/admin/redirects", icon: Milestone, ready: true },
   { label: "Activity", href: "/admin/activity", icon: History, ready: true },
   { label: "Import", href: "/admin/import", icon: Upload, ready: true },
