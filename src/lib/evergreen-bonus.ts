@@ -15,9 +15,15 @@ export interface EvergreenIntent {
   label: string; // RO display label
 }
 
+// URL-1.1: aligned to the approved operator taxonomy. `rotiri-gratuite` (deposit free spins) replaces
+// the legacy `rotiri-gratuite-fara-depunere` as a valid operator intent — no-deposit free spins now
+// collapse into `bonus-fara-depunere` (resolver rule 2). The legacy intent is intentionally NOT in
+// the registry (decision 7: do not create new pages with it); no existing page used it (verified).
+// `bonus-fara-rulaj` is kept (distinct content). The general-category selector `no_deposit+free_spins`
+// remains valid for /bonusuri categories; only the operator INTENT was dropped.
 export const EVERGREEN_INTENTS: Record<string, EvergreenIntent> = {
   "bonus-fara-depunere": { selector: "bonus:no_deposit", label: "Bonus fără depunere" },
-  "rotiri-gratuite-fara-depunere": { selector: "bonus:no_deposit+free_spins", label: "Rotiri gratuite fără depunere" },
+  "rotiri-gratuite": { selector: "bonus:free_spins_deposit", label: "Rotiri gratuite" },
   "bonus-fara-rulaj": { selector: "bonus:no_wagering", label: "Bonus fără rulaj" },
   "bonus-de-bun-venit": { selector: "bonus:type=bonus-de-bun-venit", label: "Bonus de bun venit" },
   "bonus-cashback": { selector: "bonus:type=cashback", label: "Bonus cashback" },

@@ -88,8 +88,8 @@ export function offerCanonicalIntent(offer: OfferForDestination): CanonicalInten
   if (evergreenBonusMatches("bonus-fara-depunere", offer)) return "bonus-fara-depunere";
   // Rule 5: cashback.
   if (evergreenBonusMatches("bonus-cashback", offer)) return "bonus-cashback";
-  // Rule 4: deposit free spins (free spins AND not no-deposit).
-  if ((offer.freeSpins ?? 0) > 0 && !offer.isNoDeposit) return "rotiri-gratuite";
+  // Rule 4: deposit free spins (reuses the aligned `rotiri-gratuite` intent = free_spins_deposit).
+  if (evergreenBonusMatches("rotiri-gratuite", offer)) return "rotiri-gratuite";
   // Rule 3: welcome deposit bonus.
   if (evergreenBonusMatches("bonus-de-bun-venit", offer)) return "bonus-de-bun-venit";
   return null; // unclassifiable → safe hub fallback (never misclassified)
@@ -104,18 +104,22 @@ export function resolveOfferDestination(offer: OfferForDestination, ctx: Destina
   const reasons: string[] = [];
   const intent = offerCanonicalIntent(offer);
 
-  // 1) Editorial override (rule 8): same operator + a PUBLISHED, valid evergreen page of that operator.
+  // 1) Editorial override (rules 8 + G): the chosen page must (a) belong to the SAME operator,
+  //    (b) be a VALID intent, (c) be SEMANTICALLY COMPATIBLE with the offer (the offer actually
+  //    qualifies for that intent — not just same operator), and (d) be PUBLISHED. Any failing check
+  //    discards the override and falls back to auto resolution — never a 404 (rule 9).
   const ov = ctx.override;
   if (ov) {
     const sameOperator = ov.casinoSlug === offer.casinoSlug;
     const valid = isValidIntent(ov.intent);
+    const compatible = valid && evergreenBonusMatches(ov.intent, offer); // G: semantic fit
     const published = ctx.publishedEvergreen.has(evergreenKey(ov.casinoSlug, ov.intent));
-    if (sameOperator && valid && published) {
-      reasons.push(`Override editorial: pagină evergreen validă a operatorului (${ov.intent}).`);
+    if (sameOperator && compatible && published) {
+      reasons.push(`Override editorial: pagină evergreen validă, compatibilă, a operatorului (${ov.intent}).`);
       return { url: evergreenUrl(ov.casinoSlug, ov.intent), kind: "override", intent, reasons };
     }
     reasons.push(
-      `Override ignorat (${!sameOperator ? "alt operator" : !valid ? "intent invalid" : "pagină nepublicată"}) — revin la rezolvarea automată, fără 404.`,
+      `Override ignorat (${!sameOperator ? "alt operator" : !valid ? "intent invalid" : !compatible ? "oferta nu e compatibilă cu intentul paginii" : "pagină nepublicată"}) — revin la rezolvarea automată, fără 404.`,
     );
   }
 

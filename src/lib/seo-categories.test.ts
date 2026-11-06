@@ -20,6 +20,7 @@ test("categoryPath: short URLs, no /categorie/ segment", () => {
 test("isValidSelector: whitelist per namespace", () => {
   assert.ok(isValidSelector("bonus", "bonus:no_deposit"));
   assert.ok(isValidSelector("bonus", "bonus:no_deposit+free_spins"));
+  assert.ok(isValidSelector("bonus", "bonus:free_spins_deposit")); // URL-1.1 deposit free spins
   assert.ok(isValidSelector("bonus", "bonus:no_wagering"));
   assert.ok(isValidSelector("bonus", "bonus:type=cashback"));
   assert.ok(isValidSelector("game", "game:category=megaways"));
@@ -42,10 +43,13 @@ test("bonusMatches: the free-spins / no-deposit OVERLAP (one offer, many categor
   const noDepCash = { typeSlug: "fara-depunere", freeSpins: 0, isNoDeposit: true };
   assert.ok(bonusMatches("bonus:no_deposit", noDepCash));
   assert.ok(!bonusMatches("bonus:no_deposit+free_spins", noDepCash));
-  // free spins but WITH deposit → not in no-deposit categories
+  // free spins but WITH deposit → not in no-deposit categories, but IS deposit-free-spins (URL-1.1)
   const fsWithDep = { typeSlug: "rotiri-gratuite", freeSpins: 200, isNoDeposit: false };
   assert.ok(!bonusMatches("bonus:no_deposit", fsWithDep));
   assert.ok(!bonusMatches("bonus:no_deposit+free_spins", fsWithDep));
+  assert.ok(bonusMatches("bonus:free_spins_deposit", fsWithDep)); // deposit free spins
+  assert.ok(!bonusMatches("bonus:free_spins_deposit", fsNoDep)); // no-deposit free spins excluded
+  assert.ok(!bonusMatches("bonus:free_spins_deposit", noDepCash)); // no free spins excluded
 });
 
 test("bonusMatches: no_wagering is flag-driven (not derived)", () => {

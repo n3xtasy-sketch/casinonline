@@ -102,14 +102,28 @@ test("expired/liveness is orthogonal: destination depends only on classification
   assert.deepEqual(resolveOfferDestination(NO_DEPOSIT, base), resolveOfferDestination(NO_DEPOSIT, base));
 });
 
-// ════════════════════════ EDITORIAL OVERRIDE (rule 8/9) ════════════════════════
-test("valid override (same operator + published evergreen) is honored", () => {
-  const r = resolveOfferDestination(NO_DEPOSIT, ctx({
-    override: { casinoSlug: SB, intent: "bonus-fara-rulaj" }, // editor-chosen valid intent
+// ════════════════════════ EDITORIAL OVERRIDE (rules 8 + 9 + G) ════════════════════════
+// An offer qualifying for BOTH no-deposit and no-wagering (so bonus-fara-rulaj is a compatible pick).
+const NO_DEP_NO_WAGER = offer({ typeSlug: "fara-depunere", isNoDeposit: true, isNoWagering: true });
+
+test("valid, COMPATIBLE override (same operator + published) is honored", () => {
+  const r = resolveOfferDestination(NO_DEP_NO_WAGER, ctx({
+    override: { casinoSlug: SB, intent: "bonus-fara-rulaj" }, // offer IS no-wagering → compatible
     publishedEvergreen: new Set([evergreenKey(SB, "bonus-fara-rulaj"), evergreenKey(SB, "bonus-fara-depunere")]),
   }));
   assert.equal(r.kind, "override");
   assert.equal(r.url, "/cazinouri-online/superbet-casino/bonus-fara-rulaj");
+});
+
+test("override to an INCOMPATIBLE page of the SAME operator is ignored (rule G)", () => {
+  // NO_DEPOSIT offer is NOT cashback → the operator's published bonus-cashback page is incompatible.
+  const r = resolveOfferDestination(NO_DEPOSIT, ctx({
+    override: { casinoSlug: SB, intent: "bonus-cashback" },
+    publishedEvergreen: new Set([evergreenKey(SB, "bonus-cashback"), evergreenKey(SB, "bonus-fara-depunere")]),
+  }));
+  assert.notEqual(r.kind, "override");
+  assert.notEqual(r.url, "/cazinouri-online/superbet-casino/bonus-cashback");
+  assert.equal(r.url, "/cazinouri-online/superbet-casino/bonus-fara-depunere"); // auto, compatible
 });
 
 test("override for a DIFFERENT operator is ignored → auto resolution (no 404)", () => {
@@ -121,9 +135,9 @@ test("override for a DIFFERENT operator is ignored → auto resolution (no 404)"
   assert.equal(r.url, "/cazinouri-online/superbet-casino/bonus-fara-depunere");
 });
 
-test("override pointing at an UNPUBLISHED page is ignored → auto (never 404)", () => {
-  const r = resolveOfferDestination(NO_DEPOSIT, ctx({
-    override: { casinoSlug: SB, intent: "bonus-fara-rulaj" }, // not in publishedEvergreen
+test("COMPATIBLE override pointing at an UNPUBLISHED page is ignored → auto (never 404)", () => {
+  const r = resolveOfferDestination(NO_DEP_NO_WAGER, ctx({
+    override: { casinoSlug: SB, intent: "bonus-fara-rulaj" }, // compatible but NOT in publishedEvergreen
     publishedBonusCategories: new Set(["fara-depunere"]),
   }));
   assert.equal(r.kind, "category");

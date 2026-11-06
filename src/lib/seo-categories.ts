@@ -46,7 +46,7 @@ export function categoryPath(namespace: CategoryNamespace, slug: string): string
 
 // ── Selector whitelist (what a category may bind to) ────────────────────────────
 
-const BONUS_KINDS = new Set(["no_deposit", "no_deposit+free_spins", "no_wagering"]);
+const BONUS_KINDS = new Set(["no_deposit", "no_deposit+free_spins", "free_spins_deposit", "no_wagering"]);
 const GAME_KINDS = new Set(["gratis"]);
 const CASINO_KINDS = new Set(["license_onjn"]);
 // Parameterised kinds: `type=<slug>` (bonus), `category=<slug>` (game), `tag=<slug>` (casino).
@@ -87,6 +87,7 @@ export function bonusMatches(selector: string, b: BonusClassify): boolean {
   if (body === "no_deposit") return !!b.isNoDeposit;
   if (body === "no_wagering") return !!b.isNoWagering;
   if (body === "no_deposit+free_spins") return !!b.isNoDeposit && (b.freeSpins ?? 0) > 0;
+  if (body === "free_spins_deposit") return (b.freeSpins ?? 0) > 0 && !b.isNoDeposit; // deposit free spins
   if (body.startsWith("type=")) return b.typeSlug === body.slice(5);
   return false;
 }
