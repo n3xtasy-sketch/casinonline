@@ -128,6 +128,14 @@ export function ContentStudio({ projects }: { projects: { id: string; name: stri
 
       {notice ? <p role="status" className={`text-sm font-medium ${notice.tone === "ok" ? "text-accent" : "text-danger"}`}>{notice.text}</p> : null}
 
+      {result?.usage ? (
+        <p className="text-[11px] text-ink-muted">
+          Model: <span className="text-ink-secondary">{result.model ?? "—"}</span> · tokeni:{" "}
+          <span className="tabular-nums text-ink-secondary">{result.usage.inputTokens} in / {result.usage.outputTokens} out</span>
+          {result.stopReason ? <> · stop: <span className="text-ink-secondary">{result.stopReason}</span></> : null}
+        </p>
+      ) : null}
+
       {/* Erori provider */}
       {result && !result.ok ? (
         <div className="flex flex-col gap-1 rounded-md border border-danger/40 bg-danger/10 p-3 text-sm">

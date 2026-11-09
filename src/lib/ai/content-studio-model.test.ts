@@ -4,13 +4,14 @@ import { errorLabel, isDirty, needsRegenerateConfirm } from "@/lib/ai/content-st
 import type { GenerationErrorKind } from "@/lib/ai/generate-section";
 
 test("errorLabel: every error kind maps to a clear label + tone", () => {
-  const kinds: GenerationErrorKind[] = ["no_section", "parse_error", "invalid_output", "rate_limit", "timeout", "api_error"];
+  const kinds: GenerationErrorKind[] = ["no_section", "parse_error", "invalid_output", "max_tokens", "rate_limit", "timeout", "api_error"];
   for (const k of kinds) {
     const l = errorLabel(k);
     assert.ok(l.label.length > 0);
     assert.ok(l.tone === "warn" || l.tone === "error");
   }
   assert.equal(errorLabel("api_error").label, "Eroare provider / configurare");
+  assert.equal(errorLabel("max_tokens").tone, "warn");
   assert.equal(errorLabel("rate_limit").tone, "warn");
   assert.equal(errorLabel("invalid_output").tone, "error");
 });

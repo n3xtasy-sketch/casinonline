@@ -19,7 +19,7 @@ async function requireAdmin() {
 }
 
 const fail = (error: string, errorKind: SectionGenerationResult["errorKind"]): SectionGenerationResult =>
-  ({ ok: false, section: null, validation: null, promptWarnings: [], error, errorKind });
+  ({ ok: false, section: null, validation: null, promptWarnings: [], error, errorKind, usage: null, model: null, stopReason: null });
 
 export async function generateBriefSectionAction(
   projectId: string,

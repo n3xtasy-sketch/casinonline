@@ -17,15 +17,20 @@ test("server action is admin-gated and performs NO CMS writes (generation only)"
   assert.doesNotMatch(a, /\.(insert|update|delete|upsert)\(/); // never writes to the CMS
 });
 
-test("orchestration is CMS-write-free and never logs the key/raw content", () => {
+test("orchestration is CMS-write-free, no logging, native structured output (no fragile extraction)", () => {
   const g = read("src/lib/ai/generate-section.ts");
   assert.doesNotMatch(g, /supabase|\.(insert|update|delete|upsert)\(/);
   assert.doesNotMatch(g, /console\.(log|info|warn|error)/); // no logging in the hot path
+  assert.doesNotMatch(g, /indexOf\("\{"\)|lastIndexOf\("\}"\)/); // AI-2.1: fragile brace extraction removed
+  assert.match(g, /stopReason === "max_tokens"/); // explicit truncation detection
 });
 
-test("anthropic client: key from env (not hardcoded), retries disabled, timeout + token cap", () => {
+test("anthropic client: NATIVE structured output (forced tool use), key from env, retries off, caps", () => {
   const c = read("src/lib/ai/anthropic-client.ts");
   assert.match(c, /server-only/);
+  assert.match(c, /tools:\s*\[SECTION_TOOL\]/); // native structured output
+  assert.match(c, /tool_choice:\s*\{\s*type:\s*"tool"/); // forced tool call
+  assert.match(c, /input_schema/); // schema mirroring GeneratedSection
   assert.match(c, /requireApiKey\(env\)/); // key from env
   assert.doesNotMatch(c, /sk-ant-/); // no hardcoded key
   assert.match(c, /maxRetries: cfg\.maxRetries/); // no uncontrolled retries (cfg = 0)

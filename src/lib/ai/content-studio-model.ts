@@ -12,6 +12,7 @@ export function errorLabel(kind: GenerationErrorKind): { label: string; tone: "w
     case "no_section": return { label: "Secțiune inexistentă", tone: "error" };
     case "parse_error": return { label: "Răspuns AI invalid", tone: "error" };
     case "invalid_output": return { label: "Output respins de validare", tone: "error" };
+    case "max_tokens": return { label: "Răspuns trunchiat (max_tokens)", tone: "warn" };
     case "rate_limit": return { label: "Limită de cereri", tone: "warn" };
     case "timeout": return { label: "Timeout", tone: "warn" };
     case "api_error": return { label: "Eroare provider / configurare", tone: "error" };
