@@ -27,12 +27,13 @@ export function categoryMetadata(category: SeoCategory): Metadata {
 }
 
 function entityItems(entities: CategoryEntities): { name: string; url: string }[] {
-  if (entities.namespace === "bonus") return entities.items.map((b) => ({ name: `${b.bonusType} — ${b.casinoName}`, url: absoluteUrl(b.href) }));
+  if (entities.namespace === "bonus") return entities.items.map((b) => ({ name: `${b.bonusType} — ${b.casinoName}`, url: absoluteUrl(b.seoHref) }));
   if (entities.namespace === "game") return entities.items.map((g) => ({ name: g.name, url: absoluteUrl(g.href) }));
   return entities.items.map((c) => ({ name: c.name, url: absoluteUrl(c.reviewUrl) }));
 }
 
 export function CategoryPage({ category, entities }: { category: SeoCategory; entities: CategoryEntities }) {
+  const currentPath = categoryPath(category.namespace, category.slug);
   const crumbs = [
     { label: "Acasă", href: "/" },
     { label: HUB_LABEL[category.namespace], href: NAMESPACE_BASE[category.namespace] },
@@ -58,7 +59,7 @@ export function CategoryPage({ category, entities }: { category: SeoCategory; en
       {count ? (
         entities.namespace === "bonus" ? (
           <div className="grid gap-4 sm:grid-cols-2">
-            {entities.items.map((b) => <BonusCard key={b.slug} bonus={b} />)}
+            {entities.items.map((b) => <BonusCard key={b.slug} bonus={b} currentPath={currentPath} />)}
           </div>
         ) : entities.namespace === "game" ? (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">

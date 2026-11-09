@@ -8,7 +8,7 @@ const input = "h-10 rounded-sm border border-border bg-field px-3 text-sm text-i
 const area = "min-h-20 rounded-sm border border-border bg-field px-3 py-2 text-sm text-ink outline-none focus-visible:border-accent";
 
 const SELECTOR_HINTS: Record<string, string> = {
-  bonus: "bonus:no_deposit · bonus:no_deposit+free_spins · bonus:no_wagering · bonus:type=<slug>",
+  bonus: "bonus:no_deposit · bonus:free_spins · bonus:free_spins_deposit · bonus:no_deposit+free_spins · bonus:no_wagering · bonus:type=<slug>",
   game: "game:category=<slug> · game:gratis",
   casino: "casino:tag=<slug> · casino:license_onjn",
 };
