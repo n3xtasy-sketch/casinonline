@@ -151,3 +151,23 @@ test("AI-2.3: an SEO concept mentioned only in content (not entitiesUsed) passes
   const r = await runSectionGeneration(INPUT, resp({ output: seoInProse }));
   assert.equal(r.ok, true);
 });
+
+// ── AI-2.4: ADVISORY editorial quality gate (style) — separate from factual validation ──
+test("AI-2.4: generic marketing phrasing yields editorial warnings but does NOT fail validation", async () => {
+  const generic = { ...GOOD, content: "In lumea cazinourilor online, descopera cel mai bun bonus la Netbet Casino.", entitiesUsed: ["Netbet Casino"] };
+  const r = await runSectionGeneration(INPUT, resp({ output: generic }));
+  assert.equal(r.ok, true); // factually grounded → valid
+  assert.ok((r.editorial?.warnings.length ?? 0) > 0); // style issues surfaced separately
+  assert.deepEqual(r.validation?.errors, []); // factual channel stays clean
+});
+
+test("AI-2.4: editorial report is also attached when factual validation fails (separate channels)", async () => {
+  const r = await runSectionGeneration(INPUT, resp({ output: { ...GOOD, internalLinks: ["/evil-invented"], content: "In lumea cazinourilor online, descopera oferta." } }));
+  assert.equal(r.errorKind, "invalid_output"); // factual error
+  assert.ok(r.editorial !== null); // editorial advisory still computed
+});
+
+test("AI-2.4: editorial is null when there is no usable content (max_tokens / parse_error)", async () => {
+  assert.equal((await runSectionGeneration(INPUT, resp({ stopReason: "max_tokens" }))).editorial, null);
+  assert.equal((await runSectionGeneration(INPUT, resp({ output: null, stopReason: "end_turn" }))).editorial, null);
+});

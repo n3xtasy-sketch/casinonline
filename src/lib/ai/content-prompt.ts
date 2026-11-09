@@ -21,6 +21,7 @@ import type { OutlineItem, BriefEntity, FaqItem } from "@/lib/seo/brief";
 import type { BriefEnrichment } from "@/lib/seo/brief-enrichment";
 import type { EntityRecord } from "@/lib/seo/entity-registry";
 import type { EntityRelation } from "@/lib/seo/entity-relations";
+import { authorPersonaLines, AUTHOR_VOICE_RULES, expertContributionDirective } from "@/lib/ai/author-profile";
 
 export type ContentPageType = "guide" | "casino_review" | "bonus_category" | "operator_evergreen" | "generic";
 
@@ -146,11 +147,25 @@ export function listSections(brief: ContentBrief): ContentSection[] {
 
 function buildSystemPrompt(pageType: ContentPageType): string {
   return [
-    `Esti un sistem editorial SEO pentru un site de afiliere cazino din Romania. Scrii in limba romana, profesionist, clar si util, pentru ${PAGE_TYPE_ROLE[pageType]}.`,
-    "Respecti strict urmatoarele reguli (obligatorii):",
+    ...authorPersonaLines(),
+    `Scrii continut editorial SEO pentru un site de afiliere cazino din Romania — ${PAGE_TYPE_ROLE[pageType]}.`,
+    "REGULI DE GROUNDING (factuale, obligatorii):",
     ...GROUNDING_RULES.map((r, i) => `${i + 1}. ${r}`),
-    "Returnezi EXCLUSIV structura ceruta in sectiunea OUTPUT, fara text in afara ei.",
+    "STIL EDITORIAL (vocea autorului, obligatoriu):",
+    ...AUTHOR_VOICE_RULES.map((r, i) => `${i + 1}. ${r}`),
+    "Returnezi EXCLUSIV structura ceruta in tool-ul emit_section, fara text in afara ei.",
   ].join("\n");
+}
+
+/** PASUL 3 — section-specific writing guidance (intro / H2-H3 / FAQ). */
+function sectionWritingGuidance(kind: SectionKind): string {
+  if (kind === "intro") {
+    return "[STIL INTRO] Explica direct subiectul, ofera o observatie practica utila si spune clar ce va afla cititorul. Evita definitiile generice si introducerile de umplutura.";
+  }
+  if (kind === "faq") {
+    return "[STIL FAQ] Da raspunsul direct la fiecare intrebare, apoi un detaliu util. Fara introduceri inutile.";
+  }
+  return "[STIL H2/H3] Raspunde concret intentiei sectiunii: explica mecanici si diferente si da exemple conceptuale relevante. Evita continutul repetitiv sau reformularea titlului.";
 }
 
 function uniqueBy<T>(items: T[], key: (t: T) => string): T[] {
@@ -258,6 +273,8 @@ export function buildContentPrompt(input: ContentPromptInput): ContentPromptResu
     `Keywordurile acestei sectiuni: ${section.keywords.join(", ") || "—"}.`,
     section.kind === "faq" ? `Intrebari FAQ de acoperit: ${brief.faq.map((f: FaqItem) => f.question).join(" | ") || "—"}.` : "",
     `[LUNGIME] Scrie ${budget.lengthHint}. Concis, fara umplutura.`,
+    sectionWritingGuidance(section.kind),
+    expertContributionDirective(),
     "",
     DATA,
     "",

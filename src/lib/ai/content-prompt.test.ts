@@ -272,3 +272,27 @@ test("prompt declares sectionId is server-controlled and scopes entitiesUsed to 
   assert.match(r.outputContract.requiredFields.sectionId, /CONTROLAT DE SERVER/);
   assert.match(r.outputContract.requiredFields.entitiesUsed, /DOAR entitati CMS confirmate/);
 });
+
+// ════════════════════════ AI-2.4 AUTHOR VOICE + EXPERT CONTENT ════════════════════════
+test("system prompt carries the author persona + voice rules (without claiming personal testing)", () => {
+  const r = buildContentPrompt(input())!;
+  assert.match(r.systemPrompt, /Radu Bogdan Gabriel/);
+  assert.match(r.systemPrompt, /peste 7 ani/);
+  assert.match(r.systemPrompt, /STIL EDITORIAL/);
+  assert.match(r.systemPrompt, /FARA diacritice/i);
+  assert.match(r.systemPrompt, /NU dovada ca ofertele au fost testate/i); // editorial context, not proof
+  // grounding rules stay intact alongside the voice rules
+  assert.match(r.systemPrompt, /Nu inventa bonusuri, licente, procente/);
+});
+
+test("user prompt carries the expert-contribution directive + section-specific writing guidance", () => {
+  const intro = buildContentPrompt(input({ sectionId: "intro" }))!;
+  assert.match(intro.userPrompt, /\[STIL INTRO\]/);
+  assert.match(intro.userPrompt, /\[CONTRIBUTIE\]/);
+  assert.match(intro.userPrompt, /Nu inventa valori/i); // no invented operator values
+  const outline = buildContentPrompt(input())!; // S0 is an H2 outline section
+  assert.match(outline.userPrompt, /\[STIL H2\/H3\]/);
+  const bfaq = { ...BRIEF, faq: [{ question: "Ce este?", answer: "" }] };
+  const faq = buildContentPrompt(input({ brief: bfaq, sectionId: "faq" }))!;
+  assert.match(faq.userPrompt, /\[STIL FAQ\]/);
+});

@@ -8,6 +8,7 @@ import {
 import { generateBriefSectionAction } from "@/app/admin/(panel)/seo-research/[id]/briefs/ai-actions";
 import type { SectionGenerationResult } from "@/lib/ai/generate-section";
 import { errorLabel, isDirty, needsRegenerateConfirm } from "@/lib/ai/content-studio-model";
+import { AUTHOR_PROFILE } from "@/lib/ai/author-profile";
 
 const input = "h-10 rounded-sm border border-border bg-field px-3 text-sm text-ink outline-none focus-visible:border-accent";
 const area = "min-h-48 rounded-sm border border-border bg-field px-3 py-2 text-sm text-ink outline-none focus-visible:border-accent font-mono";
@@ -138,7 +139,7 @@ export function ContentStudio({ projects }: { projects: { id: string; name: stri
         </p>
       ) : null}
 
-      {/* Erori provider */}
+      {/* Erori de VALIDARE FACTUALA (grounding) — blocheaza acceptarea secțiunii */}
       {result && !result.ok ? (
         <div className="flex flex-col gap-1 rounded-md border border-danger/40 bg-danger/10 p-3 text-sm">
           <span className="font-semibold text-danger">{errorLabel(result.errorKind ?? "api_error").label}</span>
@@ -147,10 +148,29 @@ export function ContentStudio({ projects }: { projects: { id: string; name: stri
         </div>
       ) : null}
 
+      {/* Recomandari EDITORIALE (stil) — advisory, NU blocheaza; distincte de erorile factuale de mai sus */}
+      {result?.editorial && (result.editorial.warnings.length || result.editorial.suggestions.length) ? (
+        <div className="flex flex-col gap-1.5 rounded-md border border-link/40 bg-link/5 p-3 text-sm">
+          <span className="font-semibold text-link">Recomandări editoriale (stil) · nu blochează publicarea</span>
+          {result.editorial.warnings.length ? (
+            <ul className="list-disc pl-5 text-[12px] text-ink-secondary">{result.editorial.warnings.map((w, i) => <li key={i}>{w}</li>)}</ul>
+          ) : null}
+          {result.editorial.suggestions.length ? (
+            <div className="mt-1 text-[12px] text-ink-muted">
+              <span className="font-medium">Sugestii:</span>
+              <ul className="list-disc pl-5">{result.editorial.suggestions.map((s, i) => <li key={i}>{s}</li>)}</ul>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       {/* Rezultat */}
       {result?.ok && result.section ? (
         <section className="flex flex-col gap-3 rounded-md border border-border bg-surface p-4">
-          <h2 className="text-lg font-semibold text-ink">{result.section.heading}</h2>
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-lg font-semibold text-ink">{result.section.heading}</h2>
+            <span className="text-[12px] text-ink-muted">Autor: <span className="font-medium text-ink-secondary">{AUTHOR_PROFILE.name}</span> · {AUTHOR_PROFILE.role}</span>
+          </div>
           <label className="flex flex-col gap-1.5 text-sm">
             <span className="font-medium text-ink-secondary">Conținut generat (editabil — nu se salvează automat)</span>
             <textarea value={content} onChange={(e) => setContent(e.target.value)} className={area} />

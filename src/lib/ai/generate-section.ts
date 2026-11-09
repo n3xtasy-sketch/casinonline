@@ -9,6 +9,7 @@
 
 import { buildContentPrompt, type ContentPromptInput } from "@/lib/ai/content-prompt";
 import { validateGeneratedSection, type GeneratedSection, type ValidationResult } from "@/lib/ai/content-output";
+import { editorialQualityCheck, type EditorialReport } from "@/lib/ai/quality-gate";
 import type { CostEstimate } from "@/lib/ai/cost";
 
 export interface CompleteRequest {
@@ -48,6 +49,9 @@ export interface SectionGenerationResult {
   stopReason: string | null;
   /** AI-2.2: estimated cost (null unless rates are configured for the model — never guessed). */
   cost: CostEstimate | null;
+  /** AI-2.4: ADVISORY editorial quality report (style). Separate from factual `validation`; never
+   *  affects `ok`. Null when there is no usable content (no section / truncated / parse error). */
+  editorial: EditorialReport | null;
 }
 
 // ── pure config/env helpers (no SDK) ──────────────────────────────────────────────
@@ -105,7 +109,7 @@ export async function runSectionGeneration(
   complete: CompleteFn,
   opts: { maxTokens?: number } = {},
 ): Promise<SectionGenerationResult> {
-  const empty = { usage: null as ModelUsage | null, model: null as string | null, stopReason: null as string | null, cost: null as CostEstimate | null };
+  const empty = { usage: null as ModelUsage | null, model: null as string | null, stopReason: null as string | null, cost: null as CostEstimate | null, editorial: null as EditorialReport | null };
   const prompt = buildContentPrompt(input);
   if (!prompt) {
     return { ok: false, section: null, validation: null, promptWarnings: [], error: `Secțiune inexistentă: ${input.sectionId}`, errorKind: "no_section", ...empty };
@@ -120,7 +124,7 @@ export async function runSectionGeneration(
     return { ok: false, section: null, validation: null, promptWarnings: prompt.warnings, error: message, errorKind: kind, ...empty };
   }
 
-  const meta = { promptWarnings: prompt.warnings, usage: resp.usage, model: resp.model, stopReason: resp.stopReason, cost: null as CostEstimate | null };
+  const meta = { promptWarnings: prompt.warnings, usage: resp.usage, model: resp.model, stopReason: resp.stopReason, cost: null as CostEstimate | null, editorial: null as EditorialReport | null };
 
   // Explicit truncation detection — a cut-off structured output is unusable.
   if (resp.stopReason === "max_tokens") {
@@ -137,10 +141,16 @@ export async function runSectionGeneration(
     ? { ...(resp.output as Record<string, unknown>), sectionId: prompt.sectionId }
     : resp.output;
 
+  // AI-2.4: ADVISORY editorial quality gate — style only; never changes validity. Computed whenever the
+  // output carries usable prose, so stylistic feedback is shown alongside factual validation.
+  const editorial = output && typeof (output as GeneratedSection).content === "string"
+    ? editorialQualityCheck(output as GeneratedSection, [input.brief.primaryKeyword, ...input.brief.secondaryKeywords])
+    : null;
+
   const validation = validateGeneratedSection(output, input);
   if (!validation.ok) {
-    return { ok: false, section: output as GeneratedSection, validation, error: "Output respins de validare (vezi detaliile).", errorKind: "invalid_output", ...meta };
+    return { ok: false, section: output as GeneratedSection, validation, error: "Output respins de validare (vezi detaliile).", errorKind: "invalid_output", ...meta, editorial };
   }
 
-  return { ok: true, section: output as GeneratedSection, validation, error: null, errorKind: null, ...meta };
+  return { ok: true, section: output as GeneratedSection, validation, error: null, errorKind: null, ...meta, editorial };
 }
