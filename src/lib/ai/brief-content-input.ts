@@ -8,6 +8,7 @@ import { scopeGenerationContext, type ScopedContext } from "@/lib/ai/context-sco
 import { buildCmsFacts, scopeCmsFacts, type CmsFact } from "@/lib/ai/cms-facts";
 import { buildFactScopingDiagnostic, type FactScopingDiagnostic } from "@/lib/ai/fact-diagnostics";
 import { AUTHOR_KNOWLEDGE, selectAuthorKnowledge, type AuthorKnowledge } from "@/lib/ai/author-knowledge";
+import { buildABExperiment, type ABExperimentPlan } from "@/lib/ai/ab-experiment";
 import { DATA_CAPS, listSections } from "@/lib/ai/content-prompt";
 import type { BriefEnrichment } from "@/lib/seo/brief-enrichment";
 import type { ContentBrief, ContentPageType, ContentPromptInput } from "@/lib/ai/content-prompt";
@@ -120,6 +121,17 @@ export async function loadSectionGenerationInput(
     authorKnowledge, // AI-2.9B: scoped interpretation/guidance (never a factual source)
     sectionId,
   };
+}
+
+/**
+ * AI-2.9D.2A (server-only): prepare the A/B experiment plan for one section — loads the REAL scoped
+ * input (same path as generation) and builds both prompt variants, WITHOUT calling Anthropic. Returns
+ * parity + token-delta metadata only (no full prompts, no secrets).
+ */
+export async function prepareSectionABExperiment(projectId: string, briefId: string, sectionId: string): Promise<ABExperimentPlan | null> {
+  const input = await loadSectionGenerationInput(projectId, briefId, sectionId);
+  if (!input) return null;
+  return buildABExperiment(input);
 }
 
 /**
