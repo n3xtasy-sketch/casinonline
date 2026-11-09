@@ -21,7 +21,20 @@ export interface ScopedContext {
   cmsEntities: EntityRecord[];
   cmsRelations: EntityRelation[];
   internalLinks: InternalLink[];
+  /** AI-2.6.1: entities reached by REVERSE discovery (e.g. the bonuses/casinos that HAVE a relevant
+   *  bonus_type). Kept SEPARATE from cmsEntities so they never silently become confirmed/mentionable —
+   *  they only surface their facts + resolve relation-triple names. */
+  discoveredEntities: EntityRecord[];
 }
+
+/**
+ * AI-2.6.1 — relation types whose TARGET is a taxonomy anchor (bonus_type / tag). Reverse discovery is
+ * limited to exactly these, so a bonus-category page can reach the bonuses/casinos that actually have
+ * that type. NO inferred/unsupported relation is created. `casino_bonus_type` means the casino has AT
+ * LEAST ONE bonus of the type — we surface the casino (license), but NEVER forward-expand it to all its
+ * bonuses (that would wrongly treat every bonus of the casino as belonging to the category).
+ */
+const REVERSE_DISCOVERY_TYPES = new Set(["bonus_bonus_type", "casino_bonus_type", "casino_tag"]);
 
 export function scopeGenerationContext(
   brief: ContentBrief,
@@ -29,9 +42,10 @@ export function scopeGenerationContext(
   registry: EntityRecord[],
   relations: EntityRelation[],
   inventory: InventoryUrl[],
-  opts: { maxLinks?: number } = {},
+  opts: { maxLinks?: number; maxDiscovered?: number } = {},
 ): ScopedContext {
   const maxLinks = opts.maxLinks ?? 20;
+  const maxDiscovered = opts.maxDiscovered ?? 40;
 
   // Relevant entity ids: KE-2 enrichment (entities + secondary-topic endpoints) + brief confirmed.
   const relevant = new Set<string>();
@@ -46,7 +60,34 @@ export function scopeGenerationContext(
   }
 
   const cmsEntities = registry.filter((e) => relevant.has(e.id));
-  const cmsRelations = relations.filter((r) => relevant.has(r.sourceEntityId));
+  const forwardRelations = relations.filter((r) => relevant.has(r.sourceEntityId));
+
+  // ── AI-2.6.1 REVERSE DISCOVERY ──────────────────────────────────────────────────
+  // For relevant anchors that are relation TARGETS (never sources — e.g. bonus_type/tag), pull in the
+  // SOURCE entities of the allowed reverse-relation types. One hop only (no recursion), deduped, capped.
+  const reverseBySource = new Map<string, EntityRelation[]>();
+  for (const r of relations) {
+    if (!REVERSE_DISCOVERY_TYPES.has(r.relationType)) continue;
+    if (!relevant.has(r.targetEntityId) || relevant.has(r.sourceEntityId)) continue; // target is an anchor; source not already in scope
+    const list = reverseBySource.get(r.sourceEntityId) ?? [];
+    list.push(r);
+    reverseBySource.set(r.sourceEntityId, list);
+  }
+  const discoveredIds = [...reverseBySource.keys()].sort().slice(0, maxDiscovered);
+  const discoveredSet = new Set(discoveredIds);
+  const discoveredEntities = registry.filter((e) => discoveredSet.has(e.id));
+  const reverseRelations = discoveredIds.flatMap((id) => reverseBySource.get(id) ?? []);
+
+  // Merge forward + reverse relations, deduped by (source|type|target), deterministic order.
+  const relSeen = new Set<string>();
+  const cmsRelations: EntityRelation[] = [];
+  for (const r of [...forwardRelations, ...reverseRelations]) {
+    const key = `${r.sourceEntityId}|${r.relationType}|${r.targetEntityId}`;
+    if (relSeen.has(key)) continue;
+    relSeen.add(key);
+    cmsRelations.push(r);
+  }
+  cmsRelations.sort((a, b) => a.sourceEntityId.localeCompare(b.sourceEntityId) || a.relationType.localeCompare(b.relationType) || a.targetEntityId.localeCompare(b.targetEntityId));
 
   // Internal links: relevant entities' pages + the brief target + keyword-relevant pages, capped.
   const invExisting = new Map(inventory.filter((i) => i.status === "existing").map((i) => [i.url, i] as const));
@@ -71,5 +112,5 @@ export function scopeGenerationContext(
     }
   }
 
-  return { cmsEntities, cmsRelations, internalLinks: links.slice(0, maxLinks) };
+  return { cmsEntities, cmsRelations, internalLinks: links.slice(0, maxLinks), discoveredEntities };
 }

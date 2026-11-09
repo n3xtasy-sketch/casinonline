@@ -356,3 +356,15 @@ test("AI-2.4 compatibility: author voice + CMS facts coexist in the prompt", () 
   // the existing validator still accepts a clean grounded section unchanged by AI-2.6
   assert.equal(validateGeneratedSection(GOOD, input({ cmsFacts: [fact()] })).ok, true);
 });
+
+// AI-2.6.1 — reverse-discovered facts are LABELLED + do not become confirmed/mentionable entities.
+test("AI-2.6.1: discovered-entity facts are flagged [descoperit automat] + a safety note is shown", () => {
+  const discoveredEntity: EntityRecord = { id: "bonus:disc1", type: "bonus", cmsId: "disc1", name: "Bonus Descoperit", slug: "disc1", aliases: [], status: "published", publicUrl: "/bonusuri-casino/disc1", provenance: "cms", attributes: {} };
+  const discFact = fact({ factId: "bonus:disc1:wagering", entityId: "bonus:disc1", entityName: "Bonus Descoperit" });
+  const r = buildContentPrompt(input({ cmsFacts: [discFact], discoveredEntities: [discoveredEntity] }))!;
+  const block = r.userPrompt.slice(r.userPrompt.indexOf("FAPTE CMS VERIFICATE"), r.userPrompt.indexOf("SFARSIT FAPTE CMS"));
+  assert.match(block, /Bonus Descoperit \[descoperit automat\]/);
+  assert.match(block, /neconfirmate editorial/);
+  // discovered entities are NOT in the confirmed/mentionable set → validator stays strict
+  assert.equal(validateGeneratedSection({ ...GOOD, entitiesUsed: ["Bonus Descoperit"] }, input({ cmsFacts: [discFact], discoveredEntities: [discoveredEntity] })).ok, false);
+});

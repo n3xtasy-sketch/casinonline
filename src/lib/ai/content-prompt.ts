@@ -58,6 +58,10 @@ export interface ContentPromptInput {
   internalLinks?: InternalLink[];
   /** AI-2.6: verified structured CMS facts (bonus/casino values), already brief-scoped. */
   cmsFacts?: CmsFact[];
+  /** AI-2.6.1: reverse-discovered entities (e.g. bonuses/casinos that HAVE a relevant bonus_type).
+   *  Used ONLY to resolve relation/fact display names + flag discovered facts — they are NEVER added to
+   *  the confirmed/mentionable set (the validator's entitiesUsed rule stays unchanged). */
+  discoveredEntities?: EntityRecord[];
   /** Which section to generate (from listSections). */
   sectionId: string;
 }
@@ -214,8 +218,9 @@ export function buildContentPrompt(input: ContentPromptInput): ContentPromptResu
     (e) => `${e.name.toLowerCase()}|${e.type}`,
   ).sort((a, b) => a.name.localeCompare(b.name));
 
-  // Verified facts from relations (verified_db / derived_cms only).
-  const entityName = new Map((input.cmsEntities ?? []).map((e) => [e.id, e.name] as const));
+  // Verified facts from relations (verified_db / derived_cms only). Names resolve from scoped entities
+  // AND reverse-discovered entities (AI-2.6.1) so reverse-relation triples show names, not raw ids.
+  const entityName = new Map([...(input.cmsEntities ?? []), ...(input.discoveredEntities ?? [])].map((e) => [e.id, e.name] as const));
   const facts = (input.cmsRelations ?? [])
     .filter((r: EntityRelation) => r.provenance === "verified_db" || r.provenance === "derived_cms")
     .map((r) => ({
@@ -282,14 +287,19 @@ export function buildContentPrompt(input: ContentPromptInput): ContentPromptResu
   // NOTE: the DETERMINISTIC sourceRef⇄fact cross-check (validating the model's emitted sourceRef against
   // these facts) is OUT OF SCOPE here — it is implemented separately in AI-2.7. AI-2.6 only surfaces the
   // facts + their provenance; the existing validator (content-output.ts) is left unchanged.
+  const discoveredIds = new Set((input.discoveredEntities ?? []).map((e) => e.id));
+  const hasDiscovered = factsCmsShown.some((f) => discoveredIds.has(f.entityId));
   const CMS_FACTS = [
     "===== FAPTE CMS VERIFICATE (valori reale din CMS; NU inventa valori lipsa) =====",
     "Reguli: foloseste DOAR aceste valori pentru cifre (rulaj, sume, rotiri, KYC, valabilitate). Prezenta unei valori NU inseamna ca e verificata — respecta eticheta de stare. NU prezenta ofertele EXPIRATE ca active. Pentru valori fara sursa, formuleaza prudent.",
+    hasDiscovered
+      ? "Faptele marcate [descoperit automat] provin de la entitati asociate categoriei (neconfirmate editorial): foloseste VALORILE ca reper pentru categorie, dar NU numi acei operatori/bonusuri ca entitati confirmate decat daca apar in ENTITATI CMS CONFIRMATE."
+      : "",
     factsCmsShown.length
-      ? factsCmsShown.map((f) => `- ${f.entityName} · ${f.claim}: ${f.value} [stare: ${factStatusLabel(f)}] [sursa: ${f.sourceRef ?? "fara sursa"}] · camp: ${f.field}`).join("\n")
+      ? factsCmsShown.map((f) => `- ${f.entityName}${discoveredIds.has(f.entityId) ? " [descoperit automat]" : ""} · ${f.claim}: ${f.value} [stare: ${factStatusLabel(f)}] [sursa: ${f.sourceRef ?? "fara sursa"}] · camp: ${f.field}`).join("\n")
       : "- (niciun fapt CMS structurat pentru acest brief)",
     "===== SFARSIT FAPTE CMS =====",
-  ].join("\n");
+  ].filter(Boolean).join("\n");
 
   const SUGGESTIONS = [
     "----- SUGESTII KE-2 (IDEI, NU FAPTE — nu le afirma ca adevar) -----",

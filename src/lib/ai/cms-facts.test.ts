@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildCmsFacts, scopeCmsFacts, type BonusFactRow, type CasinoFactRow, type CmsFact } from "@/lib/ai/cms-facts";
+import { buildCmsFacts, scopeCmsFacts, factAllowedEntityIds, type BonusFactRow, type CasinoFactRow, type CmsFact } from "@/lib/ai/cms-facts";
 
 const TODAY = "2026-07-01";
 
@@ -80,4 +80,26 @@ test("scopeCmsFacts: keeps only brief-relevant entities (scoped entities ∪ rel
 
   const capped = scopeCmsFacts(facts, scoped, 2);
   assert.equal(capped.facts.length, 2); // respects the cap
+});
+
+// ── AI-2.6.1: discovered entities contribute facts via the shared allowed-id set ──
+test("factAllowedEntityIds unions scoped entities + discovered entities + relation endpoints", () => {
+  const allowed = factAllowedEntityIds({
+    cmsEntities: [{ id: "bonus_type:nodep" }],
+    cmsRelations: [{ sourceEntityId: "bonus:b1", targetEntityId: "bonus_type:nodep" }],
+    discoveredEntities: [{ id: "casino:c1" }],
+  });
+  assert.ok(allowed.has("bonus_type:nodep") && allowed.has("bonus:b1") && allowed.has("casino:c1"));
+});
+
+test("scopeCmsFacts surfaces facts for reverse-discovered entities (category coverage)", () => {
+  const facts = buildCmsFacts({ bonuses: [bonus({ id: "b1", casinoId: "c1" })], casinos: [casino({ id: "c1" })] }, TODAY);
+  const scoped = {
+    cmsEntities: [{ id: "bonus_type:nodep" }], // only the taxonomy anchor is "confirmed"
+    cmsRelations: [{ sourceEntityId: "bonus:b1", targetEntityId: "bonus_type:nodep" }],
+    discoveredEntities: [{ id: "bonus:b1" }, { id: "casino:c1" }], // reverse-discovered
+  };
+  const { facts: kept } = scopeCmsFacts(facts, scoped, 100);
+  assert.ok(kept.some((f) => f.entityId === "bonus:b1")); // bonus facts surface
+  assert.ok(kept.some((f) => f.entityId === "casino:c1")); // casino license surfaces
 });

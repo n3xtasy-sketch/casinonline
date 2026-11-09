@@ -61,3 +61,85 @@ test("scope respects maxLinks cap", () => {
   const s = scopeGenerationContext(BRIEF, ENRICHMENT, REGISTRY, RELATIONS, INVENTORY, { maxLinks: 1 });
   assert.equal(s.internalLinks.length, 1);
 });
+
+// ════════════════════════ AI-2.6.1 REVERSE (BIDIRECTIONAL) DISCOVERY ════════════════════════
+const ent = (id: string, type: EntityRecord["type"], name: string, url: string | null): EntityRecord =>
+  ({ id, type, cmsId: id.split(":")[1], name, slug: (url ?? name).split("/").pop()!, aliases: [], status: url ? "published" : "taxonomy", publicUrl: url, provenance: "cms", attributes: {} });
+
+// A bonus_type category anchor (taxonomy, publicUrl null) + the bonuses/casinos that HAVE it.
+const CAT_REGISTRY: EntityRecord[] = [
+  ent("bonus_type:nodep", "bonus_type", "Bonus fara depunere", null),
+  ent("bonus:b1", "bonus", "Bonus Netbet fara depunere", "/bonusuri-casino/netbet-nodep"),
+  ent("casino:c1", "casino", "Netbet Casino", "/cazinouri-online/netbet-casino"),
+  ent("bonus:bOther", "bonus", "Bonus depunere Netbet", "/bonusuri-casino/netbet-dep"),
+  ent("bonus_type:other", "bonus_type", "Bonus cu depunere", null),
+];
+const rel = (s: string, t: string, type: EntityRelation["relationType"], prov: EntityRelation["provenance"]): EntityRelation =>
+  ({ sourceEntityId: s, targetEntityId: t, relationType: type, provenance: prov, confidence: "high", reasons: [] });
+const CAT_RELATIONS: EntityRelation[] = [
+  rel("bonus:b1", "bonus_type:nodep", "bonus_bonus_type", "verified_db"),   // b1 IS a no-deposit bonus
+  rel("casino:c1", "bonus_type:nodep", "casino_bonus_type", "derived_cms"), // c1 OFFERS no-deposit bonuses
+  rel("casino:c1", "bonus:bOther", "casino_bonus", "verified_db"),          // c1 also has a non-category bonus
+  rel("bonus:bOther", "bonus_type:other", "bonus_bonus_type", "verified_db"), // bOther is a different type
+];
+// Category brief: NO confirmed entities; keyword resolved only to the bonus_type anchor.
+const CAT_BRIEF: ContentBrief = {
+  title: "Bonus fara depunere la cazinouri online", primaryKeyword: "bonus fara depunere casino", secondaryKeywords: [],
+  intent: null, targetUrl: "/bonusuri/bonus-fara-depunere", h1: "H1", outline: [], faq: [], entities: [],
+};
+const CAT_ENRICH: BriefEnrichment = {
+  scope: "general", entities: [{ id: "e", type: "entity", label: "Bonus fara depunere", provenance: "confirmed_cms", confidence: "high", reasons: [], entityId: "bonus_type:nodep" }],
+  secondaryTopics: [], questions: [], gaps: [],
+};
+
+test("reverse discovery: a bonus_type category discovers its bonuses + casinos (no confirmed entities)", () => {
+  const s = scopeGenerationContext(CAT_BRIEF, CAT_ENRICH, CAT_REGISTRY, CAT_RELATIONS, []);
+  const disc = s.discoveredEntities.map((e) => e.id).sort();
+  assert.deepEqual(disc, ["bonus:b1", "casino:c1"]); // discovered via reverse relations
+  // discovered entities are kept OUT of cmsEntities (stay non-confirmed / non-mentionable)
+  assert.ok(!s.cmsEntities.some((e) => e.id === "bonus:b1" || e.id === "casino:c1"));
+  assert.deepEqual(s.cmsEntities.map((e) => e.id), ["bonus_type:nodep"]);
+  // reverse relations are surfaced for fact scoping
+  assert.ok(s.cmsRelations.some((r) => r.sourceEntityId === "bonus:b1" && r.relationType === "bonus_bonus_type"));
+  assert.ok(s.cmsRelations.some((r) => r.sourceEntityId === "casino:c1" && r.relationType === "casino_bonus_type"));
+});
+
+test("reverse discovery does NOT forward-expand a discovered casino to its non-category bonuses", () => {
+  const s = scopeGenerationContext(CAT_BRIEF, CAT_ENRICH, CAT_REGISTRY, CAT_RELATIONS, []);
+  // bOther is a bonus of casino c1 but of a DIFFERENT type → must not be discovered
+  assert.ok(!s.discoveredEntities.some((e) => e.id === "bonus:bOther"));
+  assert.ok(!s.cmsRelations.some((r) => r.sourceEntityId === "casino:c1" && r.relationType === "casino_bonus"));
+});
+
+test("category with no relations → no discovery (empty category)", () => {
+  const s = scopeGenerationContext(CAT_BRIEF, CAT_ENRICH, CAT_REGISTRY, [], []);
+  assert.deepEqual(s.discoveredEntities, []);
+});
+
+test("duplicate reverse relations are deduped", () => {
+  const dup = [...CAT_RELATIONS, rel("bonus:b1", "bonus_type:nodep", "bonus_bonus_type", "verified_db")];
+  const s = scopeGenerationContext(CAT_BRIEF, CAT_ENRICH, CAT_REGISTRY, dup, []);
+  const b1Rels = s.cmsRelations.filter((r) => r.sourceEntityId === "bonus:b1" && r.relationType === "bonus_bonus_type");
+  assert.equal(b1Rels.length, 1);
+  assert.equal(s.discoveredEntities.filter((e) => e.id === "bonus:b1").length, 1);
+});
+
+test("reverse discovery respects maxDiscovered cap (no unbounded CMS injection)", () => {
+  const manyReg: EntityRecord[] = [ent("bonus_type:nodep", "bonus_type", "Bonus fara depunere", null)];
+  const manyRel: EntityRelation[] = [];
+  for (let i = 0; i < 60; i++) {
+    manyReg.push(ent(`bonus:x${i}`, "bonus", `Bonus ${i}`, `/bonusuri-casino/x${i}`));
+    manyRel.push(rel(`bonus:x${i}`, "bonus_type:nodep", "bonus_bonus_type", "verified_db"));
+  }
+  const s = scopeGenerationContext(CAT_BRIEF, CAT_ENRICH, manyReg, manyRel, [], { maxDiscovered: 10 });
+  assert.equal(s.discoveredEntities.length, 10);
+});
+
+test("brief WITH a confirmed entity: confirmed stays in cmsEntities, discovery is additive + separate", () => {
+  const brief: ContentBrief = { ...CAT_BRIEF, entities: [{ name: "Netbet Casino", type: "casino", source: "confirmed", ref: "/cazinouri-online/netbet-casino" }] };
+  const s = scopeGenerationContext(brief, CAT_ENRICH, CAT_REGISTRY, CAT_RELATIONS, []);
+  assert.ok(s.cmsEntities.some((e) => e.id === "casino:c1")); // confirmed → in cmsEntities (mentionable)
+  // c1 now confirmed, so it is NOT also listed as discovered (already in scope)
+  assert.ok(!s.discoveredEntities.some((e) => e.id === "casino:c1"));
+  assert.ok(s.discoveredEntities.some((e) => e.id === "bonus:b1")); // the bonus still discovered
+});

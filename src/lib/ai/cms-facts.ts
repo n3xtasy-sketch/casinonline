@@ -134,19 +134,36 @@ export function buildCmsFacts(rows: CmsFactRows, today: string): CmsFact[] {
   return out.sort((a, b) => a.entityName.localeCompare(b.entityName) || a.field.localeCompare(b.field));
 }
 
+export interface ScopedFactContext {
+  cmsEntities: { id: string }[];
+  cmsRelations: { sourceEntityId: string; targetEntityId: string }[];
+  /** AI-2.6.1: reverse-discovered entities — their facts are allowed, but they stay non-confirmed. */
+  discoveredEntities?: { id: string }[];
+}
+
 /**
- * RELEVANCE SCOPING (PASUL 3): keep only facts whose entity is already in the brief-scoped graph —
- * a scoped CMS entity OR an endpoint of a scoped relation (so a casino's bonuses surface on its page).
- * Avoids injecting every bonus/casino in the CMS. Capped to bound input tokens (AI-2.2 discipline).
+ * The set of entity ids whose facts are in scope: scoped CMS entities ∪ reverse-discovered entities ∪
+ * endpoints of scoped relations. Single source of truth, shared by scopeCmsFacts + the diagnostic.
+ */
+export function factAllowedEntityIds(scoped: ScopedFactContext): Set<string> {
+  const allowed = new Set<string>();
+  for (const e of scoped.cmsEntities) allowed.add(e.id);
+  for (const e of scoped.discoveredEntities ?? []) allowed.add(e.id);
+  for (const r of scoped.cmsRelations) { allowed.add(r.sourceEntityId); allowed.add(r.targetEntityId); }
+  return allowed;
+}
+
+/**
+ * RELEVANCE SCOPING (PASUL 3): keep only facts whose entity is in the brief-scoped graph — a scoped CMS
+ * entity, a reverse-discovered entity (AI-2.6.1), or an endpoint of a scoped relation. Avoids injecting
+ * every bonus/casino in the CMS. Capped to bound input tokens (AI-2.2 discipline).
  */
 export function scopeCmsFacts(
   facts: CmsFact[],
-  scoped: { cmsEntities: { id: string }[]; cmsRelations: { sourceEntityId: string; targetEntityId: string }[] },
+  scoped: ScopedFactContext,
   maxFacts: number,
 ): { facts: CmsFact[]; total: number } {
-  const allowed = new Set<string>();
-  for (const e of scoped.cmsEntities) allowed.add(e.id);
-  for (const r of scoped.cmsRelations) { allowed.add(r.sourceEntityId); allowed.add(r.targetEntityId); }
+  const allowed = factAllowedEntityIds(scoped);
   const relevant = facts.filter((f) => allowed.has(f.entityId));
   return { facts: relevant.slice(0, maxFacts), total: relevant.length };
 }
