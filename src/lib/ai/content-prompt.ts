@@ -292,6 +292,7 @@ export function buildContentPrompt(input: ContentPromptInput): ContentPromptResu
   const CMS_FACTS = [
     "===== FAPTE CMS VERIFICATE (valori reale din CMS; NU inventa valori lipsa) =====",
     "Reguli: foloseste DOAR aceste valori pentru cifre (rulaj, sume, rotiri, KYC, valabilitate). Prezenta unei valori NU inseamna ca e verificata — respecta eticheta de stare. NU prezenta ofertele EXPIRATE ca active. Pentru valori fara sursa, formuleaza prudent.",
+    "Pentru fiecare cifra din factualClaims.sourceRef citeaza EXACT campul faptei (ex. „bonuses.wagering_multiplier”) sau URL-ul din [sursa]. O sursa inventata sau o valoare care contrazice fapta va fi respinsa automat.",
     hasDiscovered
       ? "Faptele marcate [descoperit automat] provin de la entitati asociate categoriei (neconfirmate editorial): foloseste VALORILE ca reper pentru categorie, dar NU numi acei operatori/bonusuri ca entitati confirmate decat daca apar in ENTITATI CMS CONFIRMATE."
       : "",

@@ -9,6 +9,7 @@
  */
 
 import type { ContentPromptInput, InternalLink } from "@/lib/ai/content-prompt";
+import { verifyFactualClaims, factualTokens, type ClaimCheck } from "@/lib/ai/fact-verification";
 
 export interface FactualClaim {
   claim: string;
@@ -30,6 +31,8 @@ export interface ValidationResult {
   ok: boolean; // false when there is ≥1 error (hard grounding violation)
   errors: string[];
   warnings: string[];
+  /** AI-2.7: per-claim source/fact verification verdicts (supported/unverifiable/invented/contradictory/expired). */
+  claimChecks?: ClaimCheck[];
 }
 
 const PERSONAL_EXPERIENCE = /\b(am|ne-am)\s+(testat|jucat|incercat|încercat|pariat|retras|depus|verificat personal)/i;
@@ -131,16 +134,34 @@ export function validateGeneratedSection(out: unknown, input: ContentPromptInput
   // 5) no claimed personal experience / unperformed manual verification.
   if (PERSONAL_EXPERIENCE.test(sec.content)) errors.push("Afirmatie de experienta personala (interzis).");
 
-  // 6) numeric/percentage/license claims must be sourced — soft flag.
+  // 6) numeric/percentage/license claims must be sourced — soft flag (content has figures but NO claim cites a source).
   if (NUMERIC_OR_LICENSE.test(sec.content)) {
     const sourced = sec.factualClaims.some((c) => c.sourceRef && c.sourceRef.trim());
     if (!sourced) warnings.push("Cifra/procent/licenta mentionata fara nicio factualClaim cu sursa — verifica.");
   }
-  for (const c of sec.factualClaims) if (!c.sourceRef || !c.sourceRef.trim()) warnings.push(`Afirmatie factuala fara sursa: „${c.claim}".`);
+
+  // 6b) AI-2.7 — DETERMINISTIC sourceRef & claim verification against the sources actually given to the
+  //     model. Invented refs, numeric contradictions and expired-as-active are ERRORS; recognized-but-
+  //     non-fact refs, present-but-unverified facts and conceptual claims go to EDITORIAL REVIEW (warning).
+  const knownRefs = new Set<string>();
+  for (const f of input.cmsFacts ?? []) for (const t of factualTokens(f)) knownRefs.add(t);
+  for (const l of input.internalLinks ?? []) knownRefs.add(l.url.trim().toLowerCase());
+  for (const e of input.cmsEntities ?? []) if (e.publicUrl) knownRefs.add(e.publicUrl.trim().toLowerCase());
+  for (const e of input.discoveredEntities ?? []) if (e.publicUrl) knownRefs.add(e.publicUrl.trim().toLowerCase());
+  for (const e of input.brief.entities) if (e.ref) knownRefs.add(e.ref.trim().toLowerCase());
+
+  const claimChecks = verifyFactualClaims(sec.factualClaims, { cmsFacts: input.cmsFacts ?? [], knownRefs });
+  for (const c of claimChecks) {
+    if (c.verdict === "invented" || c.verdict === "contradictory" || c.verdict === "expired") {
+      errors.push(`Afirmatie factuala respinsa (${c.verdict}): „${c.claim}" — ${c.reason}.`);
+    } else if (c.verdict === "unverifiable") {
+      warnings.push(`Afirmatie factuala de verificat editorial: „${c.claim}" — ${c.reason}.`);
+    }
+  }
 
   // 7) keyword stuffing — soft flag per keyword.
   const keywords = [input.brief.primaryKeyword, ...input.brief.secondaryKeywords].filter(Boolean);
   for (const k of keywords) if (countOccurrences(sec.content, k) > STUFF_MAX_OCCURRENCES) warnings.push(`Posibil keyword stuffing: „${k}".`);
 
-  return { ok: errors.length === 0, errors, warnings };
+  return { ok: errors.length === 0, errors, warnings, claimChecks };
 }

@@ -34,6 +34,9 @@ export interface CmsFact {
   /** Source reference (terms_url / license_source) when present, else null ("fara sursa"). */
   sourceRef: string | null;
   status: FactStatus;
+  /** AI-2.7: the TYPED numeric value when the column is numeric (wagering/spin/max_win), else null.
+   *  Enables typed numeric verification instead of fragile substring matching. */
+  numericValue?: number | null;
 }
 
 // ── typed row inputs (mirror the DB columns the loader selects) ─────────────────────
@@ -97,17 +100,17 @@ export function buildCmsFacts(rows: CmsFactRows, today: string): CmsFact[] {
     const entityId = `bonus:${b.id}`;
     const entityName = b.offer?.trim() || `Bonus ${b.id.slice(0, 8)}`;
     const status = statusOf(b.verifiedAt, b.expiresAt, today);
-    const push = (fieldKey: string, claim: string, value: string, field: string) =>
-      out.push({ factId: `${entityId}:${fieldKey}`, entityId, entityName, claim, value, field, verifiedAt: b.verifiedAt, sourceRef: b.termsUrl, status });
+    const push = (fieldKey: string, claim: string, value: string, field: string, numericValue: number | null = null) =>
+      out.push({ factId: `${entityId}:${fieldKey}`, entityId, entityName, claim, value, field, verifiedAt: b.verifiedAt, sourceRef: b.termsUrl, status, numericValue });
 
     // Wagering: prefer the structured flag/multiplier (never the free-text `wagering` column).
-    if (b.isNoWagering === true) push("wagering", "rulaj (wagering)", "fara rulaj", "bonuses.is_no_wagering");
-    else if (b.wageringMultiplier != null) push("wagering", "rulaj (wagering)", `${num(b.wageringMultiplier)}x${b.wageringBasis ? ` pe ${b.wageringBasis}` : ""}`, "bonuses.wagering_multiplier");
+    if (b.isNoWagering === true) push("wagering", "rulaj (wagering)", "fara rulaj", "bonuses.is_no_wagering", 0);
+    else if (b.wageringMultiplier != null) push("wagering", "rulaj (wagering)", `${num(b.wageringMultiplier)}x${b.wageringBasis ? ` pe ${b.wageringBasis}` : ""}`, "bonuses.wagering_multiplier", b.wageringMultiplier);
 
     if (b.amount?.trim()) push("amount", "valoare bonus", b.amount.trim(), "bonuses.amount");
-    if (b.spinValue != null) push("spin_value", "valoare rotire gratuita", ron(b.spinValue), "bonuses.spin_value");
+    if (b.spinValue != null) push("spin_value", "valoare rotire gratuita", ron(b.spinValue), "bonuses.spin_value", b.spinValue);
     // max_win is the maximum WIN, explicitly NOT a maximum-withdrawal cap.
-    if (b.maxWin != null) push("max_win", "castig maxim din bonus (max win; NU plafon de retragere)", ron(b.maxWin), "bonuses.max_win");
+    if (b.maxWin != null) push("max_win", "castig maxim din bonus (max win; NU plafon de retragere)", ron(b.maxWin), "bonuses.max_win", b.maxWin);
     if (b.kycRequired != null) push("kyc", "verificare KYC obligatorie", b.kycRequired ? "da" : "nu", "bonuses.kyc_required");
     const slots = eligibleSlotsLabel(b.eligibleSlots);
     if (slots) push("eligible_slots", "jocuri eligibile la rulaj", slots, "bonuses.eligible_slots");

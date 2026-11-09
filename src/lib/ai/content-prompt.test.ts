@@ -357,6 +357,64 @@ test("AI-2.4 compatibility: author voice + CMS facts coexist in the prompt", () 
   assert.equal(validateGeneratedSection(GOOD, input({ cmsFacts: [fact()] })).ok, true);
 });
 
+// ════════════════════════ AI-2.7 SOURCEREF & FACTUAL-CLAIM VERIFICATION ════════════════════════
+const wageringFact = fact({ factId: "bonus:b1:wagering", field: "bonuses.wagering_multiplier", value: "30x", status: "verified", numericValue: 30 });
+const claimSection = (factualClaims: { claim: string; sourceRef: string | null }[]): GeneratedSection => ({ ...GOOD, factualClaims });
+
+test("AI-2.7: fabricated sourceRef → validation error (ok=false)", () => {
+  const v = validateGeneratedSection(claimSection([{ claim: "rulaj 30x", sourceRef: "https://inventat.example/x" }]), input({ cmsFacts: [wageringFact] }));
+  assert.equal(v.ok, false);
+  assert.ok(v.errors.some((e) => /invented/.test(e)));
+  assert.ok(v.claimChecks?.some((c) => c.verdict === "invented"));
+});
+
+test("AI-2.7: a numeric claim contradicting the cited CMS fact → error (contradictory)", () => {
+  const v = validateGeneratedSection(claimSection([{ claim: "Rulajul este de 50x.", sourceRef: "bonuses.wagering_multiplier" }]), input({ cmsFacts: [wageringFact] }));
+  assert.equal(v.ok, false);
+  assert.ok(v.errors.some((e) => /contradictory/.test(e)));
+});
+
+test("AI-2.7: citing an EXPIRED fact → error (not presentable as active)", () => {
+  const v = validateGeneratedSection(claimSection([{ claim: "rulaj 30x", sourceRef: "bonuses.wagering_multiplier" }]), input({ cmsFacts: [fact({ field: "bonuses.wagering_multiplier", status: "expired", numericValue: 30 })] }));
+  assert.equal(v.ok, false);
+  assert.ok(v.errors.some((e) => /expired/.test(e)));
+});
+
+test("AI-2.7: an internal-link sourceRef is NOT a factual source → editorial-review warning (ok stays true)", () => {
+  const v = validateGeneratedSection(claimSection([{ claim: "Netbet e listat pe site", sourceRef: "/cazinouri-online/netbet-casino" }]), input({ cmsFacts: [wageringFact] }));
+  assert.equal(v.ok, true); // recognized ref, not an error
+  assert.ok(v.claimChecks?.some((c) => c.verdict === "unverifiable"));
+});
+
+test("AI-2.7: a conceptual claim with no numbers citing a verified fact → supported (no error/warning)", () => {
+  const lic = fact({ factId: "casino:c1:license", field: "casinos.license", value: "ONJN", status: "verified", numericValue: null });
+  const v = validateGeneratedSection(claimSection([{ claim: "Operatorul detine licenta ONJN.", sourceRef: "casinos.license" }]), input({ cmsFacts: [lic] }));
+  assert.equal(v.ok, true);
+  assert.ok(v.claimChecks?.some((c) => c.verdict === "supported"));
+});
+
+test("AI-2.7: no CMS facts + a numeric claim with a fabricated source → error (does not invent support)", () => {
+  const v = validateGeneratedSection(claimSection([{ claim: "rulaj 40x", sourceRef: "https://made-up.example" }]), input({ cmsFacts: [] }));
+  assert.equal(v.ok, false);
+  assert.ok(v.claimChecks?.some((c) => c.verdict === "invented"));
+});
+
+test("AI-2.7 compatibility: a clean grounded section with no factualClaims stays valid (AI-2.4/2.6)", () => {
+  assert.equal(validateGeneratedSection(GOOD, input({ cmsFacts: [wageringFact] })).ok, true);
+});
+
+test("AI-2.7 + AI-2.6.1: a DISCOVERED entity's fact is a valid source, yet the entity is NOT mentionable", () => {
+  const discEntity: EntityRecord = { id: "bonus:disc", type: "bonus", cmsId: "disc", name: "Bonus Descoperit", slug: "disc", aliases: [], status: "published", publicUrl: "/bonusuri-casino/disc", provenance: "cms", attributes: {} };
+  const discFact = fact({ factId: "bonus:disc:wagering", entityId: "bonus:disc", entityName: "Bonus Descoperit", field: "bonuses.wagering_multiplier", status: "verified", numericValue: 35 });
+  const inp = input({ cmsFacts: [discFact], discoveredEntities: [discEntity] });
+  // citing the discovered fact supports the numeric claim
+  const okClaim = validateGeneratedSection(claimSection([{ claim: "rulaj 35x", sourceRef: "bonuses.wagering_multiplier" }]), inp);
+  assert.ok(okClaim.claimChecks?.some((c) => c.verdict === "supported"));
+  // but naming the discovered entity in entitiesUsed is still rejected (not promoted to confirmed)
+  const named = validateGeneratedSection({ ...GOOD, entitiesUsed: ["Bonus Descoperit"] }, inp);
+  assert.equal(named.ok, false);
+});
+
 // AI-2.6.1 — reverse-discovered facts are LABELLED + do not become confirmed/mentionable entities.
 test("AI-2.6.1: discovered-entity facts are flagged [descoperit automat] + a safety note is shown", () => {
   const discoveredEntity: EntityRecord = { id: "bonus:disc1", type: "bonus", cmsId: "disc1", name: "Bonus Descoperit", slug: "disc1", aliases: [], status: "published", publicUrl: "/bonusuri-casino/disc1", provenance: "cms", attributes: {} };
