@@ -152,6 +152,59 @@ test("token estimate + selection meta (documented ~4 chars/token)", () => {
   assert.equal(estimateKnowledgeTokens([]), 0);
 });
 
+// ── AI-2.9B.1: retrieval quality fix (real DEV brief, intent=commercial) ──────────
+const cctx = (over: Partial<KnowledgeContext> = {}): KnowledgeContext => ({
+  pageType: "bonus_category", searchIntent: "commercial", sectionKind: "outline",
+  sectionHeading: "", primaryKeyword: "bonus fara depunere cazino",
+  secondaryKeywords: ["bonus fara depunere 2026"], relevantEntityIds: ["bonus_type:fara-depunere"], ...over,
+});
+
+test("commercial + rulaj: the wagering explainer is selected (intent is soft, not a gate) + ranks first", () => {
+  const sel = selectAuthorKnowledge(AUTHOR_KNOWLEDGE, cctx({ sectionHeading: "Cum functioneaza rulajul la bonusurile fara depunere" }));
+  assert.equal(sel[0].id, "wagering-basis-explainer"); // informational-only entry, still top on a commercial brief
+});
+
+test("commercial + KYC: kyc-and-claiming selected + first", () => {
+  const sel = selectAuthorKnowledge(AUTHOR_KNOWLEDGE, cctx({ sectionHeading: "Verificarea contului (KYC) si retragerea castigurilor" }));
+  assert.equal(sel[0].id, "kyc-and-claiming");
+});
+
+test("commercial + castig maxim: the max-win explainer is included", () => {
+  const sel = selectAuthorKnowledge(AUTHOR_KNOWLEDGE, cctx({ sectionHeading: "Care este castigul maxim dintr-un bonus fara depunere" }));
+  assert.ok(ids(sel).includes("max-win-vs-withdrawal"));
+});
+
+test("commercial + FAQ: faq-writing-guidance is eligible, first, and NOT cut by the cap (was 0 before fix)", () => {
+  const sel = selectAuthorKnowledge(AUTHOR_KNOWLEDGE, cctx({ sectionKind: "faq", sectionHeading: "Ce castig maxim poti obtine dintr-un bonus fara depunere?" }));
+  assert.ok(sel.length > 0);
+  assert.equal(sel[0].id, "faq-writing-guidance");
+});
+
+test("intent mismatch with a concrete topic relevance → entry is kept (soft intent)", () => {
+  // wagering-basis has intents=['informational']; on a commercial section about rulaj it must survive.
+  const sel = selectAuthorKnowledge(AUTHOR_KNOWLEDGE, cctx({ searchIntent: "commercial", sectionHeading: "rulajul bonusului" }));
+  assert.ok(ids(sel).includes("wagering-basis-explainer"));
+});
+
+test("intent/pageType alone (no topic/section/entity) is NOT enough → excluded", () => {
+  // promo-validity fits pageType=bonus_category + intent=commercial, but its topics (valabilitate…) match
+  // neither the heading nor the keywords and it has no entity → it must NOT be selected.
+  const sel = selectAuthorKnowledge(AUTHOR_KNOWLEDGE, cctx({ sectionHeading: "Program de loialitate si puncte VIP", relevantEntityIds: [] }));
+  assert.ok(!ids(sel).includes("promo-validity"));
+});
+
+test("general entries are not sticky: on a rulaj section the comparator does not outrank the explainer", () => {
+  const sel = selectAuthorKnowledge(AUTHOR_KNOWLEDGE, cctx({ sectionHeading: "Cum functioneaza rulajul la bonusurile fara depunere" }));
+  const wi = ids(sel).indexOf("wagering-basis-explainer");
+  const ci = ids(sel).indexOf("comparing-no-deposit-offers");
+  assert.ok(wi >= 0 && (ci < 0 || wi < ci), "the rulaj explainer must rank above the generic comparator");
+});
+
+test("vague heading falls back to entity/subject general knowledge (bounded by cap)", () => {
+  const sel = selectAuthorKnowledge(AUTHOR_KNOWLEDGE, cctx({ sectionHeading: "Bonusuri Cazino" }));
+  assert.ok(sel.length >= 1 && sel.length <= KNOWLEDGE_CAP);
+});
+
 // ── PASUL 4: FACTUAL ISOLATION (source-regression — no coupling in either direction) ──
 const read = (p: string) => readFileSync(`${process.cwd()}/${p}`, "utf8");
 

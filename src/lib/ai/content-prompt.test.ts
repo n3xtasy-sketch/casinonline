@@ -432,6 +432,15 @@ test("AI-2.9B: [CUNOASTERE AUTOR] block is rendered + labelled as interpretation
   assert.match(r.userPrompt, /Nu o cita ca sursa in factualClaims/);
 });
 
+test("AI-2.9B.1: an empty authorKnowledge omits the [CUNOASTERE AUTOR] block entirely (no token overhead)", () => {
+  const none = buildContentPrompt(input({ authorKnowledge: [] }))!;
+  assert.doesNotMatch(none.userPrompt, /CUNOASTERE AUTOR/);
+  const undef = buildContentPrompt(input())!; // field absent
+  assert.doesNotMatch(undef.userPrompt, /CUNOASTERE AUTOR/);
+  // but when present, the block renders (regression guard)
+  assert.match(buildContentPrompt(input({ authorKnowledge: [AK] }))!.userPrompt, /CUNOASTERE AUTOR/);
+});
+
 test("AI-2.9B isolation: author knowledge does NOT become a confirmed entity / factual source", () => {
   const inp = input({ authorKnowledge: [AK] });
   // its title is NOT mentionable as an entity

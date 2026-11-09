@@ -226,20 +226,33 @@ export interface KnowledgeContext {
 }
 
 const lc = (s: string) => s.toLowerCase();
+const tokens = (s: string): string[] => lc(s).split(/[^a-z0-9]+/).filter((w) => w.length >= 3);
+
+/** Token-prefix topic match — tolerant of Romanian inflections (rulaj↔rulajul, castig↔castigul). Every
+ *  topic word must prefix-match some word in the text (either direction). */
+function topicHit(topic: string, textTokens: string[]): boolean {
+  const tt = tokens(topic);
+  if (!tt.length) return false;
+  return tt.every((t) => textTokens.some((w) => w.startsWith(t) || t.startsWith(w)));
+}
 
 /**
- * Select the author-knowledge entries relevant to a section. Deterministic scoring + stable id tie-break,
- * capped. Priority (high→low): (1) concrete section relevance, (2) subject/topic match, (3) page type +
- * intent, (4) relevant entities. pageType/intent ALONE is never enough — an entry must have a section,
- * topic or entity reason. writing_guidance applies only to the section kind its applicability declares.
+ * Select the author-knowledge entries relevant to a section (AI-2.9B.1). Deterministic scoring + stable
+ * id tie-break, capped. Priority (high→low): (1) section-specific guidance; (2) DISCRIMINATIVE topic in
+ * the heading/FAQ question; (3) discriminative topic in secondary keywords; (4) primary-keyword (brief
+ * subject) match — down-weighted so a broad brief-subject topic does NOT make a general entry sticky on
+ * every section; (5) contextual entity. pageType + sectionKind are HARD gates; INTENT is a SOFT score
+ * signal (a relevant entry is never dropped just for an intent mismatch). pageType/intent alone never
+ * qualify — a concrete section/topic/entity reason is required.
  */
 export function selectAuthorKnowledge(
   registry: readonly AuthorKnowledge[],
   ctx: KnowledgeContext,
   cap: number = KNOWLEDGE_CAP,
 ): AuthorKnowledge[] {
-  const headingText = lc(ctx.sectionHeading);
-  const keywordText = lc([ctx.primaryKeyword, ...ctx.secondaryKeywords].filter(Boolean).join(" "));
+  const headingTokens = tokens(ctx.sectionHeading);
+  const primaryTokens = tokens(ctx.primaryKeyword);
+  const secondaryTokens = tokens(ctx.secondaryKeywords.filter(Boolean).join(" "));
   const relevantIds = new Set(ctx.relevantEntityIds);
 
   const scored: { entry: AuthorKnowledge; score: number }[] = [];
@@ -247,31 +260,38 @@ export function selectAuthorKnowledge(
     if (e.status !== "published") continue; // ELIGIBILITY: published only
     const a = e.applicability;
 
-    // Hard gates: a SET dimension that the context fails to match excludes the entry.
+    // Hard gates: pageType + sectionKind. (Intent is NOT a gate — it is a soft bonus below.)
     if (a.pageTypes && !a.pageTypes.includes(ctx.pageType)) continue;
     if (a.sectionKinds && !a.sectionKinds.includes(ctx.sectionKind)) continue; // FAQ guidance → only FAQ
-    if (a.intents && ctx.searchIntent && !a.intents.includes(ctx.searchIntent)) continue;
 
-    const sectionSpecific = !!a.sectionKinds && a.sectionKinds.includes(ctx.sectionKind);
+    const isGuidance = e.category === "writing_guidance";
+    const guidanceSection = isGuidance && !!a.sectionKinds && a.sectionKinds.includes(ctx.sectionKind);
     const topics = a.topics ?? [];
-    const headingTopicHits = topics.filter((t) => headingText.includes(lc(t))).length;
-    const keywordTopicHits = topics.filter((t) => keywordText.includes(lc(t))).length;
+
+    // A topic that matches the PRIMARY KEYWORD is the brief subject (true on every section) → NOT
+    // discriminative. Only non-subject topics earn heading/secondary (section-discriminating) points.
+    const primaryHits = topics.filter((t) => topicHit(t, primaryTokens)).length;
+    const discriminative = topics.filter((t) => !topicHit(t, primaryTokens));
+    const headingHits = discriminative.filter((t) => topicHit(t, headingTokens)).length;
+    const secondaryHits = discriminative.filter((t) => topicHit(t, secondaryTokens)).length;
+
     const entityMatch = (a.entityIds ?? []).some((id) => relevantIds.has(id));
     const pageTypeMatch = !!a.pageTypes && a.pageTypes.includes(ctx.pageType);
     const intentMatch = !!a.intents && !!ctx.searchIntent && a.intents.includes(ctx.searchIntent);
-    const isGuidance = e.category === "writing_guidance";
 
-    // Relevance requirement: a generic pageType/intent match is NOT sufficient. writing_guidance is
-    // relevant by its declared section kind; other categories need a topic or entity signal.
-    const relevant = (isGuidance && sectionSpecific) || headingTopicHits > 0 || keywordTopicHits > 0 || entityMatch;
+    // Relevance requirement: a concrete reason — section guidance, a topic hit (discriminative or the
+    // brief subject) or an entity. pageType/intent alone never qualify.
+    const relevant = guidanceSection || headingHits > 0 || secondaryHits > 0 || primaryHits > 0 || entityMatch;
     if (!relevant) continue;
 
     const score =
-      (sectionSpecific ? 50 : 0) +      // (1) concrete section relevance
-      headingTopicHits * 20 +           // (1/2) subject in the actual heading
-      keywordTopicHits * 12 +           // (2) subject in the brief keywords
-      (pageTypeMatch ? 6 : 0) + (intentMatch ? 4 : 0) + // (3) page type + intent
-      (entityMatch ? 2 : 0);            // (4) relevant entities
+      (guidanceSection ? 45 : 0) +   // (1) section-specific guidance
+      headingHits * 30 +             // (2) discriminative topic in the heading / FAQ question
+      secondaryHits * 15 +           // (3) discriminative topic in secondary keywords
+      primaryHits * 8 +              // (4) brief-subject (primary keyword) — down-weighted, not sticky
+      (entityMatch ? 4 : 0) +        // (5) contextual entity
+      (intentMatch ? 6 : 0) +        // SOFT intent bonus (never a gate)
+      (pageTypeMatch ? 2 : 0);
     scored.push({ entry: e, score });
   }
 
