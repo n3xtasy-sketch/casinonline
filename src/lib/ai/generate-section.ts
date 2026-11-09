@@ -9,6 +9,7 @@
 
 import { buildContentPrompt, type ContentPromptInput } from "@/lib/ai/content-prompt";
 import { validateGeneratedSection, type GeneratedSection, type ValidationResult } from "@/lib/ai/content-output";
+import type { CostEstimate } from "@/lib/ai/cost";
 
 export interface CompleteRequest {
   system: string;
@@ -45,6 +46,8 @@ export interface SectionGenerationResult {
   usage: ModelUsage | null;
   model: string | null;
   stopReason: string | null;
+  /** AI-2.2: estimated cost (null unless rates are configured for the model — never guessed). */
+  cost: CostEstimate | null;
 }
 
 // ── pure config/env helpers (no SDK) ──────────────────────────────────────────────
@@ -61,7 +64,7 @@ export function resolveModelConfig(env: Record<string, string | undefined>): AiM
   };
   return {
     model: env.AI_CONTENT_MODEL || "claude-sonnet-5",
-    maxTokens: num(env.AI_CONTENT_MAX_TOKENS, 1500),
+    maxTokens: num(env.AI_CONTENT_MAX_TOKENS, 4000), // hard ceiling; per-section budget drives the request
     timeoutMs: num(env.AI_CONTENT_TIMEOUT_MS, 30000),
     maxRetries: 0, // no uncontrolled auto-retries
   };
@@ -102,7 +105,7 @@ export async function runSectionGeneration(
   complete: CompleteFn,
   opts: { maxTokens?: number } = {},
 ): Promise<SectionGenerationResult> {
-  const empty = { usage: null as ModelUsage | null, model: null as string | null, stopReason: null as string | null };
+  const empty = { usage: null as ModelUsage | null, model: null as string | null, stopReason: null as string | null, cost: null as CostEstimate | null };
   const prompt = buildContentPrompt(input);
   if (!prompt) {
     return { ok: false, section: null, validation: null, promptWarnings: [], error: `Secțiune inexistentă: ${input.sectionId}`, errorKind: "no_section", ...empty };
@@ -110,13 +113,14 @@ export async function runSectionGeneration(
 
   let resp: ModelResponse;
   try {
-    resp = await complete({ system: prompt.systemPrompt, user: prompt.userPrompt, maxTokens: opts.maxTokens ?? 1500 });
+    // Request the per-section output budget (a MAX); the adapter caps it at the model hard ceiling.
+    resp = await complete({ system: prompt.systemPrompt, user: prompt.userPrompt, maxTokens: opts.maxTokens ?? prompt.maxTokens });
   } catch (err) {
     const { kind, message } = classifyApiError(err);
     return { ok: false, section: null, validation: null, promptWarnings: prompt.warnings, error: message, errorKind: kind, ...empty };
   }
 
-  const meta = { promptWarnings: prompt.warnings, usage: resp.usage, model: resp.model, stopReason: resp.stopReason };
+  const meta = { promptWarnings: prompt.warnings, usage: resp.usage, model: resp.model, stopReason: resp.stopReason, cost: null as CostEstimate | null };
 
   // Explicit truncation detection — a cut-off structured output is unusable.
   if (resp.stopReason === "max_tokens") {

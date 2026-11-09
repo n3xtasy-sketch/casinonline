@@ -133,6 +133,8 @@ export function ContentStudio({ projects }: { projects: { id: string; name: stri
           Model: <span className="text-ink-secondary">{result.model ?? "—"}</span> · tokeni:{" "}
           <span className="tabular-nums text-ink-secondary">{result.usage.inputTokens} in / {result.usage.outputTokens} out</span>
           {result.stopReason ? <> · stop: <span className="text-ink-secondary">{result.stopReason}</span></> : null}
+          {" · cost: "}
+          <span className="text-ink-secondary">{result.cost ? `${result.cost.total.toFixed(4)} ${result.cost.currency}` : "tarife neconfigurate"}</span>
         </p>
       ) : null}
 

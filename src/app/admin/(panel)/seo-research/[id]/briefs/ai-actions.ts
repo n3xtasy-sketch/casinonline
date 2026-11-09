@@ -4,6 +4,7 @@ import { getSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import { loadSectionGenerationInput } from "@/lib/ai/brief-content-input";
 import { createAnthropicComplete } from "@/lib/ai/anthropic-client";
 import { runSectionGeneration, type SectionGenerationResult } from "@/lib/ai/generate-section";
+import { estimateCost, resolveRates } from "@/lib/ai/cost";
 
 /**
  * AI-1 server action: generate ONE section of a real brief with Claude. Admin-gated; the client
@@ -19,7 +20,7 @@ async function requireAdmin() {
 }
 
 const fail = (error: string, errorKind: SectionGenerationResult["errorKind"]): SectionGenerationResult =>
-  ({ ok: false, section: null, validation: null, promptWarnings: [], error, errorKind, usage: null, model: null, stopReason: null });
+  ({ ok: false, section: null, validation: null, promptWarnings: [], error, errorKind, usage: null, model: null, stopReason: null, cost: null });
 
 export async function generateBriefSectionAction(
   projectId: string,
@@ -39,5 +40,8 @@ export async function generateBriefSectionAction(
     return fail("Serviciul AI nu este configurat (cheia API lipsește).", "api_error");
   }
 
-  return runSectionGeneration(input, complete);
+  const result = await runSectionGeneration(input, complete);
+  // Attach an estimated cost only when rates are configured for the model (never guessed).
+  const cost = estimateCost(result.usage, resolveRates(result.model, process.env));
+  return { ...result, cost };
 }

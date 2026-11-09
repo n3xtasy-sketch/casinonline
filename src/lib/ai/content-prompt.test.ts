@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import {
-  buildContentPrompt, listSections, GROUNDING_RULES,
+  buildContentPrompt, listSections, GROUNDING_RULES, sectionBudget, DATA_CAPS,
   type ContentBrief, type ContentPromptInput,
 } from "@/lib/ai/content-prompt";
 import { validateGeneratedSection, type GeneratedSection } from "@/lib/ai/content-output";
@@ -181,4 +181,33 @@ test("grounding rules are exposed + referenced by the output contract", () => {
   assert.ok(GROUNDING_RULES.length >= 10);
   const r = buildContentPrompt(input())!;
   assert.deepEqual(r.outputContract.rules, [...GROUNDING_RULES]);
+});
+
+// ════════════════════════ AI-2.2 OUTPUT BUDGET + COMPACTION ════════════════════════
+test("sectionBudget: intro ~3000; outline adaptive (clamped); faq scales with #questions", () => {
+  const intro = listSections(BRIEF).find((s) => s.kind === "intro")!;
+  assert.equal(sectionBudget(intro, BRIEF).maxTokens, 3000);
+  const outline = listSections(BRIEF).find((s) => s.kind === "outline")!;
+  const ob = sectionBudget(outline, BRIEF).maxTokens;
+  assert.ok(ob >= 1500 && ob <= 3500);
+  const fb = { ...BRIEF, faq: [{ question: "a", answer: "" }, { question: "b", answer: "" }, { question: "c", answer: "" }] };
+  const faqSec = listSections(fb).find((s) => s.kind === "faq")!;
+  assert.ok(sectionBudget(faqSec, fb).maxTokens >= sectionBudget({ ...faqSec }, BRIEF).maxTokens);
+});
+
+test("buildContentPrompt exposes maxTokens + a [LUNGIME] hint in the prompt", () => {
+  const r = buildContentPrompt(input())!;
+  assert.ok(r.maxTokens >= 1500);
+  assert.match(r.userPrompt, /\[LUNGIME\]/);
+});
+
+test("DATA block is compacted to caps + flagged when exceeded (bounds input tokens)", () => {
+  const many: EntityRecord[] = Array.from({ length: DATA_CAPS.entities + 12 }, (_, i) => ({
+    id: `casino:u${i}`, type: "casino", cmsId: `u${i}`, name: `Casino ${i}`, slug: `c${i}`, aliases: [],
+    status: "published", publicUrl: `/cazinouri-online/c${i}`, provenance: "cms", attributes: {},
+  }));
+  const r = buildContentPrompt(input({ cmsEntities: many }))!;
+  assert.ok(r.warnings.some((w) => /Entitati trunchiate la 30/.test(w)));
+  const block = r.userPrompt.slice(r.userPrompt.indexOf("ENTITATI CONFIRMATE"), r.userPrompt.indexOf("FAPTE (relatii"));
+  assert.ok((block.match(/^- /gm) ?? []).length <= DATA_CAPS.entities);
 });

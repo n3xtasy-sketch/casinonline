@@ -3,6 +3,7 @@ import { getBriefById } from "@/lib/db/admin-seo-briefs";
 import { loadSemanticContext } from "@/lib/db/admin-relations";
 import { enrichBrief } from "@/lib/seo/brief-enrichment";
 import { buildUrlInventory } from "@/lib/db/url-inventory";
+import { scopeGenerationContext } from "@/lib/ai/context-scope";
 import type { ContentBrief, ContentPageType, ContentPromptInput } from "@/lib/ai/content-prompt";
 
 /**
@@ -45,17 +46,20 @@ export async function loadSectionGenerationInput(
   ]);
   const keywords = [cb.primaryKeyword, ...cb.secondaryKeywords, cb.title].filter(Boolean);
   const enrichment = enrichBrief({ keywords, existingEntities: brief.entities, targetUrl: brief.targetUrl }, registry, relations, topical);
-  const internalLinks = inventory
-    .filter((e) => e.status === "existing")
-    .map((e) => ({ url: e.url, title: e.title }));
+
+  // AI-2.2: scope the context to the brief (not the whole CMS) to bound input tokens.
+  const scoped = scopeGenerationContext(
+    cb, enrichment, registry, relations,
+    inventory.map((e) => ({ url: e.url, title: e.title, status: e.status })),
+  );
 
   return {
     pageType: pageTypeFor(brief.targetUrl),
     brief: cb,
     enrichment,
-    cmsEntities: registry,
-    cmsRelations: relations,
-    internalLinks,
+    cmsEntities: scoped.cmsEntities,
+    cmsRelations: scoped.cmsRelations,
+    internalLinks: scoped.internalLinks,
     sectionId,
   };
 }

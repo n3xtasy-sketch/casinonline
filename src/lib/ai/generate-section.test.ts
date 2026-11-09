@@ -37,7 +37,7 @@ test("requireApiKey + resolveModelConfig (defaults, overrides, retries disabled)
   assert.equal(requireApiKey({ ANTHROPIC_API_KEY: "key" }), "key");
   const d = resolveModelConfig({});
   assert.equal(d.model, "claude-sonnet-5");
-  assert.equal(d.maxTokens, 1500);
+  assert.equal(d.maxTokens, 4000); // AI-2.2: raised hard ceiling; per-section budget drives the request
   assert.equal(d.maxRetries, 0);
   assert.equal(resolveModelConfig({ AI_CONTENT_MODEL: "claude-opus-4-8" }).model, "claude-opus-4-8");
 });
@@ -110,4 +110,16 @@ test("invalid sectionId → no_section AND the model is NOT called (no token spe
 test("prompt warnings are carried through (e.g. missing verified facts)", async () => {
   const r = await runSectionGeneration(INPUT, resp({}));
   assert.ok(r.promptWarnings.some((w) => /Fara fapte verificate/.test(w)));
+});
+
+test("AI-2.2: the per-section output budget is sent to the model (not a fixed 1500)", async () => {
+  let sentMaxTokens = 0;
+  const capture: CompleteFn = async (req) => { sentMaxTokens = req.maxTokens; return { output: GOOD, stopReason: "tool_use", usage: USAGE, model: "claude-sonnet-5" }; };
+  await runSectionGeneration(INPUT, capture); // outline section → budget > 1500
+  assert.ok(sentMaxTokens > 1500, `expected budget > 1500, got ${sentMaxTokens}`);
+});
+
+test("AI-2.2: result carries cost (null in the orchestrator; the action attaches it)", async () => {
+  const r = await runSectionGeneration(INPUT, resp({}));
+  assert.equal(r.cost, null);
 });
