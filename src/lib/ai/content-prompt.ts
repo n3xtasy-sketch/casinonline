@@ -22,6 +22,7 @@ import type { BriefEnrichment } from "@/lib/seo/brief-enrichment";
 import type { EntityRecord } from "@/lib/seo/entity-registry";
 import type { EntityRelation } from "@/lib/seo/entity-relations";
 import { authorPersonaLines, AUTHOR_VOICE_RULES, expertContributionDirective } from "@/lib/ai/author-profile";
+import type { CmsFact } from "@/lib/ai/cms-facts";
 
 export type ContentPageType = "guide" | "casino_review" | "bonus_category" | "operator_evergreen" | "generic";
 
@@ -55,6 +56,8 @@ export interface ContentPromptInput {
   cmsRelations?: EntityRelation[];
   /** Validated internal-link allowlist — the only internal links the model may use. */
   internalLinks?: InternalLink[];
+  /** AI-2.6: verified structured CMS facts (bonus/casino values), already brief-scoped. */
+  cmsFacts?: CmsFact[];
   /** Which section to generate (from listSections). */
   sectionId: string;
 }
@@ -94,7 +97,14 @@ export interface ContentPromptResult {
 }
 
 /** Caps for the DATA block, so input stays bounded even if the caller passes a large context. */
-export const DATA_CAPS = { entities: 30, facts: 30, links: 20 } as const;
+export const DATA_CAPS = { entities: 30, facts: 30, links: 20, cmsFacts: 24 } as const;
+
+/** RO status label for a verified CMS fact (AI-2.6) — differentiates present/verified/expired. */
+function factStatusLabel(f: CmsFact): string {
+  if (f.status === "expired") return "EXPIRAT — NU prezenta ca activ";
+  if (f.status === "verified") return `verificat la ${f.verifiedAt}`;
+  return "prezent (neverificat)";
+}
 
 /**
  * Per-section output budget (AI-2.2) — a MAX, not a target. Intro ~3000; FAQ scales with the number
@@ -247,6 +257,12 @@ export function buildContentPrompt(input: ContentPromptInput): ContentPromptResu
   const linksShown = links.slice(0, DATA_CAPS.links);
   if (links.length > DATA_CAPS.links) warnings.push(`Linkuri trunchiate la ${DATA_CAPS.links} (din ${links.length}).`);
 
+  // AI-2.6: verified structured CMS facts (already brief-scoped by the loader); capped + flagged.
+  const allFacts = input.cmsFacts ?? [];
+  const factsCmsShown = allFacts.slice(0, DATA_CAPS.cmsFacts);
+  if (allFacts.length > DATA_CAPS.cmsFacts) warnings.push(`Fapte CMS trunchiate la ${DATA_CAPS.cmsFacts} (din ${allFacts.length}).`);
+  if (factsCmsShown.some((f) => f.status === "expired")) warnings.push("Exista oferte EXPIRATE in faptele CMS — nu le prezenta ca active.");
+
   const budget = sectionBudget(section, brief);
 
   // ── user prompt ──
@@ -259,6 +275,20 @@ export function buildContentPrompt(input: ContentPromptInput): ContentPromptResu
     "LINKURI INTERNE PERMISE (foloseste doar acestea, exact):",
     linksShown.length ? linksShown.map((l) => `- ${l.url} — ${l.title}`).join("\n") : "- (niciunul)",
     "===== SFARSIT DATE =====",
+  ].join("\n");
+
+  // AI-2.6 — verified structured CMS facts. Each line states value + provenance + verification state +
+  // source. Presence is NOT verification: statuses are differentiated and expired offers are flagged.
+  // NOTE: the DETERMINISTIC sourceRef⇄fact cross-check (validating the model's emitted sourceRef against
+  // these facts) is OUT OF SCOPE here — it is implemented separately in AI-2.7. AI-2.6 only surfaces the
+  // facts + their provenance; the existing validator (content-output.ts) is left unchanged.
+  const CMS_FACTS = [
+    "===== FAPTE CMS VERIFICATE (valori reale din CMS; NU inventa valori lipsa) =====",
+    "Reguli: foloseste DOAR aceste valori pentru cifre (rulaj, sume, rotiri, KYC, valabilitate). Prezenta unei valori NU inseamna ca e verificata — respecta eticheta de stare. NU prezenta ofertele EXPIRATE ca active. Pentru valori fara sursa, formuleaza prudent.",
+    factsCmsShown.length
+      ? factsCmsShown.map((f) => `- ${f.entityName} · ${f.claim}: ${f.value} [stare: ${factStatusLabel(f)}] [sursa: ${f.sourceRef ?? "fara sursa"}] · camp: ${f.field}`).join("\n")
+      : "- (niciun fapt CMS structurat pentru acest brief)",
+    "===== SFARSIT FAPTE CMS =====",
   ].join("\n");
 
   const SUGGESTIONS = [
@@ -277,6 +307,8 @@ export function buildContentPrompt(input: ContentPromptInput): ContentPromptResu
     expertContributionDirective(),
     "",
     DATA,
+    "",
+    CMS_FACTS,
     "",
     SUGGESTIONS,
     "",

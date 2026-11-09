@@ -8,6 +8,7 @@ import {
 import {
   validateGeneratedSection, classifyEntityReference, confirmedEntityKeys, type GeneratedSection,
 } from "@/lib/ai/content-output";
+import type { CmsFact } from "@/lib/ai/cms-facts";
 import type { EntityRecord } from "@/lib/seo/entity-registry";
 import type { EntityRelation } from "@/lib/seo/entity-relations";
 import type { BriefEnrichment } from "@/lib/seo/brief-enrichment";
@@ -295,4 +296,63 @@ test("user prompt carries the expert-contribution directive + section-specific w
   const bfaq = { ...BRIEF, faq: [{ question: "Ce este?", answer: "" }] };
   const faq = buildContentPrompt(input({ brief: bfaq, sectionId: "faq" }))!;
   assert.match(faq.userPrompt, /\[STIL FAQ\]/);
+});
+
+// ════════════════════════ AI-2.6 VERIFIED CMS FACT SURFACING ════════════════════════
+const fact = (over: Partial<CmsFact> = {}): CmsFact => ({
+  factId: "bonus:b1:wagering", entityId: "bonus:b1", entityName: "Bonus Netbet",
+  claim: "rulaj (wagering)", value: "30x pe bonus", field: "bonuses.wagering_multiplier",
+  verifiedAt: "2026-06-01", sourceRef: "https://netbet.ro/terms", status: "verified", ...over,
+});
+
+test("[FAPTE CMS VERIFICATE] block renders value + status + source + provenance field", () => {
+  const r = buildContentPrompt(input({ cmsFacts: [fact()] }))!;
+  assert.match(r.userPrompt, /FAPTE CMS VERIFICATE/);
+  const block = r.userPrompt.slice(r.userPrompt.indexOf("FAPTE CMS VERIFICATE"), r.userPrompt.indexOf("SFARSIT FAPTE CMS"));
+  assert.match(block, /Bonus Netbet · rulaj \(wagering\): 30x pe bonus/);
+  assert.match(block, /verificat la 2026-06-01/); // status label
+  assert.match(block, /https:\/\/netbet\.ro\/terms/); // source
+  assert.match(block, /camp: bonuses\.wagering_multiplier/); // provenance
+  assert.match(block, /NU inventa valori lipsa/i); // safety instruction
+});
+
+test("CMS fact statuses are differentiated: present / verified / expired / fara sursa", () => {
+  const facts = [
+    fact({ factId: "bonus:b1:present", status: "present", verifiedAt: null, value: "20x", claim: "rulaj" }),
+    fact({ factId: "bonus:b2:nosrc", sourceRef: null, value: "500 RON", claim: "valoare bonus" }),
+    fact({ factId: "bonus:b3:exp", status: "expired", value: "oferta", claim: "valabilitate", entityName: "Bonus Vechi" }),
+  ];
+  const r = buildContentPrompt(input({ cmsFacts: facts }))!;
+  const block = r.userPrompt.slice(r.userPrompt.indexOf("FAPTE CMS VERIFICATE"), r.userPrompt.indexOf("SFARSIT FAPTE CMS"));
+  assert.match(block, /prezent \(neverificat\)/);
+  assert.match(block, /fara sursa/);
+  assert.match(block, /EXPIRAT — NU prezenta ca activ/);
+});
+
+test("expired CMS facts are flagged in warnings (do not present as active)", () => {
+  const r = buildContentPrompt(input({ cmsFacts: [fact({ status: "expired" })] }))!;
+  assert.ok(r.warnings.some((w) => /EXPIRATE in faptele CMS/.test(w)));
+});
+
+test("no CMS facts → explicit empty line (no fabrication)", () => {
+  const r = buildContentPrompt(input({ cmsFacts: [] }))!;
+  assert.match(r.userPrompt, /niciun fapt CMS structurat/);
+});
+
+test("CMS facts are capped to DATA_CAPS.cmsFacts + flagged (bounds input tokens, AI-2.2)", () => {
+  const many: CmsFact[] = Array.from({ length: DATA_CAPS.cmsFacts + 5 }, (_, i) => fact({ factId: `bonus:b${i}:w`, entityName: `Bonus ${i}` }));
+  const r = buildContentPrompt(input({ cmsFacts: many }))!;
+  assert.ok(r.warnings.some((w) => /Fapte CMS trunchiate la 24/.test(w)));
+  const block = r.userPrompt.slice(r.userPrompt.indexOf("FAPTE CMS VERIFICATE"), r.userPrompt.indexOf("SFARSIT FAPTE CMS"));
+  assert.ok((block.match(/^- /gm) ?? []).length <= DATA_CAPS.cmsFacts);
+  assert.ok(r.maxTokens >= 1500); // token budget preserved
+});
+
+test("AI-2.4 compatibility: author voice + CMS facts coexist in the prompt", () => {
+  const r = buildContentPrompt(input({ cmsFacts: [fact()] }))!;
+  assert.match(r.systemPrompt, /Radu Bogdan Gabriel/); // author voice intact
+  assert.match(r.userPrompt, /FAPTE CMS VERIFICATE/); // facts present
+  assert.match(r.userPrompt, /\[CONTRIBUTIE\]/); // expert directive intact
+  // the existing validator still accepts a clean grounded section unchanged by AI-2.6
+  assert.equal(validateGeneratedSection(GOOD, input({ cmsFacts: [fact()] })).ok, true);
 });

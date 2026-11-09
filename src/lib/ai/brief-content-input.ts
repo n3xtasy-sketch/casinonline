@@ -1,9 +1,12 @@
 import "server-only";
 import { getBriefById } from "@/lib/db/admin-seo-briefs";
 import { loadSemanticContext } from "@/lib/db/admin-relations";
+import { loadCmsFactRows } from "@/lib/db/admin-cms-facts";
 import { enrichBrief } from "@/lib/seo/brief-enrichment";
 import { buildUrlInventory } from "@/lib/db/url-inventory";
 import { scopeGenerationContext } from "@/lib/ai/context-scope";
+import { buildCmsFacts, scopeCmsFacts } from "@/lib/ai/cms-facts";
+import { DATA_CAPS } from "@/lib/ai/content-prompt";
 import type { ContentBrief, ContentPageType, ContentPromptInput } from "@/lib/ai/content-prompt";
 
 /**
@@ -40,9 +43,10 @@ export async function loadSectionGenerationInput(
     faq: brief.faq,
   };
 
-  const [{ registry, relations, topical }, inventory] = await Promise.all([
+  const [{ registry, relations, topical }, inventory, factRows] = await Promise.all([
     loadSemanticContext(),
     buildUrlInventory(), // published only → existing internal links
+    loadCmsFactRows(), // AI-2.6: structured bonus/casino columns
   ]);
   const keywords = [cb.primaryKeyword, ...cb.secondaryKeywords, cb.title].filter(Boolean);
   const enrichment = enrichBrief({ keywords, existingEntities: brief.entities, targetUrl: brief.targetUrl }, registry, relations, topical);
@@ -53,6 +57,10 @@ export async function loadSectionGenerationInput(
     inventory.map((e) => ({ url: e.url, title: e.title, status: e.status })),
   );
 
+  // AI-2.6: extract structured CMS facts, then scope them to the brief graph (never the whole CMS).
+  const today = new Date().toISOString().slice(0, 10);
+  const cmsFacts = scopeCmsFacts(buildCmsFacts(factRows, today), scoped, DATA_CAPS.cmsFacts).facts;
+
   return {
     pageType: pageTypeFor(brief.targetUrl),
     brief: cb,
@@ -60,6 +68,7 @@ export async function loadSectionGenerationInput(
     cmsEntities: scoped.cmsEntities,
     cmsRelations: scoped.cmsRelations,
     internalLinks: scoped.internalLinks,
+    cmsFacts,
     sectionId,
   };
 }
