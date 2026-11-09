@@ -7,7 +7,11 @@ import {
 } from "@/app/admin/(panel)/content-studio/actions";
 import { generateBriefSectionAction } from "@/app/admin/(panel)/seo-research/[id]/briefs/ai-actions";
 import type { SectionGenerationResult } from "@/lib/ai/generate-section";
-import { errorLabel, isDirty, needsRegenerateConfirm } from "@/lib/ai/content-studio-model";
+import {
+  errorLabel, isDirty, needsRegenerateConfirm,
+  factualReviewRows, rowsInGroup, verdictLabel, nonClaimMessages,
+  type ClaimGroup, type FactualReviewRow,
+} from "@/lib/ai/content-studio-model";
 import { AUTHOR_PROFILE } from "@/lib/ai/author-profile";
 
 const input = "h-10 rounded-sm border border-border bg-field px-3 text-sm text-ink outline-none focus-visible:border-accent";
@@ -16,6 +20,35 @@ const chip = "inline-flex rounded-full bg-elevated px-2 py-0.5 text-[11px] text-
 
 const sectionLabel = (s: StudioBrief["sections"][number]) =>
   `${s.kind === "intro" ? "Intro" : s.kind === "faq" ? "FAQ" : `H${s.level}`} · ${s.heading}`;
+
+// AI-2.7.1 — Factual Review groups. Supported (accent), editorial review (gold), blocked (danger).
+const GROUP_META: Record<ClaimGroup, { box: string; text: string; label: string }> = {
+  supported: { box: "border-accent/40 bg-accent/5", text: "text-accent", label: "Sustinute de fapte CMS verificate" },
+  review: { box: "border-gold/40 bg-gold/10", text: "text-gold", label: "Necesita verificare editoriala" },
+  blocked: { box: "border-danger/40 bg-danger/10", text: "text-danger", label: "Respinse (factual) — blocheaza sectiunea" },
+};
+
+function FactualGroup({ group, rows }: { group: ClaimGroup; rows: FactualReviewRow[] }) {
+  if (!rows.length) return null;
+  const m = GROUP_META[group];
+  return (
+    <div className={`flex flex-col gap-1.5 rounded-sm border p-2.5 ${m.box}`}>
+      <span className={`text-[12px] font-semibold ${m.text}`}>{m.label} ({rows.length})</span>
+      <ul className="flex flex-col gap-2">
+        {rows.map((r, i) => (
+          <li key={i} className="text-[12px]">
+            <div className="text-ink">{r.claim}</div>
+            <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-ink-muted">
+              <span className={`${chip} ${m.text}`}>{verdictLabel(r.verdict)}</span>
+              <span>sursa: <span className="font-mono text-ink-secondary">{r.sourceRef ?? "fara sursa"}</span></span>
+            </div>
+            {r.reason ? <div className="mt-0.5 text-ink-muted">{r.reason}</div> : null}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 export function ContentStudio({ projects }: { projects: { id: string; name: string }[] }) {
   const [projectId, setProjectId] = useState("");
@@ -139,12 +172,41 @@ export function ContentStudio({ projects }: { projects: { id: string; name: stri
         </p>
       ) : null}
 
-      {/* Erori de VALIDARE FACTUALA (grounding) — blocheaza acceptarea secțiunii */}
+      {/* Erori blocante (grounding, non-factual-claim — cele factuale apar structurat in panoul de mai jos) */}
       {result && !result.ok ? (
         <div className="flex flex-col gap-1 rounded-md border border-danger/40 bg-danger/10 p-3 text-sm">
           <span className="font-semibold text-danger">{errorLabel(result.errorKind ?? "api_error").label}</span>
           <span className="text-ink-secondary">{result.error}</span>
-          {result.validation?.errors.length ? <ul className="mt-1 list-disc pl-5 text-[12px] text-ink-muted">{result.validation.errors.map((e, i) => <li key={i}>{e}</li>)}</ul> : null}
+          {nonClaimMessages(result.validation?.errors).length ? (
+            <ul className="mt-1 list-disc pl-5 text-[12px] text-ink-muted">{nonClaimMessages(result.validation?.errors).map((e, i) => <li key={i}>{e}</li>)}</ul>
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* AI-2.7.1 — Verificare factuala (sourceRef + claimChecks), grupata pe verdict */}
+      {result?.validation?.claimChecks?.length ? (() => {
+        const rows = factualReviewRows(result.section?.factualClaims, result.validation.claimChecks);
+        return (
+          <section className="flex flex-col gap-2 rounded-md border border-border bg-surface p-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-ink">Verificare factuala</h3>
+              <span className="text-[11px] text-ink-muted">{rows.length} afirmatii</span>
+            </div>
+            <FactualGroup group="blocked" rows={rowsInGroup(rows, "blocked")} />
+            <FactualGroup group="review" rows={rowsInGroup(rows, "review")} />
+            <FactualGroup group="supported" rows={rowsInGroup(rows, "supported")} />
+            <p className="text-[11px] text-ink-muted">Verdictele provin din verificarea determinista a surselor. „Sustinut” nu inseamna aprobare editoriala finala.</p>
+          </section>
+        );
+      })() : null}
+
+      {/* AI-2.7.1 — Alte avertismente de validare (non-claim: cifre nesursate, keyword stuffing) */}
+      {nonClaimMessages(result?.validation?.warnings).length ? (
+        <div className="flex flex-col gap-1 rounded-md border border-gold/40 bg-gold/5 p-3 text-sm">
+          <span className="font-semibold text-gold">Avertismente de validare</span>
+          <ul className="list-disc pl-5 text-[12px] text-ink-secondary">
+            {nonClaimMessages(result?.validation?.warnings).map((w, i) => <li key={i}>{w}</li>)}
+          </ul>
         </div>
       ) : null}
 

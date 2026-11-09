@@ -28,6 +28,25 @@ test("Content Studio UI reuses the AI-1 server action and never auto-saves / sen
   assert.match(c, /Se generează/); // loading indicator
 });
 
+test("AI-2.7.1: Content Studio renders the grouped Factual Review panel + a separate validation-warnings section", () => {
+  const c = read("src/components/admin/ContentStudio.tsx");
+  // the three verdict groups are rendered from claimChecks
+  assert.match(c, /Verificare factuala/);
+  assert.match(c, /claimChecks/);
+  assert.match(c, /factualReviewRows\(result\.section\?\.factualClaims, result\.validation\.claimChecks\)/);
+  assert.match(c, /group="blocked"/);
+  assert.match(c, /group="review"/);
+  assert.match(c, /group="supported"/);
+  // validation.warnings shown in a SEPARATE section, deduped against per-claim lines
+  assert.match(c, /Avertismente de validare/);
+  assert.match(c, /nonClaimMessages\(result\?\.validation\?\.warnings\)/);
+  // blocking errors also exclude the per-claim lines (shown structured in the panel) → no visual dupes
+  assert.match(c, /nonClaimMessages\(result\.validation\?\.errors\)/);
+  // safety: no secrets / prompts / AI calls / persistence in the client
+  assert.doesNotMatch(c, /systemPrompt|userPrompt|ANTHROPIC|sk-ant/);
+  assert.doesNotMatch(c, /\.(insert|update|delete|upsert)\(/);
+});
+
 test("Content Studio page is server-rendered from real projects", () => {
   const p = read("src/app/admin/(panel)/content-studio/page.tsx");
   assert.match(p, /listSeoProjects/);
