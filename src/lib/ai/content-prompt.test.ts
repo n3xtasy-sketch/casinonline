@@ -9,6 +9,7 @@ import {
   validateGeneratedSection, classifyEntityReference, confirmedEntityKeys, type GeneratedSection,
 } from "@/lib/ai/content-output";
 import type { CmsFact } from "@/lib/ai/cms-facts";
+import type { AuthorKnowledge } from "@/lib/ai/author-knowledge";
 import type { EntityRecord } from "@/lib/seo/entity-registry";
 import type { EntityRelation } from "@/lib/seo/entity-relations";
 import type { BriefEnrichment } from "@/lib/seo/brief-enrichment";
@@ -413,6 +414,40 @@ test("AI-2.7 + AI-2.6.1: a DISCOVERED entity's fact is a valid source, yet the e
   // but naming the discovered entity in entitiesUsed is still rejected (not promoted to confirmed)
   const named = validateGeneratedSection({ ...GOOD, entitiesUsed: ["Bonus Descoperit"] }, inp);
   assert.equal(named.ok, false);
+});
+
+// ════════════════════════ AI-2.9B AUTHOR KNOWLEDGE IN PROMPT (isolated from facts) ════════════════════════
+const AK: AuthorKnowledge = {
+  id: "wagering-basis-explainer", category: "expert_explanation", title: "Baza de calcul a rulajului",
+  content: "Rulajul arata de cate ori trebuie pariata o suma inainte de retragere.",
+  author: "radu-bogdan-gabriel", provenance: "author_expertise", status: "published",
+  applicability: { topics: ["rulaj"] },
+};
+
+test("AI-2.9B: [CUNOASTERE AUTOR] block is rendered + labelled as interpretation (not facts)", () => {
+  const r = buildContentPrompt(input({ authorKnowledge: [AK] }))!;
+  assert.match(r.userPrompt, /CUNOASTERE AUTOR/);
+  assert.match(r.userPrompt, /NU reprezinta fapte verificate despre operatori sau bonusuri/);
+  assert.match(r.userPrompt, /\[wagering-basis-explainer\] \(expert_explanation\) Baza de calcul/);
+  assert.match(r.userPrompt, /Nu o cita ca sursa in factualClaims/);
+});
+
+test("AI-2.9B isolation: author knowledge does NOT become a confirmed entity / factual source", () => {
+  const inp = input({ authorKnowledge: [AK] });
+  // its title is NOT mentionable as an entity
+  assert.equal(validateGeneratedSection({ ...GOOD, entitiesUsed: ["Baza de calcul a rulajului"] }, inp).ok, false);
+  // citing the knowledge id as a factual source → invented (not in the factual allowlist)
+  const cited = validateGeneratedSection({ ...GOOD, factualClaims: [{ claim: "rulaj 30x", sourceRef: "wagering-basis-explainer" }] }, inp);
+  assert.equal(cited.ok, false);
+  assert.ok(cited.claimChecks?.some((c) => c.verdict === "invented"));
+});
+
+test("AI-2.9B compatibility: author voice + CMS facts + author knowledge coexist; validator unchanged", () => {
+  const r = buildContentPrompt(input({ authorKnowledge: [AK], cmsFacts: [fact()] }))!;
+  assert.match(r.systemPrompt, /Radu Bogdan Gabriel/); // AI-2.4
+  assert.match(r.userPrompt, /FAPTE CMS VERIFICATE/); // AI-2.6
+  assert.match(r.userPrompt, /CUNOASTERE AUTOR/); // AI-2.9B
+  assert.equal(validateGeneratedSection(GOOD, input({ authorKnowledge: [AK] })).ok, true); // AI-2.7 intact
 });
 
 // AI-2.6.1 — reverse-discovered facts are LABELLED + do not become confirmed/mentionable entities.

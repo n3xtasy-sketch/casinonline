@@ -171,3 +171,17 @@ test("AI-2.4: editorial is null when there is no usable content (max_tokens / pa
   assert.equal((await runSectionGeneration(INPUT, resp({ stopReason: "max_tokens" }))).editorial, null);
   assert.equal((await runSectionGeneration(INPUT, resp({ output: null, stopReason: "end_turn" }))).editorial, null);
 });
+
+// ── AI-2.9B: author-knowledge observability (ids / count / estimated tokens) ──
+test("AI-2.9B: result reports the scoped author-knowledge selection metadata", async () => {
+  const withK = { ...INPUT, authorKnowledge: [{ id: "wagering-basis-explainer", category: "expert_explanation" as const, title: "T", content: "continut suficient de lung pentru estimare", author: "radu-bogdan-gabriel", provenance: "author_expertise" as const, status: "published" as const, applicability: { topics: ["rulaj"] } }] };
+  const r = await runSectionGeneration(withK, resp({}));
+  assert.deepEqual(r.knowledge?.selectedKnowledgeIds, ["wagering-basis-explainer"]);
+  assert.equal(r.knowledge?.selectedKnowledgeCount, 1);
+  assert.ok((r.knowledge?.estimatedKnowledgeTokens ?? 0) > 0);
+});
+
+test("AI-2.9B: no author knowledge → count 0 (no crash)", async () => {
+  const r = await runSectionGeneration(INPUT, resp({}));
+  assert.equal(r.knowledge?.selectedKnowledgeCount, 0);
+});

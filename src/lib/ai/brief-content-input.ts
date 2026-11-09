@@ -7,7 +7,8 @@ import { buildUrlInventory } from "@/lib/db/url-inventory";
 import { scopeGenerationContext, type ScopedContext } from "@/lib/ai/context-scope";
 import { buildCmsFacts, scopeCmsFacts, type CmsFact } from "@/lib/ai/cms-facts";
 import { buildFactScopingDiagnostic, type FactScopingDiagnostic } from "@/lib/ai/fact-diagnostics";
-import { DATA_CAPS } from "@/lib/ai/content-prompt";
+import { AUTHOR_KNOWLEDGE, selectAuthorKnowledge, type AuthorKnowledge } from "@/lib/ai/author-knowledge";
+import { DATA_CAPS, listSections } from "@/lib/ai/content-prompt";
 import type { BriefEnrichment } from "@/lib/seo/brief-enrichment";
 import type { ContentBrief, ContentPageType, ContentPromptInput } from "@/lib/ai/content-prompt";
 
@@ -91,6 +92,22 @@ export async function loadSectionGenerationInput(
   const a = await assembleScopedBrief(projectId, briefId);
   if (!a) return null;
 
+  // AI-2.9B: scope the author-knowledge to THIS section (deterministic, capped) — interpretation only.
+  const section = listSections(a.cb).find((s) => s.id === sectionId);
+  let authorKnowledge: AuthorKnowledge[] = [];
+  if (section) {
+    const relevantEntityIds = [...a.scoped.cmsEntities, ...a.scoped.discoveredEntities].map((e) => e.id);
+    authorKnowledge = selectAuthorKnowledge(AUTHOR_KNOWLEDGE, {
+      pageType: a.pageType,
+      searchIntent: a.cb.intent,
+      sectionKind: section.kind,
+      sectionHeading: section.heading,
+      primaryKeyword: a.cb.primaryKeyword,
+      secondaryKeywords: a.cb.secondaryKeywords,
+      relevantEntityIds,
+    });
+  }
+
   return {
     pageType: a.pageType,
     brief: a.cb,
@@ -100,6 +117,7 @@ export async function loadSectionGenerationInput(
     internalLinks: a.scoped.internalLinks,
     cmsFacts: a.selectedFacts,
     discoveredEntities: a.scoped.discoveredEntities, // AI-2.6.1: non-confirmed, for fact names only
+    authorKnowledge, // AI-2.9B: scoped interpretation/guidance (never a factual source)
     sectionId,
   };
 }

@@ -1,9 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  AUTHOR_KNOWLEDGE, KNOWLEDGE_CATEGORIES, KNOWLEDGE_STATUSES,
+  AUTHOR_KNOWLEDGE, KNOWLEDGE_CATEGORIES, KNOWLEDGE_STATUSES, KNOWLEDGE_CAP,
   validateKnowledgeEntry, validateKnowledgeRegistry, publishedKnowledge,
-  type AuthorKnowledge,
+  selectAuthorKnowledge, estimateKnowledgeTokens, knowledgeSelectionMeta,
+  type AuthorKnowledge, type KnowledgeContext,
 } from "@/lib/ai/author-knowledge";
 import { isKnownAuthor } from "@/lib/authors";
 import { readFileSync } from "node:fs";
@@ -86,6 +87,69 @@ test("publishedKnowledge returns only published entries", () => {
   const list = [base({ id: "a", status: "published" }), base({ id: "b", status: "draft" }), base({ id: "c", status: "archived" })];
   assert.deepEqual(publishedKnowledge(list).map((k) => k.id), ["a"]);
   assert.ok(publishedKnowledge().length === AUTHOR_KNOWLEDGE.length); // seed registry is all published
+});
+
+// ── AI-2.9B: scoped retrieval ────────────────────────────────────────────────────
+const ctx = (over: Partial<KnowledgeContext> = {}): KnowledgeContext => ({
+  pageType: "bonus_category", searchIntent: "informational", sectionKind: "outline",
+  sectionHeading: "", primaryKeyword: "bonus fara depunere", secondaryKeywords: [], relevantEntityIds: [], ...over,
+});
+const ids = (list: AuthorKnowledge[]) => list.map((k) => k.id);
+
+test("selection for rulaj: picks the wagering explainer", () => {
+  const sel = selectAuthorKnowledge(AUTHOR_KNOWLEDGE, ctx({ sectionHeading: "Cum se calculeaza rulajul bonusului" }));
+  assert.ok(ids(sel).includes("wagering-basis-explainer"));
+});
+
+test("selection for KYC: picks the KYC entry; FAQ guidance excluded on a non-FAQ section", () => {
+  const sel = selectAuthorKnowledge(AUTHOR_KNOWLEDGE, ctx({ sectionHeading: "Verificarea KYC la bonusurile fara depunere", sectionKind: "outline" }));
+  assert.ok(ids(sel).includes("kyc-and-claiming"));
+  assert.ok(!ids(sel).includes("faq-writing-guidance")); // sectionKinds gate (faq only)
+});
+
+test("selection for FAQ: includes FAQ writing guidance + the topic-relevant explainer", () => {
+  const sel = selectAuthorKnowledge(AUTHOR_KNOWLEDGE, ctx({ sectionKind: "faq", sectionHeading: "Ce rulaj are bonusul fara depunere?" }));
+  assert.ok(ids(sel).includes("faq-writing-guidance"));
+  assert.ok(ids(sel).includes("wagering-basis-explainer"));
+});
+
+test("section with no matches → empty (pageType/intent alone is not enough)", () => {
+  const sel = selectAuthorKnowledge(AUTHOR_KNOWLEDGE, ctx({ pageType: "guide", sectionKind: "intro", sectionHeading: "Istoria jocurilor de noroc", primaryKeyword: "istorie cazino", secondaryKeywords: [] }));
+  assert.deepEqual(sel, []);
+});
+
+test("excludes draft/archived entries even on a perfect topic match", () => {
+  const reg: AuthorKnowledge[] = [
+    { ...AUTHOR_KNOWLEDGE[0], id: "draft-rulaj", status: "draft" },
+    { ...AUTHOR_KNOWLEDGE[0], id: "archived-rulaj", status: "archived" },
+  ];
+  assert.deepEqual(selectAuthorKnowledge(reg, ctx({ sectionHeading: "rulaj bonus" })), []);
+});
+
+test("caps at KNOWLEDGE_CAP (4) + entityId match contributes", () => {
+  const sel = selectAuthorKnowledge(AUTHOR_KNOWLEDGE, ctx({
+    sectionHeading: "rulaj castig maxim kyc jocuri eligibile valabilitate comparatie",
+    primaryKeyword: "bonus fara depunere rulaj castig kyc", relevantEntityIds: ["bonus_type:fara-depunere"],
+  }));
+  assert.ok(sel.length <= KNOWLEDGE_CAP);
+  assert.equal(sel.length, 4);
+});
+
+test("deterministic order + no duplicates (stable across runs, tie-break by id)", () => {
+  const c = ctx({ sectionHeading: "rulaj si castig maxim", primaryKeyword: "bonus fara depunere rulaj castig" });
+  const a = ids(selectAuthorKnowledge(AUTHOR_KNOWLEDGE, c));
+  const b = ids(selectAuthorKnowledge(AUTHOR_KNOWLEDGE, c));
+  assert.deepEqual(a, b);
+  assert.equal(new Set(a).size, a.length);
+});
+
+test("token estimate + selection meta (documented ~4 chars/token)", () => {
+  const sel = selectAuthorKnowledge(AUTHOR_KNOWLEDGE, ctx({ sectionHeading: "rulaj bonus" }));
+  const meta = knowledgeSelectionMeta(sel);
+  assert.equal(meta.selectedKnowledgeCount, sel.length);
+  assert.deepEqual(meta.selectedKnowledgeIds, sel.map((k) => k.id));
+  assert.ok(meta.estimatedKnowledgeTokens > 0);
+  assert.equal(estimateKnowledgeTokens([]), 0);
 });
 
 // ── PASUL 4: FACTUAL ISOLATION (source-regression — no coupling in either direction) ──

@@ -208,3 +208,92 @@ export function validateKnowledgeRegistry(list: readonly AuthorKnowledge[] = AUT
 export function publishedKnowledge(list: readonly AuthorKnowledge[] = AUTHOR_KNOWLEDGE): AuthorKnowledge[] {
   return list.filter((k) => k.status === "published");
 }
+
+// ── AI-2.9B Scoped retrieval (pure, deterministic — no AI, embeddings or external calls) ────────────
+export const KNOWLEDGE_CAP = 4;
+
+/** Everything the selector needs to decide relevance for ONE section. */
+export interface KnowledgeContext {
+  pageType: ContentPageType;
+  searchIntent: string | null;
+  sectionKind: SectionKind;
+  /** Section heading, or the FAQ question text. */
+  sectionHeading: string;
+  primaryKeyword: string;
+  secondaryKeywords: string[];
+  /** Brief-scoped entity ids ("<type>:<cmsId>") — the same ids the fact scoping uses. */
+  relevantEntityIds: string[];
+}
+
+const lc = (s: string) => s.toLowerCase();
+
+/**
+ * Select the author-knowledge entries relevant to a section. Deterministic scoring + stable id tie-break,
+ * capped. Priority (high→low): (1) concrete section relevance, (2) subject/topic match, (3) page type +
+ * intent, (4) relevant entities. pageType/intent ALONE is never enough — an entry must have a section,
+ * topic or entity reason. writing_guidance applies only to the section kind its applicability declares.
+ */
+export function selectAuthorKnowledge(
+  registry: readonly AuthorKnowledge[],
+  ctx: KnowledgeContext,
+  cap: number = KNOWLEDGE_CAP,
+): AuthorKnowledge[] {
+  const headingText = lc(ctx.sectionHeading);
+  const keywordText = lc([ctx.primaryKeyword, ...ctx.secondaryKeywords].filter(Boolean).join(" "));
+  const relevantIds = new Set(ctx.relevantEntityIds);
+
+  const scored: { entry: AuthorKnowledge; score: number }[] = [];
+  for (const e of registry) {
+    if (e.status !== "published") continue; // ELIGIBILITY: published only
+    const a = e.applicability;
+
+    // Hard gates: a SET dimension that the context fails to match excludes the entry.
+    if (a.pageTypes && !a.pageTypes.includes(ctx.pageType)) continue;
+    if (a.sectionKinds && !a.sectionKinds.includes(ctx.sectionKind)) continue; // FAQ guidance → only FAQ
+    if (a.intents && ctx.searchIntent && !a.intents.includes(ctx.searchIntent)) continue;
+
+    const sectionSpecific = !!a.sectionKinds && a.sectionKinds.includes(ctx.sectionKind);
+    const topics = a.topics ?? [];
+    const headingTopicHits = topics.filter((t) => headingText.includes(lc(t))).length;
+    const keywordTopicHits = topics.filter((t) => keywordText.includes(lc(t))).length;
+    const entityMatch = (a.entityIds ?? []).some((id) => relevantIds.has(id));
+    const pageTypeMatch = !!a.pageTypes && a.pageTypes.includes(ctx.pageType);
+    const intentMatch = !!a.intents && !!ctx.searchIntent && a.intents.includes(ctx.searchIntent);
+    const isGuidance = e.category === "writing_guidance";
+
+    // Relevance requirement: a generic pageType/intent match is NOT sufficient. writing_guidance is
+    // relevant by its declared section kind; other categories need a topic or entity signal.
+    const relevant = (isGuidance && sectionSpecific) || headingTopicHits > 0 || keywordTopicHits > 0 || entityMatch;
+    if (!relevant) continue;
+
+    const score =
+      (sectionSpecific ? 50 : 0) +      // (1) concrete section relevance
+      headingTopicHits * 20 +           // (1/2) subject in the actual heading
+      keywordTopicHits * 12 +           // (2) subject in the brief keywords
+      (pageTypeMatch ? 6 : 0) + (intentMatch ? 4 : 0) + // (3) page type + intent
+      (entityMatch ? 2 : 0);            // (4) relevant entities
+    scored.push({ entry: e, score });
+  }
+
+  scored.sort((x, y) => y.score - x.score || x.entry.id.localeCompare(y.entry.id));
+  return scored.slice(0, cap).map((s) => s.entry);
+}
+
+/** Simple DOCUMENTED token estimate (~4 chars/token over title + content). No tokenizer dependency. */
+export function estimateKnowledgeTokens(entries: readonly AuthorKnowledge[]): number {
+  const chars = entries.reduce((n, e) => n + e.title.length + e.content.length, 0);
+  return Math.ceil(chars / 4);
+}
+
+export interface KnowledgeSelectionMeta {
+  selectedKnowledgeIds: string[];
+  selectedKnowledgeCount: number;
+  estimatedKnowledgeTokens: number;
+}
+export function knowledgeSelectionMeta(entries: readonly AuthorKnowledge[]): KnowledgeSelectionMeta {
+  return {
+    selectedKnowledgeIds: entries.map((e) => e.id),
+    selectedKnowledgeCount: entries.length,
+    estimatedKnowledgeTokens: estimateKnowledgeTokens(entries),
+  };
+}

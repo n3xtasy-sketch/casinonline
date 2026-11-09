@@ -169,6 +169,7 @@ export function ContentStudio({ projects }: { projects: { id: string; name: stri
           {result.stopReason ? <> · stop: <span className="text-ink-secondary">{result.stopReason}</span></> : null}
           {" · cost: "}
           <span className="text-ink-secondary">{result.cost ? `${result.cost.total.toFixed(4)} ${result.cost.currency}` : "tarife neconfigurate"}</span>
+          {result.knowledge ? <> · cunoastere autor: <span className="text-ink-secondary">{result.knowledge.selectedKnowledgeCount} (~{result.knowledge.estimatedKnowledgeTokens} tok)</span></> : null}
         </p>
       ) : null}
 

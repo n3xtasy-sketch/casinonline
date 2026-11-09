@@ -10,6 +10,7 @@
 import { buildContentPrompt, type ContentPromptInput } from "@/lib/ai/content-prompt";
 import { validateGeneratedSection, type GeneratedSection, type ValidationResult } from "@/lib/ai/content-output";
 import { editorialQualityCheck, type EditorialReport } from "@/lib/ai/quality-gate";
+import { knowledgeSelectionMeta, type KnowledgeSelectionMeta } from "@/lib/ai/author-knowledge";
 import type { CostEstimate } from "@/lib/ai/cost";
 
 export interface CompleteRequest {
@@ -52,6 +53,8 @@ export interface SectionGenerationResult {
   /** AI-2.4: ADVISORY editorial quality report (style). Separate from factual `validation`; never
    *  affects `ok`. Null when there is no usable content (no section / truncated / parse error). */
   editorial: EditorialReport | null;
+  /** AI-2.9B: observability for the scoped author-knowledge selection (ids/count/estimated tokens). */
+  knowledge: KnowledgeSelectionMeta | null;
 }
 
 // ── pure config/env helpers (no SDK) ──────────────────────────────────────────────
@@ -109,7 +112,7 @@ export async function runSectionGeneration(
   complete: CompleteFn,
   opts: { maxTokens?: number } = {},
 ): Promise<SectionGenerationResult> {
-  const empty = { usage: null as ModelUsage | null, model: null as string | null, stopReason: null as string | null, cost: null as CostEstimate | null, editorial: null as EditorialReport | null };
+  const empty = { usage: null as ModelUsage | null, model: null as string | null, stopReason: null as string | null, cost: null as CostEstimate | null, editorial: null as EditorialReport | null, knowledge: null as KnowledgeSelectionMeta | null };
   const prompt = buildContentPrompt(input);
   if (!prompt) {
     return { ok: false, section: null, validation: null, promptWarnings: [], error: `Secțiune inexistentă: ${input.sectionId}`, errorKind: "no_section", ...empty };
@@ -124,7 +127,7 @@ export async function runSectionGeneration(
     return { ok: false, section: null, validation: null, promptWarnings: prompt.warnings, error: message, errorKind: kind, ...empty };
   }
 
-  const meta = { promptWarnings: prompt.warnings, usage: resp.usage, model: resp.model, stopReason: resp.stopReason, cost: null as CostEstimate | null, editorial: null as EditorialReport | null };
+  const meta = { promptWarnings: prompt.warnings, usage: resp.usage, model: resp.model, stopReason: resp.stopReason, cost: null as CostEstimate | null, editorial: null as EditorialReport | null, knowledge: knowledgeSelectionMeta(input.authorKnowledge ?? []) };
 
   // Explicit truncation detection — a cut-off structured output is unusable.
   if (resp.stopReason === "max_tokens") {
