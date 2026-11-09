@@ -131,10 +131,16 @@ export async function runSectionGeneration(
     return { ok: false, section: null, validation: null, error: "Modelul nu a returnat output structurat.", errorKind: "parse_error", ...meta };
   }
 
-  const validation = validateGeneratedSection(resp.output, input);
+  // AI-2.3: sectionId is SERVER-controlled. Stamp the requested id onto the output (overwriting /
+  // injecting it) so the model can never invent or modify the section identifier.
+  const output = typeof resp.output === "object" && resp.output !== null
+    ? { ...(resp.output as Record<string, unknown>), sectionId: prompt.sectionId }
+    : resp.output;
+
+  const validation = validateGeneratedSection(output, input);
   if (!validation.ok) {
-    return { ok: false, section: resp.output as GeneratedSection, validation, error: "Output respins de validare (vezi detaliile).", errorKind: "invalid_output", ...meta };
+    return { ok: false, section: output as GeneratedSection, validation, error: "Output respins de validare (vezi detaliile).", errorKind: "invalid_output", ...meta };
   }
 
-  return { ok: true, section: resp.output as GeneratedSection, validation, error: null, errorKind: null, ...meta };
+  return { ok: true, section: output as GeneratedSection, validation, error: null, errorKind: null, ...meta };
 }

@@ -5,7 +5,9 @@ import {
   buildContentPrompt, listSections, GROUNDING_RULES, sectionBudget, DATA_CAPS,
   type ContentBrief, type ContentPromptInput,
 } from "@/lib/ai/content-prompt";
-import { validateGeneratedSection, type GeneratedSection } from "@/lib/ai/content-output";
+import {
+  validateGeneratedSection, classifyEntityReference, confirmedEntityKeys, type GeneratedSection,
+} from "@/lib/ai/content-output";
 import type { EntityRecord } from "@/lib/seo/entity-registry";
 import type { EntityRelation } from "@/lib/seo/entity-relations";
 import type { BriefEnrichment } from "@/lib/seo/brief-enrichment";
@@ -177,6 +179,21 @@ test("validator: keyword stuffing + unsourced numeric → warnings (not hard err
   assert.ok(vn.warnings.some((w) => /fara nicio factualClaim cu sursa/.test(w)));
 });
 
+// PASUL 4 — invented offer / license facts are surfaced (not silently accepted); a sourced claim passes.
+test("validator: invented offer/license without a sourced factualClaim → surfaced as warning", () => {
+  const offer = { ...GOOD, content: "Primesti un bonus de 500 RON la Netbet Casino.", factualClaims: [] };
+  assert.ok(validateGeneratedSection(offer, input()).warnings.some((w) => /fara nicio factualClaim cu sursa/.test(w)));
+  const license = { ...GOOD, content: "Netbet Casino detine licenta ONJN valabila.", factualClaims: [] };
+  assert.ok(validateGeneratedSection(license, input()).warnings.some((w) => /fara nicio factualClaim cu sursa/.test(w)));
+});
+
+test("validator: a license claim WITH a sourceRef is accepted without the unsourced warning", () => {
+  const sourced = { ...GOOD, content: "Netbet Casino detine licenta ONJN.", factualClaims: [{ claim: "Netbet Casino are licenta ONJN", sourceRef: "/cazinouri-online/netbet-casino" }] };
+  const v = validateGeneratedSection(sourced, input());
+  assert.equal(v.ok, true);
+  assert.ok(!v.warnings.some((w) => /fara nicio factualClaim cu sursa/.test(w)));
+});
+
 test("grounding rules are exposed + referenced by the output contract", () => {
   assert.ok(GROUNDING_RULES.length >= 10);
   const r = buildContentPrompt(input())!;
@@ -208,6 +225,50 @@ test("DATA block is compacted to caps + flagged when exceeded (bounds input toke
   }));
   const r = buildContentPrompt(input({ cmsEntities: many }))!;
   assert.ok(r.warnings.some((w) => /Entitati trunchiate la 30/.test(w)));
-  const block = r.userPrompt.slice(r.userPrompt.indexOf("ENTITATI CONFIRMATE"), r.userPrompt.indexOf("FAPTE (relatii"));
+  const block = r.userPrompt.slice(r.userPrompt.indexOf("ENTITATI CMS CONFIRMATE"), r.userPrompt.indexOf("FAPTE (relatii"));
   assert.ok((block.match(/^- /gm) ?? []).length <= DATA_CAPS.entities);
+});
+
+// ════════════════════════ AI-2.3 CONTRACT ALIGNMENT ════════════════════════
+
+// PASUL 2 — deterministic concept classification (A: CMS entity vs B: SEO concept).
+test("classifyEntityReference: confirmed CMS entity (by name or ref) → cms_entity", () => {
+  assert.equal(classifyEntityReference("Netbet Casino", input()), "cms_entity"); // registry name
+  assert.equal(classifyEntityReference("/cazinouri-online/netbet-casino", input()), "cms_entity"); // registry ref
+  assert.equal(classifyEntityReference("superbet casino", input()), "cms_entity"); // brief confirmed, case-insensitive
+});
+
+test("classifyEntityReference: SEO concepts (bonus type / keyword / invented) → seo_concept", () => {
+  assert.equal(classifyEntityReference("Fara depunere", input()), "seo_concept"); // the real failing case
+  assert.equal(classifyEntityReference("bonus fara depunere", input()), "seo_concept"); // keyword, not an entity
+  assert.equal(classifyEntityReference("rotiri gratuite", input()), "seo_concept"); // SEO concept
+  assert.equal(classifyEntityReference("Winner Casino", input()), "seo_concept"); // invented operator
+});
+
+test("confirmedEntityKeys: brief-confirmed ∪ registry (names + refs); excludes suggested", () => {
+  const keys = confirmedEntityKeys(input());
+  assert.ok(keys.has("netbet casino") && keys.has("/cazinouri-online/netbet-casino"));
+  assert.ok(keys.has("superbet casino") && keys.has("/cazinouri-online/superbet-casino"));
+  assert.ok(keys.has("skrill"));
+  assert.ok(!keys.has("rotiri")); // suggested brief entity is NOT confirmed
+});
+
+// PASUL 2 — a permitted SEO concept in prose passes; the same concept in entitiesUsed is rejected.
+test("validator: SEO concept in content is allowed; the same concept in entitiesUsed is rejected", () => {
+  const prose = { ...GOOD, content: "Un bonus fara depunere ofera rotiri gratuite la Netbet Casino, fara alimentarea contului.", entitiesUsed: ["Netbet Casino"] };
+  assert.equal(validateGeneratedSection(prose, input()).ok, true); // SEO concepts only in prose → OK
+
+  const asEntity = { ...GOOD, entitiesUsed: ["Netbet Casino", "Fara depunere"] }; // the real failing case
+  const v = validateGeneratedSection(asEntity, input());
+  assert.equal(v.ok, false);
+  assert.ok(v.errors.some((e) => /Entitate neconfirmata\/inventata/.test(e) && /concept SEO/.test(e)));
+});
+
+// PASUL 3 — the prompt states server-control of sectionId + the entitiesUsed scope.
+test("prompt declares sectionId is server-controlled and scopes entitiesUsed to confirmed CMS entities", () => {
+  const r = buildContentPrompt(input())!;
+  assert.match(r.userPrompt, /\[CONTROL SERVER\].*sectionId este setat de server/);
+  assert.match(r.userPrompt, /\[ENTITATI\].*DOAR entitati CMS confirmate/);
+  assert.match(r.outputContract.requiredFields.sectionId, /CONTROLAT DE SERVER/);
+  assert.match(r.outputContract.requiredFields.entitiesUsed, /DOAR entitati CMS confirmate/);
 });

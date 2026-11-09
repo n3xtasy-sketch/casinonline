@@ -36,6 +36,39 @@ const PERSONAL_EXPERIENCE = /\b(am|ne-am)\s+(testat|jucat|incercat|încercat|par
 const NUMERIC_OR_LICENSE = /(\d+\s*%)|(\d[\d.,]*\s*(ron|lei|eur|€))|(licen[tț]|onjn)/i;
 const STUFF_MAX_OCCURRENCES = 6;
 
+/**
+ * AI-2.3 — deterministic concept classification (the single source of truth for "is this a CMS entity").
+ *
+ * `entitiesUsed` is reserved for FACTUAL CMS entities. A reference counts as a CMS entity ONLY if it is
+ * a CONFIRMED entity in this input — i.e. its normalized name OR ref/publicUrl is in the confirmed set
+ * (brief entities with source==="confirmed" ∪ the CMS registry entities). Classification is by MEMBERSHIP,
+ * never by entity type: the registry may legitimately contain a `bonus_type`/`tag` entity with a public
+ * URL, so a type blocklist would be wrong. Everything NOT in the confirmed set — bonus types used as
+ * generic phrases, keywords, SEO topics, invented operators/offers — is an SEO concept: it may appear in
+ * the prose `content`, but MUST NOT be listed in `entitiesUsed`.
+ */
+export type ConceptClass = "cms_entity" | "seo_concept";
+
+/** The confirmed CMS-entity index (normalized names + refs) — the only keys that qualify as entities. */
+export function confirmedEntityKeys(input: ContentPromptInput): Set<string> {
+  const keys = new Set<string>();
+  for (const e of input.brief.entities) {
+    if (e.source !== "confirmed") continue;
+    keys.add(e.name.trim().toLowerCase());
+    if (e.ref) keys.add(e.ref.trim().toLowerCase());
+  }
+  for (const e of input.cmsEntities ?? []) {
+    keys.add(e.name.trim().toLowerCase());
+    if (e.publicUrl) keys.add(e.publicUrl.trim().toLowerCase());
+  }
+  return keys;
+}
+
+/** Classify one reference deterministically: confirmed CMS entity → "cms_entity", otherwise "seo_concept". */
+export function classifyEntityReference(name: string, input: ContentPromptInput): ConceptClass {
+  return confirmedEntityKeys(input).has(name.trim().toLowerCase()) ? "cms_entity" : "seo_concept";
+}
+
 function isStringArray(v: unknown): v is string[] {
   return Array.isArray(v) && v.every((x) => typeof x === "string");
 }
@@ -85,11 +118,15 @@ export function validateGeneratedSection(out: unknown, input: ContentPromptInput
   const allowedLinks = new Set((input.internalLinks ?? []).filter((l: InternalLink) => l.url.startsWith("/")).map((l) => l.url));
   for (const u of sec.internalLinks) if (!allowedLinks.has(u)) errors.push(`Link intern inexistent/inventat: ${u}.`);
 
-  // 4) entities ⊆ confirmed (brief confirmed ∪ CMS registry) — by name or ref; no suggested/invented.
-  const confirmed = new Set<string>();
-  for (const e of input.brief.entities) if (e.source === "confirmed") { confirmed.add(e.name.toLowerCase()); if (e.ref) confirmed.add(e.ref.toLowerCase()); }
-  for (const e of input.cmsEntities ?? []) { confirmed.add(e.name.toLowerCase()); if (e.publicUrl) confirmed.add(e.publicUrl.toLowerCase()); }
-  for (const used of sec.entitiesUsed) if (!confirmed.has(used.trim().toLowerCase())) errors.push(`Entitate neconfirmata/inventata: ${used}.`);
+  // 4) entitiesUsed ⊆ confirmed CMS entities (by name or ref). SEO concepts (bonus types, keywords,
+  //    topics) are NOT entities: allowed in prose, rejected from entitiesUsed. Classification is
+  //    deterministic (confirmedEntityKeys) and shared with classifyEntityReference.
+  const confirmed = confirmedEntityKeys(input);
+  for (const used of sec.entitiesUsed) {
+    if (!confirmed.has(used.trim().toLowerCase())) {
+      errors.push(`Entitate neconfirmata/inventata: „${used}" — daca e un concept SEO (tip de bonus, rotiri, keyword), foloseste-l in content, NU in entitiesUsed.`);
+    }
+  }
 
   // 5) no claimed personal experience / unperformed manual verification.
   if (PERSONAL_EXPERIENCE.test(sec.content)) errors.push("Afirmatie de experienta personala (interzis).");

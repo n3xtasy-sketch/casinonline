@@ -123,3 +123,31 @@ test("AI-2.2: result carries cost (null in the orchestrator; the action attaches
   const r = await runSectionGeneration(INPUT, resp({}));
   assert.equal(r.cost, null);
 });
+
+// ── AI-2.3: sectionId is server-controlled (stamped by the orchestrator) ─────────
+test("AI-2.3: a hallucinated sectionId from the model is overwritten with the requested id", async () => {
+  const r = await runSectionGeneration(INPUT, resp({ output: { ...GOOD, sectionId: "bonus-fara-depunere-cazino-intro" } }));
+  assert.equal(r.ok, true); // was the real failure: mismatched sectionId → now stamped
+  assert.equal(r.section?.sectionId, "s0-ce-este"); // server id, not the model's invention
+});
+
+test("AI-2.3: a missing sectionId is injected server-side; output stays valid", async () => {
+  const noId: Record<string, unknown> = { ...GOOD }; // model omits sectionId entirely
+  delete noId.sectionId;
+  const r = await runSectionGeneration(INPUT, resp({ output: noId }));
+  assert.equal(r.ok, true);
+  assert.equal(r.section?.sectionId, "s0-ce-este");
+});
+
+test("AI-2.3: an unconfirmed CMS entity in entitiesUsed is still rejected (grounding not weakened)", async () => {
+  const r = await runSectionGeneration(INPUT, resp({ output: { ...GOOD, entitiesUsed: ["Winner Casino"] } }));
+  assert.equal(r.ok, false);
+  assert.equal(r.errorKind, "invalid_output");
+  assert.ok(r.validation?.errors.some((e) => /Entitate neconfirmata\/inventata/.test(e)));
+});
+
+test("AI-2.3: an SEO concept mentioned only in content (not entitiesUsed) passes", async () => {
+  const seoInProse = { ...GOOD, content: "Un bonus fara depunere la Netbet Casino nu necesita alimentarea contului.", entitiesUsed: ["Netbet Casino"] };
+  const r = await runSectionGeneration(INPUT, resp({ output: seoInProse }));
+  assert.equal(r.ok, true);
+});

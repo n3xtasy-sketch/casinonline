@@ -11,18 +11,20 @@ import { resolveModelConfig, requireApiKey, extractToolOutput, type CompleteFn, 
  * token cap are enforced. stop_reason + usage are surfaced for truncation detection + metadata.
  */
 
+// AI-2.3: `sectionId` is NOT a model field — the orchestrator stamps it server-side, so the model
+// cannot invent/modify the section identifier. `entitiesUsed` is explicitly scoped to confirmed CMS
+// entities (SEO concepts belong in `content`, never here).
 const SECTION_TOOL = {
   name: "emit_section",
-  description: "Returneaza sectiunea generata STRICT in aceasta structura. Nu scrie text in afara tool-ului.",
+  description: "Returneaza sectiunea generata STRICT in aceasta structura. Nu scrie text in afara tool-ului. NU emite sectionId — este setat de server.",
   input_schema: {
     type: "object" as const,
     properties: {
-      sectionId: { type: "string" },
-      heading: { type: "string" },
-      content: { type: "string" },
-      keywordsUsed: { type: "array", items: { type: "string" } },
-      entitiesUsed: { type: "array", items: { type: "string" } },
-      internalLinks: { type: "array", items: { type: "string" } },
+      heading: { type: "string", description: "Titlul sectiunii." },
+      content: { type: "string", description: "Continut in romana. Conceptele SEO generale (tipuri de bonus, keyworduri) pot aparea aici." },
+      keywordsUsed: { type: "array", items: { type: "string" }, description: "Keywordurile din brief folosite efectiv." },
+      entitiesUsed: { type: "array", items: { type: "string" }, description: "DOAR entitati CMS confirmate din blocul DATE (nume proprii: operatori/jocuri/furnizori/plati). NU concepte SEO." },
+      internalLinks: { type: "array", items: { type: "string" }, description: "Doar URL-uri din lista permisa." },
       factualClaims: {
         type: "array",
         items: {
@@ -33,7 +35,7 @@ const SECTION_TOOL = {
       },
       warnings: { type: "array", items: { type: "string" } },
     },
-    required: ["sectionId", "heading", "content", "keywordsUsed", "entitiesUsed", "internalLinks", "factualClaims", "warnings"],
+    required: ["heading", "content", "keywordsUsed", "entitiesUsed", "internalLinks", "factualClaims", "warnings"],
   },
 };
 
