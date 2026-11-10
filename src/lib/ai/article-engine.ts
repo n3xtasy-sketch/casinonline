@@ -9,8 +9,12 @@
  */
 
 import { runSectionGeneration, type CompleteFn, type SectionGenerationResult } from "@/lib/ai/generate-section";
-import { listSections, type ContentPromptInput, type SectionKind } from "@/lib/ai/content-prompt";
+import { listSections, buildContentPrompt, type ContentPromptInput, type SectionKind } from "@/lib/ai/content-prompt";
+import { briefReadinessError } from "@/lib/brief-status";
 import type { ClaimVerdict } from "@/lib/ai/fact-verification";
+
+/** Upper bound on the sections an article run will generate (= max Anthropic calls). */
+export const MAX_ARTICLE_SECTIONS = 12;
 
 // ── Article plan (PASUL 2) ──────────────────────────────────────────────────────────
 export interface ArticleSectionPlan {
@@ -96,15 +100,28 @@ function summarizePrior(done: { heading: string; content: string }[], perChars: 
     .join("\n");
 }
 
-function assemble(sections: ArticleSectionOutcome[]): string {
-  return sections
+export interface AssembleItem {
+  kind: SectionKind;
+  level: 1 | 2 | 3;
+  heading: string;
+  content: string;
+}
+
+/** Assemble sections into article markdown (intro unheaded; H2/H3 prefixed). Pure — also used client-side
+ *  to RE-compute the markdown after an editor edits a section's content. */
+export function assembleSections(items: AssembleItem[]): string {
+  return items
     .map((s) => {
-      const content = s.result.section?.content?.trim();
+      const content = s.content.trim();
       if (!content) return `> [Sectiune de regenerat: ${s.heading}]`;
       if (s.kind === "intro") return content;
       return `${"#".repeat(Math.min(3, s.level))} ${s.heading}\n\n${content}`;
     })
     .join("\n\n");
+}
+
+function assemble(sections: ArticleSectionOutcome[]): string {
+  return assembleSections(sections.map((s) => ({ kind: s.kind, level: s.level, heading: s.heading, content: s.result.section?.content ?? "" })));
 }
 
 export interface ArticleFactualDiagnostics {
@@ -251,5 +268,59 @@ export async function generateArticle(
     editorialDiagnostics: editorialDiagnostics(articlePlan, sections),
     tokenUsage,
     status,
+  };
+}
+
+// ── Preflight (PASUL 2) — pure, read-only, NO Anthropic ───────────────────────────────
+export interface ArticlePreflight {
+  title: string;
+  primaryKeyword: string;
+  sectionHeadings: string[];
+  sectionCount: number;
+  maxSections: number;
+  /** false when the brief has 0 sections or exceeds MAX_ARTICLE_SECTIONS. */
+  withinLimit: boolean;
+  /** Blocking reason when the brief is not article-ready (missing keyword/url/h1/H2), else null. */
+  readinessError: string | null;
+  estInputTokens: number;      // ~ (system+user chars)/4, summed over sections
+  outputTokenCeiling: number;  // Σ per-section maxTokens budget
+  maxCalls: number;            // = sectionCount (1 Anthropic call per section)
+  hasFactualContext: boolean;  // any scoped CmsFact available
+  /** Monetary cost — false unless AI_CONTENT_RATES is configured (we never invent prices). */
+  costEstimateAvailable: boolean;
+}
+
+/** Compute a read-only preflight for an article run from its ordered section inputs. No model call. */
+export function articlePreflight(inputs: ContentPromptInput[], opts: { costEstimateAvailable?: boolean } = {}): ArticlePreflight {
+  const brief = inputs[0]?.brief;
+  let estInputTokens = 0;
+  let outputTokenCeiling = 0;
+  let hasFactualContext = false;
+  const sectionHeadings: string[] = [];
+  for (const input of inputs) {
+    const p = buildContentPrompt(input);
+    if (!p) continue;
+    estInputTokens += Math.ceil((p.systemPrompt.length + p.userPrompt.length) / 4);
+    outputTokenCeiling += p.maxTokens;
+    sectionHeadings.push(p.heading);
+    if ((input.cmsFacts ?? []).length) hasFactualContext = true;
+  }
+  const sectionCount = sectionHeadings.length;
+  const readinessError = brief
+    ? briefReadinessError({ primaryKeyword: brief.primaryKeyword || null, targetUrl: brief.targetUrl, h1: brief.h1 || null, outline: brief.outline })
+    : "Brief inexistent.";
+  return {
+    title: brief?.title ?? "",
+    primaryKeyword: brief?.primaryKeyword ?? "",
+    sectionHeadings,
+    sectionCount,
+    maxSections: MAX_ARTICLE_SECTIONS,
+    withinLimit: sectionCount > 0 && sectionCount <= MAX_ARTICLE_SECTIONS,
+    readinessError,
+    estInputTokens,
+    outputTokenCeiling,
+    maxCalls: sectionCount,
+    hasFactualContext,
+    costEstimateAvailable: opts.costEstimateAvailable ?? false,
   };
 }

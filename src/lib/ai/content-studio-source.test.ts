@@ -47,6 +47,18 @@ test("AI-2.7.1: Content Studio renders the grouped Factual Review panel + a sepa
   assert.doesNotMatch(c, /\.(insert|update|delete|upsert)\(/);
 });
 
+test("AI-3B: Content Studio Article Engine UI — ids-only actions, confirm, Copy Markdown, re-assembly, no secrets", () => {
+  const c = read("src/components/admin/ContentStudio.tsx");
+  assert.match(c, /articlePreflightAction\(projectId, briefId\)/); // preflight: ids only
+  assert.match(c, /generateArticleAction\(projectId, briefId\)/);  // generate: ids only
+  assert.match(c, /window\.confirm\(`Generare articol complet LIVE/); // explicit LIVE confirmation
+  assert.match(c, /disabled=\{artPending/); // disabled while running (double-click)
+  assert.match(c, /navigator\.clipboard\?\.writeText\(articleMarkdown\)/); // Copy Markdown
+  assert.match(c, /assembleSections\(/); // markdown re-computed from edited section contents
+  assert.match(c, /INDISPONIBIL \(tarife neconfigurate\)/); // monetary cost shown unavailable
+  assert.doesNotMatch(c, /createAnthropicComplete|LIVE_AUTH_TOKEN|sk-ant|apiKey/); // no server-only secrets in the client
+});
+
 test("Content Studio page is server-rendered from real projects", () => {
   const p = read("src/app/admin/(panel)/content-studio/page.tsx");
   assert.match(p, /listSeoProjects/);

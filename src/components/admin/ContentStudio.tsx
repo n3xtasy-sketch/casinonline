@@ -7,6 +7,8 @@ import {
 } from "@/app/admin/(panel)/content-studio/actions";
 import { generateBriefSectionAction } from "@/app/admin/(panel)/seo-research/[id]/briefs/ai-actions";
 import { runRulajABExperimentAction, type ABActionResult } from "@/app/admin/(panel)/content-studio/ab-actions";
+import { articlePreflightAction, generateArticleAction, type ArticlePreflightResult, type ArticleGenerateResult } from "@/app/admin/(panel)/content-studio/article-actions";
+import { assembleSections } from "@/lib/ai/article-engine";
 import type { SectionGenerationResult } from "@/lib/ai/generate-section";
 import {
   errorLabel, isDirty, needsRegenerateConfirm,
@@ -65,6 +67,36 @@ export function ContentStudio({ projects }: { projects: { id: string; name: stri
   // AI-2.9D.2E — discreet LIVE A/B experiment (rulaj only), separate from the normal generation flow.
   const [abResult, setAbResult] = useState<ABActionResult | null>(null);
   const [abPending, startAb] = useTransition();
+  // AI-3B — Article Engine (full article), separate from individual section generation.
+  const [artPreflight, setArtPreflight] = useState<ArticlePreflightResult | null>(null);
+  const [artResult, setArtResult] = useState<ArticleGenerateResult | null>(null);
+  const [artEdits, setArtEdits] = useState<Record<string, string>>({});
+  const [artPending, startArt] = useTransition();
+
+  const runArticlePreflight = () => {
+    if (!projectId || !briefId || artPending) return;
+    setArtResult(null); setArtEdits({});
+    startArt(async () => {
+      try { setArtPreflight(await articlePreflightAction(projectId, briefId)); }
+      catch { setArtPreflight({ ok: false, error: "Acces interzis sau eroare server." }); }
+    });
+  };
+  const runArticleGeneration = () => {
+    if (!projectId || !briefId || artPending) return;
+    const pre = artPreflight?.ok ? artPreflight.preflight : null;
+    const calls = pre?.maxCalls ?? "?";
+    if (!window.confirm(`Generare articol complet LIVE: ${calls} sectiuni = ${calls} apeluri Anthropic reale. Tarife monetare indisponibile. Continui?`)) return;
+    startArt(async () => {
+      try {
+        const r = await generateArticleAction(projectId, briefId);
+        setArtResult(r);
+        if (r.ok) setArtEdits(Object.fromEntries(r.article.sections.map((s) => [s.sectionId, s.result.section?.content ?? ""])));
+      } catch { setArtResult({ ok: false, error: "Acces interzis sau eroare server." }); }
+    });
+  };
+  const articleMarkdown = artResult?.ok
+    ? assembleSections(artResult.article.sections.map((s) => ({ kind: s.kind, level: s.level, heading: s.heading, content: artEdits[s.sectionId] ?? s.result.section?.content ?? "" })))
+    : "";
 
   const runAbExperiment = () => {
     if (!projectId || !briefId || abPending) return;
@@ -331,6 +363,89 @@ export function ContentStudio({ projects }: { projects: { id: string; name: stri
                     </div>
                   ) : null}
                   <p className="text-[11px] text-ink-muted">Compară manual (relevanță, precizie, utilitate, claritate, repetiții, afirmații neconfirmate). B nu este declarată automat câștigătoare.</p>
+                </div>
+              );
+            })() : null}
+          </div>
+        </details>
+      ) : null}
+
+      {/* AI-3B — Article Engine: genereaza articolul complet (toate sectiunile), separat de generarea individuala */}
+      {studio ? (
+        <details className="rounded-md border border-border bg-surface p-3 text-sm">
+          <summary className="cursor-pointer font-medium text-ink-secondary">Article Engine — genereaza articolul complet (LIVE)</summary>
+          <div className="mt-3 flex flex-col gap-3">
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={runArticlePreflight} disabled={artPending || !briefId}
+                className="h-9 rounded-sm border border-border px-4 text-sm font-medium text-ink hover:bg-elevated disabled:opacity-50">
+                {artPending ? "Se verifica…" : "Preflight (fara apeluri)"}
+              </button>
+              {artPreflight?.ok ? (
+                <button type="button" onClick={runArticleGeneration} disabled={artPending || !artPreflight.preflight.withinLimit || !!artPreflight.preflight.readinessError}
+                  className="h-9 rounded-sm bg-accent px-4 text-sm font-semibold text-[#06110a] hover:bg-accent-hover disabled:opacity-50">
+                  {artPending ? "Se genereaza…" : "Genereaza articolul (LIVE)"}
+                </button>
+              ) : null}
+            </div>
+
+            {artPreflight && !artPreflight.ok ? <p className="text-[12px] text-danger">{artPreflight.error}</p> : null}
+            {artPreflight?.ok ? (() => {
+              const p = artPreflight.preflight;
+              return (
+                <div className="flex flex-col gap-1 rounded-sm border border-border bg-field p-2 text-[12px] text-ink-secondary">
+                  <div><span className="text-ink-muted">Titlu:</span> {p.title || "—"} · <span className="text-ink-muted">keyword:</span> {p.primaryKeyword || "—"}</div>
+                  <div><span className="text-ink-muted">Sectiuni:</span> {p.sectionCount}/{p.maxSections} · <span className="text-ink-muted">apeluri LIVE:</span> {p.maxCalls}</div>
+                  <div><span className="text-ink-muted">Estimare tokeni:</span> ~{p.estInputTokens} in · plafon ~{p.outputTokenCeiling} out · <span className="text-ink-muted">fapte CMS:</span> {p.hasFactualContext ? "da" : "nu"}</div>
+                  <div className="text-gold">Cost monetar: {p.costEstimateAvailable ? "configurat" : "INDISPONIBIL (tarife neconfigurate)"}</div>
+                  {p.readinessError ? <div className="text-danger">Brief incomplet: {p.readinessError}</div> : null}
+                  {!p.withinLimit && !p.readinessError ? <div className="text-danger">In afara limitei de sectiuni.</div> : null}
+                </div>
+              );
+            })() : null}
+
+            {artResult && !artResult.ok ? <p className="text-[12px] text-danger">{artResult.error}</p> : null}
+            {artResult?.ok ? (() => {
+              const a = artResult.article;
+              return (
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-wrap items-center gap-2 text-[12px]">
+                    <span className={`${chip} ${a.status === "ok" ? "text-accent" : a.status === "failed" ? "text-danger" : "text-gold"}`}>status: {a.status}</span>
+                    <span className="text-ink-muted">tokeni: {a.tokenUsage.inputTokens} in / {a.tokenUsage.outputTokens} out</span>
+                    <button type="button" onClick={() => navigator.clipboard?.writeText(articleMarkdown)} className="h-7 rounded-sm border border-border px-2 text-[11px] text-ink hover:bg-elevated">Copy Markdown</button>
+                  </div>
+
+                  {a.sections.map((s) => (
+                    <div key={s.sectionId} className="flex flex-col gap-1 rounded-sm border border-border bg-field p-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[12px] font-semibold text-ink">{s.kind === "intro" ? "Intro" : s.kind === "faq" ? "FAQ" : `H${s.level}`} · {s.heading}</span>
+                        <span className={`${chip} ${s.result.ok ? "text-accent" : "text-danger"}`}>{s.result.ok ? "valida" : `respinsa (${s.result.errorKind})`}</span>
+                      </div>
+                      <textarea value={artEdits[s.sectionId] ?? ""} onChange={(e) => setArtEdits((m) => ({ ...m, [s.sectionId]: e.target.value }))}
+                        className="min-h-24 rounded-sm border border-border bg-surface px-2 py-1 text-[12px] text-ink" />
+                      {s.result.validation?.errors.length ? <ul className="list-disc pl-4 text-[11px] text-danger">{s.result.validation.errors.map((e, i) => <li key={i}>{e}</li>)}</ul> : null}
+                      {(s.result.validation?.warnings.length || s.result.editorial?.warnings.length) ? (
+                        <ul className="list-disc pl-4 text-[11px] text-gold">{[...(s.result.validation?.warnings ?? []), ...(s.result.editorial?.warnings ?? [])].map((w, i) => <li key={i}>{w}</li>)}</ul>
+                      ) : null}
+                    </div>
+                  ))}
+
+                  <div className="rounded-sm border border-border bg-field p-2 text-[11px] text-ink-secondary">
+                    <div className="font-semibold text-ink">Diagnostic factual</div>
+                    <div>verdicte: {JSON.stringify(a.factualDiagnostics.claimVerdictTotals)}</div>
+                    {a.factualDiagnostics.unsupportedClaims.length ? <div className="text-danger">Afirmatii nesustinute: {a.factualDiagnostics.unsupportedClaims.length}</div> : null}
+                    {a.factualDiagnostics.contradictions.length ? <div className="text-danger">Contradictii: {a.factualDiagnostics.contradictions.length}</div> : null}
+                  </div>
+                  <div className="rounded-sm border border-border bg-field p-2 text-[11px] text-ink-secondary">
+                    <div className="font-semibold text-ink">Diagnostic editorial</div>
+                    {a.editorialDiagnostics.missingTopics.length ? <div>Subiecte lipsa: {a.editorialDiagnostics.missingTopics.join(", ")}</div> : <div className="text-ink-muted">Fara subiecte lipsa.</div>}
+                    {a.editorialDiagnostics.repeatedAcrossSections.length ? <div className="text-gold">Repetitii intre sectiuni: {a.editorialDiagnostics.repeatedAcrossSections.length}</div> : null}
+                    {a.editorialDiagnostics.lowUtilitySections.length ? <div className="text-gold">Sectiuni cu utilitate redusa: {a.editorialDiagnostics.lowUtilitySections.join(", ")}</div> : null}
+                  </div>
+
+                  <label className="flex flex-col gap-1 text-[12px]">
+                    <span className="font-medium text-ink-secondary">Articol asamblat (markdown, actualizat dupa editari) — verifica editorial inainte de publicare</span>
+                    <textarea readOnly value={articleMarkdown} className="min-h-40 rounded-sm border border-border bg-surface px-2 py-1 font-mono text-[11px] text-ink" />
+                  </label>
                 </div>
               );
             })() : null}

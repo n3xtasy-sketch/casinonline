@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { buildArticlePlan, generateArticle } from "@/lib/ai/article-engine";
+import { buildArticlePlan, generateArticle, articlePreflight, assembleSections, MAX_ARTICLE_SECTIONS } from "@/lib/ai/article-engine";
 import { listSections, type ContentBrief, type ContentPromptInput } from "@/lib/ai/content-prompt";
 import type { CompleteFn } from "@/lib/ai/generate-section";
 import type { EntityRecord } from "@/lib/seo/entity-registry";
@@ -93,6 +93,43 @@ test("a failed section does NOT abort the article (partial) and stays individual
   assert.equal(r.sections[1].result.ok, false); // the 2nd section failed
   assert.equal(r.sections[1].result.errorKind, "parse_error");
   assert.ok(r.sections[1].sectionId.length > 0); // editable: carries its own id
+});
+
+// ── preflight (PASUL 2) ──
+test("articlePreflight: section count, token estimates, max calls, readiness null for a ready brief", () => {
+  const p = articlePreflight(INPUTS);
+  assert.equal(p.sectionCount, 4);
+  assert.equal(p.maxCalls, 4);
+  assert.ok(p.estInputTokens > 0 && p.outputTokenCeiling > 0);
+  assert.equal(p.readinessError, null); // BRIEF has keyword/url/h1/H2
+  assert.equal(p.withinLimit, true);
+  assert.equal(p.costEstimateAvailable, false); // no AI_CONTENT_RATES → monetary cost unavailable
+});
+
+test("articlePreflight: an incomplete brief (no H1 / no H2) yields a readiness error", () => {
+  const noH1 = INPUTS.map((i) => ({ ...i, brief: { ...BRIEF, h1: "" } }));
+  assert.match(articlePreflight(noH1).readinessError ?? "", /H1/);
+  const noH2 = INPUTS.map((i) => ({ ...i, brief: { ...BRIEF, outline: [] } }));
+  assert.match(articlePreflight(noH2).readinessError ?? "", /H2/);
+});
+
+test("articlePreflight: section count over MAX_ARTICLE_SECTIONS → not within limit", () => {
+  const bigBrief: ContentBrief = { ...BRIEF, outline: Array.from({ length: MAX_ARTICLE_SECTIONS + 2 }, (_, i) => ({ level: 2 as const, heading: `Sectiunea ${i}`, keywords: [], note: "" })) };
+  const bigInputs = listSections(bigBrief).map((s) => ({ ...INPUTS[0], brief: bigBrief, sectionId: s.id }));
+  const p = articlePreflight(bigInputs);
+  assert.ok(p.sectionCount > MAX_ARTICLE_SECTIONS);
+  assert.equal(p.withinLimit, false);
+});
+
+test("assembleSections: intro unheaded, H2 prefixed, empty section → regenerate marker (re-assembly after edits)", () => {
+  const md = assembleSections([
+    { kind: "intro", level: 1, heading: "Intro", content: "Deschidere." },
+    { kind: "outline", level: 2, heading: "Rulaj", content: "Despre rulaj editat." },
+    { kind: "outline", level: 2, heading: "Gol", content: "" },
+  ]);
+  assert.ok(md.startsWith("Deschidere."));
+  assert.match(md, /## Rulaj\n\nDespre rulaj editat/);
+  assert.match(md, /Sectiune de regenerat: Gol/);
 });
 
 // ── safety ──

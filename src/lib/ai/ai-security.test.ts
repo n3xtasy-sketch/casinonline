@@ -63,6 +63,24 @@ test("AI-2.9D.2E AB action: admin-gated server-side, ids-only, server LIVE token
   assert.doesNotMatch(a, /sk-ant|apiKey/);
 });
 
+test("AI-3B article action: admin-gated server-side, ids-only, readiness + section-limit gate, no CMS writes", () => {
+  const a = read("src/app/admin/(panel)/content-studio/article-actions.ts");
+  assert.match(a, /"use server"/);
+  assert.match(a, /requireAdmin\(\)/);
+  assert.match(a, /is_admin/);
+  // both actions accept ONLY ids
+  assert.match(a, /articlePreflightAction\(projectId: string, briefId: string\)/);
+  assert.match(a, /generateArticleAction\(projectId: string, briefId: string\)/);
+  // server-side gates before the live call
+  assert.match(a, /pre\.readinessError/);
+  assert.match(a, /pre\.withinLimit/);
+  assert.match(a, /acquireABRun\(key\)/);
+  assert.match(a, /releaseABRun\(key\)/);
+  // no CMS writes, no key in the response, no auto-publish
+  assert.doesNotMatch(a, /\.(insert|update|delete|upsert)\(/);
+  assert.doesNotMatch(a, /sk-ant|apiKey/);
+});
+
 test("AI-2.9D.2E AB UI: passes ids only, confirms, disables on pending (double-click), no secrets", () => {
   const c = read("src/components/admin/ContentStudio.tsx");
   assert.match(c, /runRulajABExperimentAction\(projectId, briefId\)/); // only ids
