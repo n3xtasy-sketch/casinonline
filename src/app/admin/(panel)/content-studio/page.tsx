@@ -3,6 +3,15 @@ import { ContentStudio } from "@/components/admin/ContentStudio";
 
 export const metadata = { title: "AI Content Studio — Admin" };
 
+/**
+ * AI-3B.1 — raise the Server-Action timeout for this route only (Article Engine generates sections
+ * sequentially). 60s is the maximum configurable value on the Vercel Hobby plan (effective only when
+ * Fluid Compute is enabled for the project). It covers a realistic 2-section run (~10–30s) with overhead;
+ * it does NOT guarantee the absolute worst case (2 sections each hitting the 30s adapter timeout) nor
+ * 8–12-section articles — those would need a Pro plan (up to 300s) or chunked generation.
+ */
+export const maxDuration = 60;
+
 export default async function ContentStudioPage() {
   const projects = await listSeoProjects();
   return (
