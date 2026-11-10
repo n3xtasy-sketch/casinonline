@@ -89,6 +89,32 @@ test("summarizeVariantResult: extracts the comparable metrics (claim verdict cou
   assert.equal(s.inputTokens, 2500);
 });
 
+// ── AI-2.9D.2G: full diagnostics propagation ──
+test("summary propagates exact validation errors + warnings + claimChecks (sourceRef paired by index)", () => {
+  const s = summarizeVariantResult("A", result({
+    ok: false, errorKind: "invalid_output",
+    section: { sectionId: "s", heading: "h", content: "text", keywordsUsed: [], entitiesUsed: [], internalLinks: [], factualClaims: [{ claim: "rulaj 50x", sourceRef: "bonuses.wagering_multiplier" }, { claim: "link", sourceRef: "/x" }], warnings: [] },
+    validation: { ok: false, errors: ["Link intern inexistent/inventat: /evil.", "Afirmatie factuala respinsa (contradictory): rulaj 50x."], warnings: ["Posibil keyword stuffing: rulaj."], claimChecks: [{ claim: "rulaj 50x", verdict: "contradictory", reason: "contrazice fapta" }, { claim: "link", verdict: "unverifiable", reason: "review" }] },
+  }));
+  assert.deepEqual(s.validationErrors, ["Link intern inexistent/inventat: /evil.", "Afirmatie factuala respinsa (contradictory): rulaj 50x."]);
+  assert.deepEqual(s.validationWarnings, ["Posibil keyword stuffing: rulaj."]);
+  assert.equal(s.claimChecks.length, 2);
+  assert.equal(s.claimChecks[0].verdict, "contradictory");
+  assert.equal(s.claimChecks[0].sourceRef, "bonuses.wagering_multiplier"); // paired by index with factualClaims
+  assert.equal(s.claimChecks[1].sourceRef, "/x");
+  // counts remain consistent with the arrays
+  assert.equal(s.validationErrorCount, s.validationErrors.length);
+  assert.equal(s.validationWarningCount, s.validationWarnings.length);
+  assert.equal(s.claimCounts.contradictory, 1);
+  assert.equal(s.claimCounts.unverifiable, 1);
+});
+
+test("summary contains NO secrets (no api key / prompt text / auth token)", () => {
+  const s = summarizeVariantResult("B", result({ validation: { ok: false, errors: ["eroare"], warnings: [], claimChecks: [{ claim: "c", verdict: "invented", reason: "sourceRef inventat" }] } }));
+  const json = JSON.stringify(s);
+  assert.doesNotMatch(json, /sk-ant|ANTHROPIC_API_KEY|systemPrompt|userPrompt|LIVE_AUTH_TOKEN/i);
+});
+
 test("compareAB: deltas (B − A) + guardrail that B adds no new factual errors", () => {
   const a = summarizeVariantResult("A", result({ usage: { inputTokens: 2000, outputTokens: 700 }, section: { sectionId: "s", heading: "h", content: "scurt", keywordsUsed: [], entitiesUsed: [], internalLinks: [], factualClaims: [], warnings: [] } }));
   const b = summarizeVariantResult("B", result({ usage: { inputTokens: 2500, outputTokens: 900 }, section: { sectionId: "s", heading: "h", content: "text mai lung cu detalii", keywordsUsed: [], entitiesUsed: [], internalLinks: [], factualClaims: [], warnings: [] } }));

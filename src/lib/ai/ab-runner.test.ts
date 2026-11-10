@@ -100,6 +100,17 @@ test("early abort on an API error: stops before the next variants, preserves par
   assert.match(report.stopReason ?? "", /A@.*api_error/);
 });
 
+test("AI-2.9D.2G: on invalid_output the full diagnostics propagate to the row and B is NOT run", async () => {
+  // output is structurally valid but uses an internal link not in the allowlist → invalid_output
+  const badLink: CompleteFn = async () => ({ output: { sectionId: "x", heading: "x", content: "Un text valid despre rulaj.", keywordsUsed: [], entitiesUsed: [], internalLinks: ["/evil-inventat"], factualClaims: [], warnings: [] }, stopReason: "tool_use", usage: { inputTokens: 100, outputTokens: 50 }, model: "x" });
+  const report = await runABExperiment(buildVirtualSectionInputs(BASE).slice(0, 1), { mode: "live", authorize: LIVE_AUTH_TOKEN, complete: badLink });
+  assert.equal(report.stoppedEarly, true);
+  assert.equal(report.completedRuns, 1);
+  assert.equal(report.rows[0].b, null); // B never ran (early-abort unchanged)
+  assert.equal(report.rows[0].a.errorKind, "invalid_output");
+  assert.ok(report.rows[0].a.validationErrors.some((e) => /Link intern inexistent\/inventat/.test(e))); // exact message surfaced
+});
+
 test("early abort on a fatal (parse) error after A succeeds is still bounded to partial results", async () => {
   const inputs = buildVirtualSectionInputs(BASE);
   const report = await runABExperiment(inputs, { mode: "live", authorize: LIVE_AUTH_TOKEN, complete: parseError });

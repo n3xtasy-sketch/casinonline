@@ -289,9 +289,42 @@ export function ContentStudio({ projects }: { projects: { id: string; name: stri
                   {row ? (
                     <div className="grid gap-2 sm:grid-cols-2">
                       {([["a", "A — fără Author Knowledge", row.a, row.textA], ["b", "B — cu Author Knowledge", row.b, row.textB]] as const).map(([k, label, s, text]) => (
-                        <div key={k} className="flex flex-col gap-1 rounded-sm border border-border bg-field p-2">
-                          <div className="font-semibold text-ink">{label}</div>
-                          {s ? <div className="text-ink-muted">tokeni: {s.inputTokens ?? "—"} in / {s.outputTokens ?? "—"} out · warnings: {s.validationWarningCount + s.editorialWarningCount} · erori val.: {s.validationErrorCount} · claims: {JSON.stringify(s.claimCounts)}</div> : <div className="text-ink-muted">(nerulat)</div>}
+                        <div key={k} className="flex flex-col gap-1.5 rounded-sm border border-border bg-field p-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-semibold text-ink">{label}</span>
+                            <span className={`${chip} ${!s ? "text-ink-muted" : s.ok ? "text-accent" : "text-danger"}`}>{!s ? "nerulată" : s.ok ? "validă" : `respinsă (${s.errorKind})`}</span>
+                          </div>
+                          {s ? (
+                            <>
+                              <div className="text-[11px] text-ink-muted">tokeni: {s.inputTokens ?? "—"} in / {s.outputTokens ?? "—"} out · claims: {JSON.stringify(s.claimCounts)}</div>
+                              {s.validationErrors.length ? (
+                                <div className="rounded-sm border border-danger/40 bg-danger/10 p-1.5 text-[11px] text-danger">
+                                  <div className="font-semibold">Erori de validare ({s.validationErrors.length}):</div>
+                                  <ul className="list-disc pl-4 text-ink-secondary">{s.validationErrors.map((e, i) => <li key={i}>{e}</li>)}</ul>
+                                </div>
+                              ) : null}
+                              {s.validationWarnings.length ? (
+                                <div className="rounded-sm border border-gold/40 bg-gold/5 p-1.5 text-[11px] text-gold">
+                                  <div className="font-semibold">Avertismente ({s.validationWarnings.length}):</div>
+                                  <ul className="list-disc pl-4 text-ink-secondary">{s.validationWarnings.map((w, i) => <li key={i}>{w}</li>)}</ul>
+                                </div>
+                              ) : null}
+                              {s.claimChecks.length ? (
+                                <div className="text-[11px]">
+                                  <div className="font-semibold text-ink-secondary">Afirmații factuale ({s.claimChecks.length}):</div>
+                                  <ul className="flex flex-col gap-0.5">
+                                    {s.claimChecks.map((c, i) => (
+                                      <li key={i} className="text-ink-muted">
+                                        <span className="font-medium text-ink">{c.verdict}</span>: {c.claim}
+                                        {c.sourceRef ? <> · sursă: <span className="font-mono">{c.sourceRef}</span></> : null}
+                                        {c.reason ? <div className="pl-2">{c.reason}</div> : null}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              ) : null}
+                            </>
+                          ) : <div className="text-[11px] text-ink-muted">(variantă nerulată — experiment oprit înainte)</div>}
                           <textarea readOnly value={text ?? ""} className="min-h-32 rounded-sm border border-border bg-surface px-2 py-1 font-mono text-[11px] text-ink" />
                         </div>
                       ))}

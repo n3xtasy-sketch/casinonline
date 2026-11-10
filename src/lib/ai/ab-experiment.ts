@@ -14,7 +14,7 @@
 import { buildContentPrompt, type ContentPromptInput } from "@/lib/ai/content-prompt";
 import { knowledgeSelectionMeta, type KnowledgeSelectionMeta } from "@/lib/ai/author-knowledge";
 import type { SectionGenerationResult } from "@/lib/ai/generate-section";
-import type { ClaimVerdict } from "@/lib/ai/fact-verification";
+import type { ClaimVerdict, ClaimCheck } from "@/lib/ai/fact-verification";
 
 export type ABVariant = "A" | "B";
 
@@ -117,6 +117,11 @@ export function buildABExperiment(input: ContentPromptInput): ABExperimentPlan |
 // ── Result summarisation (used LATER, once A and B are actually generated) ──────────
 const VERDICTS: readonly ClaimVerdict[] = ["supported", "unverifiable", "invented", "contradictory", "expired"];
 
+/** A claim check enriched with the model's emitted sourceRef (safe to show in admin — not a secret). */
+export interface ABClaimCheck extends ClaimCheck {
+  sourceRef: string | null;
+}
+
 export interface ABVariantSummary {
   variant: ABVariant;
   ok: boolean;
@@ -131,12 +136,22 @@ export interface ABVariantSummary {
   editorialWarningCount: number;
   claimCounts: Record<ClaimVerdict, number>;
   knowledgeCount: number;
+  /** AI-2.9D.2G: the full diagnostic messages (grounding only — no prompts, keys or auth tokens). */
+  validationErrors: string[];
+  validationWarnings: string[];
+  claimChecks: ABClaimCheck[];
 }
 
-/** Extract the comparable metrics from a real SectionGenerationResult. Pure; no prompt text. */
+/** Extract the comparable metrics + full diagnostics from a real SectionGenerationResult. Pure; the
+ *  returned object contains ONLY grounding messages + metrics — never prompt text, API keys or tokens. */
 export function summarizeVariantResult(variant: ABVariant, r: SectionGenerationResult): ABVariantSummary {
   const claimCounts = Object.fromEntries(VERDICTS.map((v) => [v, 0])) as Record<ClaimVerdict, number>;
   for (const c of r.validation?.claimChecks ?? []) claimCounts[c.verdict] = (claimCounts[c.verdict] ?? 0) + 1;
+  // claimChecks and factualClaims are parallel (verifyFactualClaims preserves order), so pair by index.
+  const claimChecks: ABClaimCheck[] = (r.validation?.claimChecks ?? []).map((c, i) => ({
+    ...c,
+    sourceRef: r.section?.factualClaims[i]?.sourceRef ?? null,
+  }));
   return {
     variant,
     ok: r.ok,
@@ -151,6 +166,9 @@ export function summarizeVariantResult(variant: ABVariant, r: SectionGenerationR
     editorialWarningCount: r.editorial?.warnings.length ?? 0,
     claimCounts,
     knowledgeCount: r.knowledge?.selectedKnowledgeCount ?? 0,
+    validationErrors: r.validation?.errors ?? [],
+    validationWarnings: r.validation?.warnings ?? [],
+    claimChecks,
   };
 }
 
