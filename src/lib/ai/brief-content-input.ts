@@ -9,6 +9,7 @@ import { buildCmsFacts, scopeCmsFacts, type CmsFact } from "@/lib/ai/cms-facts";
 import { buildFactScopingDiagnostic, type FactScopingDiagnostic } from "@/lib/ai/fact-diagnostics";
 import { AUTHOR_KNOWLEDGE, selectAuthorKnowledge, type AuthorKnowledge } from "@/lib/ai/author-knowledge";
 import { buildABExperiment, type ABExperimentPlan } from "@/lib/ai/ab-experiment";
+import { buildVirtualSectionInputs, runABExperiment, type ABExperimentReport } from "@/lib/ai/ab-runner";
 import { DATA_CAPS, listSections } from "@/lib/ai/content-prompt";
 import type { BriefEnrichment } from "@/lib/seo/brief-enrichment";
 import type { ContentBrief, ContentPageType, ContentPromptInput } from "@/lib/ai/content-prompt";
@@ -132,6 +133,22 @@ export async function prepareSectionABExperiment(projectId: string, briefId: str
   const input = await loadSectionGenerationInput(projectId, briefId, sectionId);
   if (!input) return null;
   return buildABExperiment(input);
+}
+
+/**
+ * AI-2.9D.2B (server-only): run the 3-section × 2-variant A/B experiment for a brief. Loads the REAL
+ * scoped context once (from the always-present intro section), builds 3 in-memory virtual sections
+ * (rulaj / KYC / FAQ) WITHOUT touching the brief or CMS, and runs the harness. DRY-RUN by default (no
+ * Anthropic). A live run requires the caller to pass { mode:"live", authorize, complete } explicitly.
+ */
+export async function prepareABExperimentRun(
+  projectId: string,
+  briefId: string,
+  opts: Parameters<typeof runABExperiment>[1] = {},
+): Promise<ABExperimentReport | null> {
+  const base = await loadSectionGenerationInput(projectId, briefId, "intro");
+  if (!base) return null;
+  return runABExperiment(buildVirtualSectionInputs(base), opts);
 }
 
 /**
