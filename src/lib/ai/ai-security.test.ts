@@ -43,3 +43,30 @@ test("input loader is read-only (no CMS writes)", () => {
   assert.match(i, /server-only/);
   assert.doesNotMatch(i, /\.(insert|update|delete|upsert)\(/);
 });
+
+test("AI-2.9D.2E AB action: admin-gated server-side, ids-only, server LIVE token, rulaj-only, no CMS writes", () => {
+  const a = read("src/app/admin/(panel)/content-studio/ab-actions.ts");
+  assert.match(a, /"use server"/);
+  assert.match(a, /requireAdmin\(\)/); // authorization re-checked on every call
+  assert.match(a, /is_admin/);
+  // signature accepts ONLY ids — no prompt/model/authorKnowledge/token/specs from the client
+  assert.match(a, /runRulajABExperimentAction\(projectId: string, briefId: string\)/);
+  // LIVE token stays server-side (imported, never a parameter)
+  assert.match(a, /authorize: LIVE_AUTH_TOKEN/);
+  assert.match(a, /import \{[^}]*LIVE_AUTH_TOKEN[^}]*\} from "@\/lib\/ai\/ab-runner"/);
+  // only the rulaj pair, and the in-flight guard
+  assert.match(a, /buildVirtualSectionInputs\(base\)\.slice\(0, 1\)/);
+  assert.match(a, /acquireABRun\(key\)/);
+  assert.match(a, /releaseABRun\(key\)/);
+  // no CMS writes, no key in the response
+  assert.doesNotMatch(a, /\.(insert|update|delete|upsert)\(/);
+  assert.doesNotMatch(a, /sk-ant|apiKey/);
+});
+
+test("AI-2.9D.2E AB UI: passes ids only, confirms, disables on pending (double-click), no secrets", () => {
+  const c = read("src/components/admin/ContentStudio.tsx");
+  assert.match(c, /runRulajABExperimentAction\(projectId, briefId\)/); // only ids
+  assert.match(c, /window\.confirm\(/); // explicit confirmation
+  assert.match(c, /disabled=\{abPending/); // button disabled while running
+  assert.doesNotMatch(c, /LIVE_AUTH_TOKEN|createAnthropicComplete|sk-ant|apiKey/); // no server-only secrets in the client
+});

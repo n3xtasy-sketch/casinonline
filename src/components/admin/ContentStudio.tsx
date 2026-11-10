@@ -6,6 +6,7 @@ import {
   type StudioBrief, type StudioBriefOption,
 } from "@/app/admin/(panel)/content-studio/actions";
 import { generateBriefSectionAction } from "@/app/admin/(panel)/seo-research/[id]/briefs/ai-actions";
+import { runRulajABExperimentAction, type ABActionResult } from "@/app/admin/(panel)/content-studio/ab-actions";
 import type { SectionGenerationResult } from "@/lib/ai/generate-section";
 import {
   errorLabel, isDirty, needsRegenerateConfirm,
@@ -61,6 +62,19 @@ export function ContentStudio({ projects }: { projects: { id: string; name: stri
   const [baseline, setBaseline] = useState("");
   const [notice, setNotice] = useState<{ tone: "ok" | "err"; text: string } | null>(null);
   const [pending, start] = useTransition();
+  // AI-2.9D.2E — discreet LIVE A/B experiment (rulaj only), separate from the normal generation flow.
+  const [abResult, setAbResult] = useState<ABActionResult | null>(null);
+  const [abPending, startAb] = useTransition();
+
+  const runAbExperiment = () => {
+    if (!projectId || !briefId || abPending) return;
+    if (!window.confirm("Experiment A/B LIVE pentru sectiunea despre rulaj: se executa 2 generari reale (A fara Author Knowledge, B cu Author Knowledge). Continui?")) return;
+    setAbResult(null);
+    startAb(async () => {
+      try { setAbResult(await runRulajABExperimentAction(projectId, briefId)); }
+      catch { setAbResult({ ok: false, error: "Acces interzis sau eroare server." }); }
+    });
+  };
 
   const dirty = !!result?.section && isDirty(content, baseline);
 
@@ -253,6 +267,42 @@ export function ContentStudio({ projects }: { projects: { id: string; name: stri
           ) : null}
           <p className="text-[11px] text-ink-muted">Verifică editorial înainte de orice utilizare. Salvarea în CMS (draft) + istoricul sunt pașii următori.</p>
         </section>
+      ) : null}
+
+      {/* AI-2.9D.2E — experiment A/B LIVE (rulaj), discret, separat de fluxul normal de generare */}
+      {studio ? (
+        <details className="rounded-md border border-border bg-surface p-3 text-sm">
+          <summary className="cursor-pointer font-medium text-ink-secondary">Experiment A/B (rulaj) — LIVE · maximum 2 apeluri</summary>
+          <div className="mt-3 flex flex-col gap-3">
+            <p className="text-[12px] text-ink-muted">Testează DOAR secțiunea despre rulaj (Cum funcționează rulajul la bonusurile fără depunere): A (fără Author Knowledge) vs B (cu Author Knowledge). Rulează 2 generări reale; nu se salvează nimic.</p>
+            <button type="button" onClick={runAbExperiment} disabled={abPending || !briefId}
+              className="h-9 self-start rounded-sm border border-border px-4 text-sm font-medium text-ink hover:bg-elevated disabled:opacity-50">
+              {abPending ? "Se execută experimentul…" : "Rulează experimentul A/B (rulaj)"}
+            </button>
+            {abResult && !abResult.ok ? <p className="text-[12px] text-danger">{abResult.error}</p> : null}
+            {abResult?.ok ? (() => {
+              const r = abResult.report;
+              const row = r.rows[0];
+              return (
+                <div className="flex flex-col gap-2 text-[12px]">
+                  <p className="text-ink-muted">status: {r.completedRuns}/{r.plannedRuns} generări{r.stoppedEarly ? ` · OPRIT: ${r.stopReason}` : ""}</p>
+                  {row ? (
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {([["a", "A — fără Author Knowledge", row.a, row.textA], ["b", "B — cu Author Knowledge", row.b, row.textB]] as const).map(([k, label, s, text]) => (
+                        <div key={k} className="flex flex-col gap-1 rounded-sm border border-border bg-field p-2">
+                          <div className="font-semibold text-ink">{label}</div>
+                          {s ? <div className="text-ink-muted">tokeni: {s.inputTokens ?? "—"} in / {s.outputTokens ?? "—"} out · warnings: {s.validationWarningCount + s.editorialWarningCount} · erori val.: {s.validationErrorCount} · claims: {JSON.stringify(s.claimCounts)}</div> : <div className="text-ink-muted">(nerulat)</div>}
+                          <textarea readOnly value={text ?? ""} className="min-h-32 rounded-sm border border-border bg-surface px-2 py-1 font-mono text-[11px] text-ink" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                  <p className="text-[11px] text-ink-muted">Compară manual (relevanță, precizie, utilitate, claritate, repetiții, afirmații neconfirmate). B nu este declarată automat câștigătoare.</p>
+                </div>
+              );
+            })() : null}
+          </div>
+        </details>
       ) : null}
     </div>
   );
