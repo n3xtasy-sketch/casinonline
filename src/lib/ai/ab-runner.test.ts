@@ -66,13 +66,64 @@ test("plans exactly 6 executions (3 sections × 2 variants) and completes them i
 
 test("A/B parity in every row: A has no knowledge, B has scoped knowledge; same factual context", async () => {
   const report = await runABExperiment(buildVirtualSectionInputs(BASE));
+  assert.equal(report.stoppedEarly, false);
   for (const row of report.rows) {
     assert.equal(row.a.knowledgeCount, 0); // A stripped
-    assert.ok(row.b.knowledgeCount > 0); // B scoped
+    assert.ok(row.b && row.b.knowledgeCount > 0); // B scoped
     assert.equal(row.editorialScores, null); // manual, not auto-computed
     // factual isolation: knowledge adds NO blocking factual error vs A
-    assert.equal(row.comparison.bAddsNoFactualErrors, true);
+    assert.equal(row.comparison?.bAddsNoFactualErrors, true);
   }
+});
+
+// ── AI-2.9D.2C: generated-text access for editorial evaluation ──
+test("the generated text is surfaced for BOTH variants (editorial evaluation), not just lengths", async () => {
+  const report = await runABExperiment(buildVirtualSectionInputs(BASE));
+  for (const row of report.rows) {
+    assert.ok(typeof row.textA === "string" && row.textA.length > 0);
+    assert.ok(typeof row.textB === "string" && row.textB!.length > 0);
+    assert.equal(row.textA!.length, row.a.textLength); // consistent with the summary metric
+  }
+});
+
+// ── AI-2.9D.2C: early abort on a fatal result (not on warnings) ──
+const fatalThrow: CompleteFn = async () => { throw new Error("eroare API simulata"); };
+const parseError: CompleteFn = async () => ({ output: null, stopReason: "end_turn", usage: { inputTokens: 10, outputTokens: 0 }, model: "x" });
+
+test("early abort on an API error: stops before the next variants, preserves partial results", async () => {
+  const inputs = buildVirtualSectionInputs(BASE);
+  const report = await runABExperiment(inputs, { mode: "live", authorize: LIVE_AUTH_TOKEN, complete: fatalThrow });
+  assert.equal(report.stoppedEarly, true);
+  assert.equal(report.completedRuns, 1); // only A of the first section ran
+  assert.equal(report.rows.length, 1);
+  assert.equal(report.rows[0].b, null); // B never ran
+  assert.match(report.stopReason ?? "", /A@.*api_error/);
+});
+
+test("early abort on a fatal (parse) error after A succeeds is still bounded to partial results", async () => {
+  const inputs = buildVirtualSectionInputs(BASE);
+  const report = await runABExperiment(inputs, { mode: "live", authorize: LIVE_AUTH_TOKEN, complete: parseError });
+  assert.equal(report.stoppedEarly, true);
+  assert.equal(report.completedRuns, 1); // A of section 1 is fatal (parse_error) → stop
+  assert.equal(report.rows[0].a.errorKind, "parse_error");
+});
+
+test("NON-fatal warnings (dry-run editorial/validation warnings) do NOT abort — all 6 run", async () => {
+  const report = await runABExperiment(buildVirtualSectionInputs(BASE));
+  assert.equal(report.stoppedEarly, false);
+  assert.equal(report.completedRuns, 6); // warnings keep ok=true → no abort
+  assert.equal(report.stopReason, null);
+});
+
+test("a validation WARNING (numeric without a sourced claim) keeps ok=true → experiment completes", async () => {
+  // valid section with a number but no sourced claim → validation.warnings, ok stays true (not fatal)
+  const warnOnly: CompleteFn = async ({ system, user }) => ({
+    output: { sectionId: "x", heading: "x", content: "Un exemplu conceptual despre bonusuri, 50 lei mentionat fara sursa.", keywordsUsed: [], entitiesUsed: [], internalLinks: [], factualClaims: [], warnings: [] },
+    stopReason: "tool_use", usage: { inputTokens: Math.ceil((system.length + user.length) / 4), outputTokens: 12 }, model: "warn",
+  });
+  const report = await runABExperiment(buildVirtualSectionInputs(BASE).slice(0, 1), { mode: "live", authorize: LIVE_AUTH_TOKEN, complete: warnOnly });
+  assert.equal(report.stoppedEarly, false);
+  assert.equal(report.completedRuns, 2); // A + B both ran (warning is non-fatal)
 });
 
 test("zero side effects: the section inputs are not mutated by a run", async () => {

@@ -80,8 +80,12 @@ export interface ABExperimentRow {
   sectionId: string;
   heading: string;
   a: ABVariantSummary;
-  b: ABVariantSummary;
-  comparison: ABComparison;
+  /** null when the experiment aborted before variant B ran for this section. */
+  b: ABVariantSummary | null;
+  comparison: ABComparison | null; // null when b is null
+  /** The generated text for each variant — surfaced for MANUAL editorial evaluation (no prompts/keys). */
+  textA: string | null;
+  textB: string | null;
   /** Editorial 1-5 scores are entered MANUALLY later — they cannot be computed objectively here. */
   editorialScores: null;
 }
@@ -89,13 +93,22 @@ export interface ABExperimentRow {
 export interface ABExperimentReport {
   mode: ABRunMode;
   plannedRuns: number;   // sections × 2
-  completedRuns: number;
+  completedRuns: number; // runs actually executed
+  /** True when a fatal result stopped the experiment before all variants ran. */
+  stoppedEarly: boolean;
+  /** Short reason (variant@section: errorKind) — no secrets, no prompt text. null when not stopped. */
+  stopReason: string | null;
   rows: ABExperimentRow[];
 }
+
+/** A run is FATAL (aborts the experiment) when ok=false — API error, parse error, truncation or a
+ *  failed validation. Editorial/validation WARNINGS keep ok=true and are NEVER fatal. */
+const isFatal = (r: { ok: boolean }): boolean => !r.ok;
 
 /**
  * Run the A/B experiment. DRY-RUN by default (no Anthropic). For a LIVE run the caller MUST pass both
  * `authorize: LIVE_AUTH_TOKEN` and a `complete` function — otherwise this throws (no accidental calls).
+ * Stops early on the first fatal result, preserving the results already obtained.
  */
 export async function runABExperiment(inputs: ContentPromptInput[], opts: ABRunOptions = {}): Promise<ABExperimentReport> {
   const mode: ABRunMode = opts.mode ?? "dry-run";
@@ -109,13 +122,35 @@ export async function runABExperiment(inputs: ContentPromptInput[], opts: ABRunO
   }
 
   const rows: ABExperimentRow[] = [];
+  let completedRuns = 0;
+  let stoppedEarly = false;
+  let stopReason: string | null = null;
+
   for (const input of inputs) {
-    const ra = await runSectionGeneration(makeVariantInput(input, "A"), complete);
-    const rb = await runSectionGeneration(makeVariantInput(input, "B"), complete);
-    const a = summarizeVariantResult("A", ra);
-    const b = summarizeVariantResult("B", rb);
     const heading = listSections(input.brief).find((s) => s.id === input.sectionId)?.heading ?? input.sectionId;
-    rows.push({ sectionId: input.sectionId, heading, a, b, comparison: compareAB(a, b), editorialScores: null });
+
+    const ra = await runSectionGeneration(makeVariantInput(input, "A"), complete);
+    completedRuns += 1;
+    const a = summarizeVariantResult("A", ra);
+    const textA = ra.section?.content ?? null;
+    if (isFatal(ra)) {
+      rows.push({ sectionId: input.sectionId, heading, a, b: null, comparison: null, textA, textB: null, editorialScores: null });
+      stoppedEarly = true;
+      stopReason = `A@${input.sectionId}: ${ra.errorKind ?? "ok=false"}`;
+      break;
+    }
+
+    const rb = await runSectionGeneration(makeVariantInput(input, "B"), complete);
+    completedRuns += 1;
+    const b = summarizeVariantResult("B", rb);
+    const textB = rb.section?.content ?? null;
+    rows.push({ sectionId: input.sectionId, heading, a, b, comparison: compareAB(a, b), textA, textB, editorialScores: null });
+    if (isFatal(rb)) {
+      stoppedEarly = true;
+      stopReason = `B@${input.sectionId}: ${rb.errorKind ?? "ok=false"}`;
+      break;
+    }
   }
-  return { mode, plannedRuns: inputs.length * 2, completedRuns: rows.length * 2, rows };
+
+  return { mode, plannedRuns: inputs.length * 2, completedRuns, stoppedEarly, stopReason, rows };
 }
