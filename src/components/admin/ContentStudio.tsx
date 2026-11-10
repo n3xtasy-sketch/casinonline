@@ -8,7 +8,7 @@ import {
 import { generateBriefSectionAction } from "@/app/admin/(panel)/seo-research/[id]/briefs/ai-actions";
 import { runRulajABExperimentAction, type ABActionResult } from "@/app/admin/(panel)/content-studio/ab-actions";
 import { articlePreflightAction, generateArticleAction, type ArticlePreflightResult, type ArticleGenerateResult } from "@/app/admin/(panel)/content-studio/article-actions";
-import { assembleSections } from "@/lib/ai/article-engine";
+import { assembleSections, assemblePublishable } from "@/lib/ai/article-engine";
 import type { SectionGenerationResult } from "@/lib/ai/generate-section";
 import {
   errorLabel, isDirty, needsRegenerateConfirm,
@@ -94,9 +94,12 @@ export function ContentStudio({ projects }: { projects: { id: string; name: stri
       } catch { setArtResult({ ok: false, error: "Acces interzis sau eroare server." }); }
     });
   };
-  const articleMarkdown = artResult?.ok
-    ? assembleSections(artResult.article.sections.map((s) => ({ kind: s.kind, level: s.level, heading: s.heading, content: artEdits[s.sectionId] ?? s.result.section?.content ?? "" })))
-    : "";
+  const articleItems = artResult?.ok
+    ? artResult.article.sections.map((s) => ({ kind: s.kind, level: s.level, heading: s.heading, content: artEdits[s.sectionId] ?? s.result.section?.content ?? "", valid: s.result.ok }))
+    : [];
+  const articleMarkdown = assembleSections(articleItems);      // full editorial preview (incl. rejected)
+  const articleExport = assemblePublishable(articleItems);     // publishable export (valid sections only)
+  const excludedCount = articleItems.filter((i) => i.valid === false).length;
 
   const runAbExperiment = () => {
     if (!projectId || !briefId || abPending) return;
@@ -411,7 +414,7 @@ export function ContentStudio({ projects }: { projects: { id: string; name: stri
                   <div className="flex flex-wrap items-center gap-2 text-[12px]">
                     <span className={`${chip} ${a.status === "ok" ? "text-accent" : a.status === "failed" ? "text-danger" : "text-gold"}`}>status: {a.status}</span>
                     <span className="text-ink-muted">tokeni: {a.tokenUsage.inputTokens} in / {a.tokenUsage.outputTokens} out</span>
-                    <button type="button" onClick={() => navigator.clipboard?.writeText(articleMarkdown)} className="h-7 rounded-sm border border-border px-2 text-[11px] text-ink hover:bg-elevated">Copy Markdown</button>
+                    <button type="button" onClick={() => navigator.clipboard?.writeText(articleExport)} className="h-7 rounded-sm border border-border px-2 text-[11px] text-ink hover:bg-elevated">Copy Markdown (publicabil)</button>
                   </div>
 
                   {a.sections.map((s) => (
@@ -443,8 +446,13 @@ export function ContentStudio({ projects }: { projects: { id: string; name: stri
                   </div>
 
                   <label className="flex flex-col gap-1 text-[12px]">
-                    <span className="font-medium text-ink-secondary">Articol asamblat (markdown, actualizat dupa editari) — verifica editorial inainte de publicare</span>
-                    <textarea readOnly value={articleMarkdown} className="min-h-40 rounded-sm border border-border bg-surface px-2 py-1 font-mono text-[11px] text-ink" />
+                    <span className="font-medium text-ink-secondary">Preview editorial complet (toate sectiunile, inclusiv cele respinse) — pentru corectare</span>
+                    <textarea readOnly value={articleMarkdown} className="min-h-32 rounded-sm border border-border bg-surface px-2 py-1 font-mono text-[11px] text-ink" />
+                  </label>
+                  <label className="flex flex-col gap-1 text-[12px]">
+                    <span className="font-medium text-accent">Export publicabil (DOAR sectiuni valide){excludedCount ? ` · ${excludedCount} sectiune(i) respinsa(e) EXCLUSA(e) — corecteaza + regenereaza` : ""}</span>
+                    <textarea readOnly value={articleExport} className="min-h-32 rounded-sm border border-accent/40 bg-surface px-2 py-1 font-mono text-[11px] text-ink" />
+                    <span className="text-[11px] text-ink-muted">Nimic nu se publica automat. Articolul NU este declarat gata de publicare.</span>
                   </label>
                 </div>
               );

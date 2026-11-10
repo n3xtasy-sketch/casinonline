@@ -105,23 +105,31 @@ export interface AssembleItem {
   level: 1 | 2 | 3;
   heading: string;
   content: string;
+  /** Section passed per-section validation. Only valid sections go into the publishable export. */
+  valid?: boolean;
 }
 
-/** Assemble sections into article markdown (intro unheaded; H2/H3 prefixed). Pure — also used client-side
- *  to RE-compute the markdown after an editor edits a section's content. */
+function renderSection(s: AssembleItem): string {
+  const content = s.content.trim();
+  if (!content) return `> [Sectiune de regenerat: ${s.heading}]`;
+  if (s.kind === "intro") return content;
+  return `${"#".repeat(Math.min(3, s.level))} ${s.heading}\n\n${content}`;
+}
+
+/** FULL editorial preview — every section (incl. rejected ones), so the editor can review/fix everything.
+ *  Pure — also used client-side to RE-compute the markdown after an editor edits a section's content. */
 export function assembleSections(items: AssembleItem[]): string {
-  return items
-    .map((s) => {
-      const content = s.content.trim();
-      if (!content) return `> [Sectiune de regenerat: ${s.heading}]`;
-      if (s.kind === "intro") return content;
-      return `${"#".repeat(Math.min(3, s.level))} ${s.heading}\n\n${content}`;
-    })
-    .join("\n\n");
+  return items.map(renderSection).join("\n\n");
+}
+
+/** PUBLISHABLE export — ONLY sections that passed validation (valid !== false). Rejected sections are
+ *  EXCLUDED from what ships; they remain in the editor (preview) for correction. Nothing is auto-published. */
+export function assemblePublishable(items: AssembleItem[]): string {
+  return items.filter((s) => s.valid !== false).map(renderSection).join("\n\n");
 }
 
 function assemble(sections: ArticleSectionOutcome[]): string {
-  return assembleSections(sections.map((s) => ({ kind: s.kind, level: s.level, heading: s.heading, content: s.result.section?.content ?? "" })));
+  return assembleSections(sections.map((s) => ({ kind: s.kind, level: s.level, heading: s.heading, content: s.result.section?.content ?? "", valid: s.result.ok })));
 }
 
 export interface ArticleFactualDiagnostics {

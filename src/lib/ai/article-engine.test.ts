@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { buildArticlePlan, generateArticle, articlePreflight, assembleSections, MAX_ARTICLE_SECTIONS } from "@/lib/ai/article-engine";
+import { buildArticlePlan, generateArticle, articlePreflight, assembleSections, assemblePublishable, MAX_ARTICLE_SECTIONS } from "@/lib/ai/article-engine";
 import { listSections, type ContentBrief, type ContentPromptInput } from "@/lib/ai/content-prompt";
 import type { CompleteFn } from "@/lib/ai/generate-section";
 import type { EntityRecord } from "@/lib/seo/entity-registry";
@@ -130,6 +130,22 @@ test("assembleSections: intro unheaded, H2 prefixed, empty section → regenerat
   assert.ok(md.startsWith("Deschidere."));
   assert.match(md, /## Rulaj\n\nDespre rulaj editat/);
   assert.match(md, /Sectiune de regenerat: Gol/);
+});
+
+// ── AI-3C: publishable export excludes rejected sections (kept in the full preview) ──
+test("assemblePublishable: rejected sections are EXCLUDED from export but kept in the full preview", () => {
+  const items = [
+    { kind: "intro" as const, level: 1 as const, heading: "Intro", content: "Deschidere.", valid: true },
+    { kind: "outline" as const, level: 2 as const, heading: "Rulaj", content: "Despre rulaj.", valid: true },
+    { kind: "outline" as const, level: 2 as const, heading: "Respinsa", content: "Continut cu claim inventat despre MaxBet.", valid: false },
+  ];
+  const preview = assembleSections(items);
+  const exportMd = assemblePublishable(items);
+  assert.match(preview, /## Respinsa/); // full preview keeps the rejected section (for correction)
+  assert.doesNotMatch(exportMd, /## Respinsa/); // publishable export omits it
+  assert.doesNotMatch(exportMd, /MaxBet/); // its invented content does not ship
+  assert.match(exportMd, /## Rulaj/); // valid sections kept
+  assert.ok(exportMd.startsWith("Deschidere."));
 });
 
 // ── safety ──

@@ -517,3 +517,38 @@ test("source discipline: A/B parity preserved after the prompt change (only know
   const plan = buildABExperiment(input({ cmsFacts: [fact()], authorKnowledge: [AK] }))!;
   assert.equal(plan.parity.ok, true); // system/contract/sources identical; only the knowledge block differs
 });
+
+// ════════════════════════ AI-3C OPERATOR ATTRIBUTION DISCIPLINE ════════════════════════
+test("AI-3C: grounding rules forbid attributing commercial terms to a named/discovered operator", () => {
+  const r = buildContentPrompt(input())!;
+  assert.match(r.systemPrompt, /Numele unui operator care apare in FAPTE .* confirma DOAR ca exista/);
+  assert.match(r.systemPrompt, /Nu atribui unui operator anume sume, rulaj, castig maxim, licenta, KYC sau expirare/);
+});
+
+test("AI-3C validator (unchanged): a known-but-unconfirmed operator in entitiesUsed → error", () => {
+  const v = validateGeneratedSection({ ...GOOD, entitiesUsed: ["MaxBet Casino"] }, input());
+  assert.equal(v.ok, false);
+  assert.ok(v.errors.some((e) => /Entitate neconfirmata/.test(e)));
+});
+
+test("AI-3C validator: a bonus sum present only in the name, sourced to bonuses.amount (no fact) → invented", () => {
+  const v = validateGeneratedSection({ ...GOOD, content: "MaxBet ofera 25 RON fara depunere.", factualClaims: [{ claim: "25 RON fara depunere", sourceRef: "bonuses.amount" }] }, input({ cmsFacts: [] }));
+  assert.equal(v.ok, false);
+  assert.ok(v.claimChecks?.some((c) => c.verdict === "invented"));
+});
+
+test("AI-3C validator: an unsupported license claim sourced to casinos.license (no fact) → invented", () => {
+  const v = validateGeneratedSection({ ...GOOD, factualClaims: [{ claim: "detine licenta ONJN", sourceRef: "casinos.license" }] }, input({ cmsFacts: [] }));
+  assert.ok(v.claimChecks?.some((c) => c.verdict === "invented"));
+});
+
+test("AI-3C validator: an explicitly hypothetical numeric example (no factualClaim) is allowed", () => {
+  const v = validateGeneratedSection({ ...GOOD, content: "Ipotetic, la un rulaj de 30x pariezi de 30 de ori suma bonusului.", factualClaims: [] }, input({ cmsFacts: [] }));
+  assert.equal(v.ok, true);
+});
+
+test("AI-3C validator: an offer value with a VERIFIED CMS fact → supported", () => {
+  const vf = fact({ factId: "bonus:b1:wagering", field: "bonuses.wagering_multiplier", status: "verified", numericValue: 30 });
+  const v = validateGeneratedSection({ ...GOOD, factualClaims: [{ claim: "rulaj 30x", sourceRef: "bonuses.wagering_multiplier" }] }, input({ cmsFacts: [vf] }));
+  assert.ok(v.claimChecks?.some((c) => c.verdict === "supported"));
+});

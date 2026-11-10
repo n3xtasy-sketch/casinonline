@@ -53,8 +53,9 @@ test("AI-3B: Content Studio Article Engine UI — ids-only actions, confirm, Cop
   assert.match(c, /generateArticleAction\(projectId, briefId\)/);  // generate: ids only
   assert.match(c, /window\.confirm\(`Generare articol complet LIVE/); // explicit LIVE confirmation
   assert.match(c, /disabled=\{artPending/); // disabled while running (double-click)
-  assert.match(c, /navigator\.clipboard\?\.writeText\(articleMarkdown\)/); // Copy Markdown
-  assert.match(c, /assembleSections\(/); // markdown re-computed from edited section contents
+  assert.match(c, /navigator\.clipboard\?\.writeText\(articleExport\)/); // Copy Markdown copies the publishable export (valid sections only)
+  assert.match(c, /assembleSections\(/); // full editorial preview re-computed from edited contents
+  assert.match(c, /assemblePublishable\(/); // AI-3C: publishable export excludes rejected sections
   assert.match(c, /INDISPONIBIL \(tarife neconfigurate\)/); // monetary cost shown unavailable
   assert.doesNotMatch(c, /createAnthropicComplete|LIVE_AUTH_TOKEN|sk-ant|apiKey/); // no server-only secrets in the client
 });
