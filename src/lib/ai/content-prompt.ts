@@ -66,6 +66,9 @@ export interface ContentPromptInput {
   /** AI-2.9B: scoped author-knowledge entries — INTERPRETATION/guidance, never facts. Rendered in a
    *  clearly-labelled block; never enters cmsFacts / confirmedEntityKeys / the factual source allowlist. */
   authorKnowledge?: AuthorKnowledge[];
+  /** AI-3A: compact summary of already-generated sections (for article coherence + anti-repetition).
+   *  Context only — never a factual source and never widens the confirmed/mentionable set. */
+  priorSummary?: string;
   /** Which section to generate (from listSections). */
   sectionId: string;
 }
@@ -321,6 +324,14 @@ export function buildContentPrompt(input: ContentPromptInput): ContentPromptResu
       ].join("\n")
     : ""; // omitted by the userPrompt .filter(Boolean)
 
+  // AI-3A — compact recap of prior sections for coherence. Context only (not facts), rendered only when present.
+  const PRIOR = input.priorSummary?.trim()
+    ? [
+        "----- SECTIUNI ANTERIOARE (recap pentru coerenta — NU repeta ce s-a spus deja; nu e sursa factuala) -----",
+        input.priorSummary.trim(),
+      ].join("\n")
+    : "";
+
   const SUGGESTIONS = [
     "----- SUGESTII KE-2 (IDEI, NU FAPTE — nu le afirma ca adevar) -----",
     suggestedTopics.length ? `Topicuri: ${suggestedTopics.join("; ")}` : "Topicuri: (niciunul)",
@@ -341,6 +352,8 @@ export function buildContentPrompt(input: ContentPromptInput): ContentPromptResu
     CMS_FACTS,
     "",
     KNOWLEDGE,
+    "",
+    PRIOR,
     "",
     SUGGESTIONS,
     "",

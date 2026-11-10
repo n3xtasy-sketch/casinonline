@@ -86,6 +86,34 @@ async function assembleScopedBrief(projectId: string, briefId: string): Promise<
   };
 }
 
+/** AI-3A (server-only): ordered ContentPromptInput for EVERY section of a brief (intro + outline + faq),
+ *  each with its own scoped Author Knowledge — the input list the Article Engine iterates. One DB load. */
+export async function loadArticleSectionInputs(projectId: string, briefId: string): Promise<ContentPromptInput[] | null> {
+  const a = await assembleScopedBrief(projectId, briefId);
+  if (!a) return null;
+  const relevantEntityIds = [...a.scoped.cmsEntities, ...a.scoped.discoveredEntities].map((e) => e.id);
+  return listSections(a.cb).map((section) => ({
+    pageType: a.pageType,
+    brief: a.cb,
+    enrichment: a.enrichment,
+    cmsEntities: a.scoped.cmsEntities,
+    cmsRelations: a.scoped.cmsRelations,
+    internalLinks: a.scoped.internalLinks,
+    cmsFacts: a.selectedFacts,
+    discoveredEntities: a.scoped.discoveredEntities,
+    authorKnowledge: selectAuthorKnowledge(AUTHOR_KNOWLEDGE, {
+      pageType: a.pageType,
+      searchIntent: a.cb.intent,
+      sectionKind: section.kind,
+      sectionHeading: section.heading,
+      primaryKeyword: a.cb.primaryKeyword,
+      secondaryKeywords: a.cb.secondaryKeywords,
+      relevantEntityIds,
+    }),
+    sectionId: section.id,
+  }));
+}
+
 export async function loadSectionGenerationInput(
   projectId: string,
   briefId: string,
