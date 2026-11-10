@@ -414,7 +414,7 @@ export function ContentStudio({ projects }: { projects: { id: string; name: stri
                   <div className="flex flex-wrap items-center gap-2 text-[12px]">
                     <span className={`${chip} ${a.status === "ok" ? "text-accent" : a.status === "failed" ? "text-danger" : "text-gold"}`}>status: {a.status}</span>
                     <span className="text-ink-muted">tokeni: {a.tokenUsage.inputTokens} in / {a.tokenUsage.outputTokens} out</span>
-                    <button type="button" onClick={() => navigator.clipboard?.writeText(articleExport)} className="h-7 rounded-sm border border-border px-2 text-[11px] text-ink hover:bg-elevated">Copy Markdown (publicabil)</button>
+                    <button type="button" onClick={() => navigator.clipboard?.writeText(articleExport)} className="h-7 rounded-sm border border-border px-2 text-[11px] text-ink hover:bg-elevated">Copy Markdown (sectiuni validate)</button>
                   </div>
 
                   {a.sections.map((s) => (
@@ -450,9 +450,9 @@ export function ContentStudio({ projects }: { projects: { id: string; name: stri
                     <textarea readOnly value={articleMarkdown} className="min-h-32 rounded-sm border border-border bg-surface px-2 py-1 font-mono text-[11px] text-ink" />
                   </label>
                   <label className="flex flex-col gap-1 text-[12px]">
-                    <span className="font-medium text-accent">Export publicabil (DOAR sectiuni valide){excludedCount ? ` · ${excludedCount} sectiune(i) respinsa(e) EXCLUSA(e) — corecteaza + regenereaza` : ""}</span>
+                    <span className="font-medium text-accent">Export sectiuni validate (DOAR sectiuni care au trecut validarea){excludedCount ? ` · ${excludedCount} sectiune(i) respinsa(e) EXCLUSA(e) — corecteaza + regenereaza` : ""}</span>
                     <textarea readOnly value={articleExport} className="min-h-32 rounded-sm border border-accent/40 bg-surface px-2 py-1 font-mono text-[11px] text-ink" />
-                    <span className="text-[11px] text-ink-muted">Nimic nu se publica automat. Articolul NU este declarat gata de publicare.</span>
+                    <span className="text-[11px] text-ink-muted">Validarea tehnica (grounding/surse) NU inseamna aprobare editoriala: verifica editorial inainte de publicare. Nimic nu se publica automat.</span>
                   </label>
                 </div>
               );
