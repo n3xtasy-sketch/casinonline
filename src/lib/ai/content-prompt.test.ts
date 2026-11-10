@@ -8,6 +8,7 @@ import {
 import {
   validateGeneratedSection, classifyEntityReference, confirmedEntityKeys, type GeneratedSection,
 } from "@/lib/ai/content-output";
+import { buildABExperiment } from "@/lib/ai/ab-experiment";
 import type { CmsFact } from "@/lib/ai/cms-facts";
 import type { AuthorKnowledge } from "@/lib/ai/author-knowledge";
 import type { EntityRecord } from "@/lib/seo/entity-registry";
@@ -469,4 +470,50 @@ test("AI-2.6.1: discovered-entity facts are flagged [descoperit automat] + a saf
   assert.match(block, /neconfirmate editorial/);
   // discovered entities are NOT in the confirmed/mentionable set → validator stays strict
   assert.equal(validateGeneratedSection({ ...GOOD, entitiesUsed: ["Bonus Descoperit"] }, input({ cmsFacts: [discFact], discoveredEntities: [discoveredEntity] })).ok, false);
+});
+
+// ════════════════════════ AI-2.9D.2H FACTUAL SOURCE DISCIPLINE ════════════════════════
+test("prompt states the source discipline: entity names are not facts; sourceRef only from the FAPTE block", () => {
+  const r = buildContentPrompt(input({ cmsFacts: [fact()] }))!;
+  // grounding rules carry the two new disciplines
+  assert.match(r.systemPrompt, /Numele sau titlul unei oferte\/entitati NU este un fapt verificat/);
+  assert.match(r.systemPrompt, /foloseste EXCLUSIV un camp sau URL care apare in blocul FAPTE CMS VERIFICATE/);
+  // the CMS facts block reinforces it + allows hypothetical examples
+  assert.match(r.userPrompt, /SURSE: in factualClaims.sourceRef foloseste EXCLUSIV/);
+  assert.match(r.userPrompt, /exemplu EXPLICIT ipotetic, fara operator real/);
+  assert.ok(GROUNDING_RULES.length >= 10);
+});
+
+test("source discipline (validator, unchanged): a value only in the offer name + sourceRef bonuses.amount → invented", () => {
+  // no CMS fact for amount (bonuses have amount=NULL) → bonuses.amount is not in the allowlist
+  const v = validateGeneratedSection({ ...GOOD, content: "Bonusul este de 25 RON.", factualClaims: [{ claim: "bonus 25 RON", sourceRef: "bonuses.amount" }] }, input({ cmsFacts: [] }));
+  assert.equal(v.ok, false);
+  assert.ok(v.claimChecks?.some((c) => c.verdict === "invented"));
+});
+
+test("source discipline: missing wagering_multiplier fact + sourceRef bonuses.wagering_multiplier → invented", () => {
+  const v = validateGeneratedSection({ ...GOOD, factualClaims: [{ claim: "rulaj 30x", sourceRef: "bonuses.wagering_multiplier" }] }, input({ cmsFacts: [] }));
+  assert.equal(v.ok, false);
+  assert.ok(v.claimChecks?.some((c) => c.verdict === "invented"));
+});
+
+test("source discipline: a fabricated URL sourceRef (not in the allowlist) → invented", () => {
+  const v = validateGeneratedSection({ ...GOOD, factualClaims: [{ claim: "oferta", sourceRef: "https://inventat.example/sursa" }] }, input({ cmsFacts: [] }));
+  assert.equal(v.ok, false);
+  assert.ok(v.claimChecks?.some((c) => c.verdict === "invented"));
+});
+
+test("source discipline: an EXPLICITLY HYPOTHETICAL example (no factualClaim, no operator) is allowed", () => {
+  const v = validateGeneratedSection({ ...GOOD, content: "Ipotetic, la un rulaj de 30x pariezi de 30 de ori suma inainte de retragere.", factualClaims: [] }, input({ cmsFacts: [] }));
+  assert.equal(v.ok, true);
+});
+
+test("source discipline: a VERIFIED CMS fact remains a usable source → supported", () => {
+  const v = validateGeneratedSection({ ...GOOD, factualClaims: [{ claim: "rulaj 30x", sourceRef: "bonuses.wagering_multiplier" }] }, input({ cmsFacts: [wageringFact] }));
+  assert.ok(v.claimChecks?.some((c) => c.verdict === "supported"));
+});
+
+test("source discipline: A/B parity preserved after the prompt change (only knowledge differs)", () => {
+  const plan = buildABExperiment(input({ cmsFacts: [fact()], authorKnowledge: [AK] }))!;
+  assert.equal(plan.parity.ok, true); // system/contract/sources identical; only the knowledge block differs
 });
